@@ -26,7 +26,7 @@
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
 
-                <v-dialog v-model="dialog" max-width="500px">
+                <v-dialog v-model="dialog" max-width="700px">
                   <v-card>
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
@@ -35,7 +35,7 @@
                     <v-card-text>
                       <v-container>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col cols="2" class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="ref_no"
                               v-model="editedItem.ref_no"
@@ -45,7 +45,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="report_title"
                               v-model="editedItem.report_title"
@@ -58,7 +58,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-autocomplete
                               name="department"
                               v-model="editedItem.department_id"
@@ -75,9 +75,7 @@
                               @blur="$v.editedItem.department_id.$touch()"
                             ></v-autocomplete>
                           </v-col>
-                        </v-row>
-                        <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-autocomplete
                               name="programmer"
                               v-model="editedItem.programmer_id"
@@ -96,7 +94,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-autocomplete
                               name="validator"
                               v-model="editedItem.validator_id"
@@ -106,9 +104,25 @@
                               label="Validator"
                             ></v-autocomplete>
                           </v-col>
+
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                            <v-autocomplete
+                              name="type"
+                              v-model="editedItem.type"
+                              :items="types"
+                              item-value="value"
+                              item-text="text"
+                              label="Report Type"
+                              required
+                              :error-messages="typeErrors"
+                              @change="$v.editedItem.type.$touch()"
+                              @blur="$v.editedItem.type.$touch()"
+                            ></v-autocomplete>
+                          </v-col>
+
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0 mb-4">
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-menu
                               v-model="input_date_received"
                               :close-on-content-click="false"
@@ -137,9 +151,7 @@
                               ></v-date-picker>
                             </v-menu>
                           </v-col>
-                        </v-row>
-                        <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-menu
                               v-model="input_date_approved"
                               :close-on-content-click="false"
@@ -170,28 +182,31 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col cols="6" class="mt-1 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="ideal"
                               v-model="editedItem.ideal"
                               label="Ideal"
                             ></v-text-field>
                           </v-col>
-                        </v-row>
-                        <v-row>
-                          <v-col class="pa-0 ma-0">
-                            <v-autocomplete
-                              name="type"
-                              v-model="editedItem.type"
-                              :items="types"
-                              item-value="value"
-                              item-text="text"
-                              label="Report Type"
-                              required
-                              :error-messages="typeErrors"
-                              @change="$v.editedItem.type.$touch()"
-                              @blur="$v.editedItem.type.$touch()"
-                            ></v-autocomplete>
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                            <v-text-field-money
+                                class="mt-2"
+                                v-model="editedItem.template_percent"
+                                v-bind:properties="{
+                                  name: 'template_percent',
+                                  suffix: '%',
+                                  placeholder: '0.00',
+                                  label: 'Template %',
+                                }"
+                                v-bind:options="{
+                                  length: 4,
+                                  precision: 2,
+                                  empty: null,
+                                }"
+                                v-bind:label="'Template %'"
+                              >
+                              </v-text-field-money>
                           </v-col>
                         </v-row>
                       </v-container>
@@ -216,31 +231,35 @@
               </v-toolbar>
             </template>
           </v-card-title>
-          <v-data-table
-            :headers="headers"
-            :items="projects"
-            :search="search"
-            :loading="loading"
-            loading-text="Loading... Please wait"
-          >
-            <template v-slot:item.actions="{ item }">
-              <v-icon
-                small
-                class="mr-2"
-                color="green"
-                @click="editProject(item)"
+          <div style="width: 100%; overflow-x: scroll">
+            <div style="width: 2000px">
+              <v-data-table
+                :headers="headers"
+                :items="projects"
+                :search="search"
+                :loading="loading"
+                loading-text="Loading... Please wait"
               >
-                mdi-pencil
-              </v-icon>
-              <v-icon
-                small
-                color="red"
-                @click="showConfirmAlert(item)"
-              >
-                mdi-delete
-              </v-icon>
-            </template>
-          </v-data-table>
+                <template v-slot:item.template_percent="{ item }">
+                  {{ item.template_percent ? item.template_percent + '%' : "" }}
+                </template>
+
+                <template v-slot:item.actions="{ item }">
+                  <v-icon
+                    small
+                    class="mr-2"
+                    color="green"
+                    @click="editProject(item)"
+                  >
+                    mdi-pencil
+                  </v-icon>
+                  <v-icon small color="red" @click="showConfirmAlert(item)">
+                    mdi-delete
+                  </v-icon>
+                </template>
+              </v-data-table>
+            </div>
+          </div>
         </v-card>
       </v-main>
     </div>
@@ -270,17 +289,18 @@ export default {
     return {
       search: "",
       headers: [
-        { text: "Ref No.", value: "ref_no" },
-        { text: "Report Title", value: "report_title" },
-        { text: "Department", value: "department" },
-        { text: "Programmer", value: "programmer" },
-        { text: "Validator", value: "validator" },
-        { text: "Date Logged", value: "date_logged" },
-        { text: "Date Received", value: "date_received" },
-        { text: "Date Approved", value: "date_approved" },
-        { text: "Report Type", value: "type" },
-        { text: "Ideal", value: "ideal" },
-        { text: "Actions", value: "actions", sortable: false },
+        { text: "Ref No.", value: "ref_no", sortable: false },
+        { text: "Report Title", value: "report_title", sortable: false },
+        { text: "Department", value: "department", sortable: false },
+        { text: "Programmer", value: "programmer", sortable: false },
+        { text: "Validator", value: "validator", sortable: false },
+        { text: "Date Logged", value: "date_logged", sortable: false },
+        { text: "Date Received", value: "date_received", sortable: false },
+        { text: "Date Approved", value: "date_approved", sortable: false },
+        { text: "User Type", value: "type", sortable: false },
+        { text: "Ideal", value: "ideal", sortable: false },
+        { text: "Template %", value: "template_percent", sortable: false },
+        { text: "Actions", value: "actions", sortable: false, width: "80px" },
       ],
       input_date_received: false,
       input_date_approved: false,
@@ -293,8 +313,8 @@ export default {
       programmers: [],
       validators: [],
       types: [
-        { text: "New", value: "New" }, 
-        { text: "Change Order", value: "Change Order"  }
+        { text: "New", value: "New" },
+        { text: "Change Order", value: "Change Order" },
       ],
       editedIndex: -1,
       editedItem: {
@@ -311,6 +331,7 @@ export default {
         date_approved: "",
         type: "",
         ideal: "",
+        template_percent: "",
       },
       defaultItem: {
         ref_no: "",
@@ -326,6 +347,7 @@ export default {
         date_approved: "",
         type: "",
         ideal: "",
+        template_percent: "",
       },
       permissions: {
         project_list: false,
@@ -355,15 +377,23 @@ export default {
     },
 
     editProject(item) {
-      let date_received = new Date(item.date_received);
-      let date_approved = new Date(item.date_approved);
+      let date_received = "";
+      let date_approved = "";
+
       this.editedIndex = this.projects.indexOf(item);
       this.editedItem = Object.assign({}, item);
-      this.date_received =  new Date().toISOString().substr(0, 10);
-      this.date_approved = new Date().toISOString().substr(0, 10);
-      console.log(this.date_received);
-      console.log(item.date_received);
-      
+
+      if (item.date_received) {
+        date_received = item.date_received.split("/");
+        this.date_received =
+          date_received[2] + "-" + date_received[0] + "-" + date_received[1];
+      }
+      if (item.date_approved) {
+        date_approved = item.date_approved.split("/");
+        this.date_approved =
+          date_approved[2] + "-" + date_approved[0] + "-" + date_approved[1];
+      }
+
       this.dialog = true;
     },
 
@@ -454,6 +484,7 @@ export default {
             },
           }).then(
             (response) => {
+              console.log(response.data);
               if (response.data.success) {
                 Object.assign(this.projects[this.editedIndex], this.editedItem);
                 this.showAlert();
@@ -496,19 +527,10 @@ export default {
     },
     clear() {
       this.$v.$reset();
-      this.editedItem.ref_no = "";
-      this.editedItem.report_title = "";
-      this.department = "";
-      this.department_id = "";
-      this.manager = "";
-      this.programmer = "";
-      this.programmer_id = "";
-      this.validator = "";
-      this.validator_id = "";
+      this.editedItem = this.defaultItem;
       this.date_received = "";
       this.date_approved = "";
-      this.type = "";
-      this.ideal = "";
+ 
     },
     getRefNumber() {
       Axios.get("/api/project/get_ref_no", {
@@ -518,9 +540,7 @@ export default {
       }).then(
         (response) => {
           let ref_no = response.data;
-          console.log(ref_no);
           this.editedItem.ref_no = ref_no;
-
         },
         (error) => {
           console.log(error);
@@ -536,10 +556,8 @@ export default {
     departmentOnChange() {
       let department_id = this.editedItem.department_id;
 
-      for(let [key, val] of this.departments.entries())
-      {
-        if(department_id == val.id)
-        {
+      for (let [key, val] of this.departments.entries()) {
+        if (department_id == val.id) {
           this.editedItem.department = val.name;
         }
       }
@@ -547,10 +565,8 @@ export default {
     programmerOnChange() {
       let programmer_id = this.editedItem.programmer_id;
 
-      for(let [key, val] of this.programmers.entries())
-      {
-        if(programmer_id == val.id)
-        {
+      for (let [key, val] of this.programmers.entries()) {
+        if (programmer_id == val.id) {
           this.editedItem.programmer = val.name;
         }
       }
@@ -558,15 +574,12 @@ export default {
     validatorOnChange() {
       let validator_id = this.editedItem.validator_id;
 
-      for(let [key, val] of this.validators.entries())
-      {
-        if(validator_id == val.id)
-        {
+      for (let [key, val] of this.validators.entries()) {
+        if (validator_id == val.id) {
           this.editedItem.validator = val.name;
         }
       }
-    }
-
+    },
   },
   computed: {
     formTitle() {
@@ -604,11 +617,9 @@ export default {
     typeErrors() {
       const errors = [];
       if (!this.$v.editedItem.type.$dirty) return errors;
-      !this.$v.editedItem.type.required &&
-        errors.push("Type is required.");
+      !this.$v.editedItem.type.required && errors.push("Type is required.");
       return errors;
     },
-    
   },
   mounted() {
     access_token = localStorage.getItem("access_token");

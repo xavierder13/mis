@@ -11,7 +11,7 @@
         </v-breadcrumbs>
         <v-card>
           <v-card-title>
-            Services Record
+            Department Lists
             <v-spacer></v-spacer>
             <v-text-field
               v-model="search"
@@ -43,7 +43,7 @@
                     <v-card-text>
                       <v-container>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="department"
                               v-model="editedItem.department"
@@ -56,7 +56,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col cols="2" class="pa-0 ma-0">
+                          <v-col cols="2" class="mt-0 mb-0 pt-0 pb-0">
                             <v-switch
                               v-model="switch1"
                               :label="activeStatus"
@@ -160,7 +160,7 @@ export default {
           link: "/dashboard",
         },
         {
-          text: "Department List",
+          text: "Department Lists",
           disabled: true,
         },
       ],

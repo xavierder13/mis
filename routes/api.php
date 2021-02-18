@@ -63,6 +63,11 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
         'as' => 'project.update',
     ]);
 
+    Route::post('/update_status', [
+        'uses' => 'API\ProjectController@update_status',
+        'as' => 'project.update_status',
+    ]);
+
     Route::post('/delete', [
         'uses' => 'API\ProjectController@delete',
         'as' => 'project.delete',
@@ -71,6 +76,35 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
     Route::get('/get_ref_no', [
         'uses' => 'API\ProjectController@getRefNo',
         'as' => 'get_ref_no',
+    ]);
+
+});
+
+// Projects Logs Routes
+Route::group(['prefix' => 'project_log', 'middleware' => ['auth:api']], function(){
+    Route::get('/index', [
+        'uses' => 'API\ProjectLogController@index',
+        'as' => 'project_log.index',
+    ]);
+
+    Route::post('/store', [
+        'uses' => 'API\ProjectLogController@store',
+        'as' => 'project_log.store',
+    ]);
+
+    Route::get('/edit/{id}', [
+        'uses' => 'API\ProjectLogController@edit',
+        'as' => 'project_log.edit',
+    ]);
+
+    Route::post('/update/{id}', [
+        'uses' => 'API\ProjectLogController@update',
+        'as' => 'project_log.update',
+    ]);
+
+    Route::post('/delete', [
+        'uses' => 'API\ProjectLogController@delete',
+        'as' => 'project_log.delete',
     ]);
 
 });
@@ -110,7 +144,7 @@ Route::group(['prefix' => 'user', 'middleware' => ['auth:api']], function(){
 });
 
 
-// User Routes
+// Department Routes
 Route::group(['prefix' => 'department', 'middleware' => ['auth:api']], function(){
     Route::get('/index', [
         'uses' => 'API\DepartmentController@index',
@@ -139,7 +173,7 @@ Route::group(['prefix' => 'department', 'middleware' => ['auth:api']], function(
 
 });
 
-// User Routes
+// Manager Routes
 Route::group(['prefix' => 'manager', 'middleware' => ['auth:api']], function(){
     Route::get('/index', [
         'uses' => 'API\ManagerController@index',
@@ -179,5 +213,37 @@ Route::group(['prefix' => 'ref_no_setting', 'middleware' => ['auth:api']], funct
         'uses' => 'API\RefNoSettingController@update',
         'as' => 'ref_no_setting.index',
     ]);
+
+});
+
+// Holiday Routes
+Route::group(['prefix' => 'holiday', 'middleware' => ['auth:api']], function(){
+    Route::get('/index', [
+        'uses' => 'API\HolidayController@index',
+        'as' => 'holiday.index',
+    ]);
+
+    Route::post('/store', [
+        'uses' => 'API\HolidayController@store',
+        'as' => 'holiday.store',
+    ]);
+
+    Route::get('/edit/{id}', [
+        'uses' => 'API\HolidayController@edit',
+        'as' => 'holiday.edit',
+    ]);
+
+    Route::post('/update/{id}', [
+        'uses' => 'API\HolidayController@update',
+        'as' => 'holiday.update',
+    ]);
+
+    Route::post('/delete', [
+        'uses' => 'API\HolidayController@delete',
+        'as' => 'holiday.delete',
+    ]);
+
+
+
 
 });

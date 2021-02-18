@@ -5,7 +5,21 @@ namespace App;
 use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model
-{
+{   
+    protected $fillable = [
+        'ref_no',
+        'report_title',
+        'programmer_id',
+        'validator_id',
+        'date_receive',
+        'date_approve',
+        'type',
+        'department_id',
+        'ideal',
+        'template_percent',
+        'status',
+    ];
+
     public function departments()
     {
         return $this->hasOne('App\Department', 'id', 'department_id');

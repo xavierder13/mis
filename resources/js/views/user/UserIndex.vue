@@ -42,7 +42,7 @@
                     <v-card-text>
                       <v-container>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="name"
                               v-model="editedItem.name"
@@ -54,7 +54,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="email"
                               v-model="editedItem.email"
@@ -67,7 +67,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col cclass="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="password"
                               v-model="password"
@@ -83,7 +83,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="confirm_password"
                               v-model="confirm_password"
@@ -99,7 +99,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col class="pa-0 ma-0">
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-autocomplete
                               name="type"
                               v-model="editedItem.type"
@@ -130,7 +130,7 @@
                           </v-col>
                         </v-row> -->
                         <v-row>
-                          <v-col cols="2" class="pa-0 ma-0">
+                          <v-col cols="2" class="mt-0 mb-0 pt-0 pb-0">
                             <v-switch
                               v-model="switch1"
                               :label="activeStatus"
@@ -149,7 +149,7 @@
                         color="primary"
                         @click="save"
                         :disabled="disabled"
-                        class="mb-4"
+                        class="mb-4 mr-4"
                       >
                         Save
                       </v-btn>
@@ -245,7 +245,7 @@ export default {
         type: "",
         role: "",
         roles: [],
-        active: "",
+        active: "Y",
       },
       defaultItem: {
         name: "",
@@ -255,7 +255,7 @@ export default {
         type:"",
         role: "",
         roles: [],
-        active: "",
+        active: "Y",
       },
       password: "",
       confirm_password: "",
@@ -284,12 +284,21 @@ export default {
     },
 
     editUser(item) {
+      
       this.editedIndex = this.users.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.dialog = true;
       this.emailReadonly = true;
       this.password = "password";
       this.confirm_password = "password";
+      if(item.active == 'Y')
+      {
+        this.switch1 = true;
+      }
+      else
+      {
+        this.switch1 = false;
+      }
     },
 
     deleteUser(user_id) {
@@ -403,17 +412,20 @@ export default {
             },
           }).then(
             (response) => {
+              console.log(response.data);
               if (response.data.success) {
-                this.disabled = false;
+                
                 this.showAlert();
                 this.close();
 
                 //push recently added data from database
                 this.users.push(response.data.user);
               }
+              this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.disabled = false;
             }
           );
         }
@@ -425,7 +437,7 @@ export default {
       this.emailReadonly = false;
       this.password = "";
       this.confirm_password = "";
-      this.editedItem.active = true;
+      this.editedItem.active = "Y";
       this.passwordHasChanged = false;
       this.switch1 = true;
     },

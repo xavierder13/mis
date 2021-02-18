@@ -23,6 +23,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {   
+        return $request;
         
         $rules = [
             'name.required' => 'Please enter name',

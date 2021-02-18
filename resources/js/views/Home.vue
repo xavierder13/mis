@@ -37,6 +37,12 @@
           </v-list-item-icon>
           <v-list-item-title>Dashboard</v-list-item-title>
         </v-list-item>
+        <v-list-item link :to="{ name: 'programmer.reports' }">
+          <v-list-item-icon>
+            <v-icon>mdi-file-document</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>Reports</v-list-item-title>
+        </v-list-item>
         <v-list-item link :to="{ name: 'user.index' }">
           <v-list-item-icon>
             <v-icon>mdi-account-arrow-right-outline</v-icon>
@@ -72,6 +78,11 @@
           >
             <v-list-item-content>
               <v-list-item-title>Ref No. Settings</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+          <v-list-item link to="/holiday/index">
+            <v-list-item-content>
+              <v-list-item-title>Holiday</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
         </v-list-group>
@@ -125,6 +136,7 @@ export default {
 
   mounted() {
     access_token = localStorage.getItem("access_token");
+    this.user = localStorage.getItem("user");
   },
 };
 </script>
