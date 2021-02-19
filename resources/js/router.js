@@ -4,6 +4,7 @@ import Home from './views/Home.vue';
 import Login from './auth/Login.vue';
 import Dashboard from './views/dashboard/Dashboard.vue';
 import ProgrammerReports from './views/programmer_reports/ProgrammerReports.vue';
+import ProjectLogs from './views/project_logs/ProjectLogs.vue';
 import UserIndex from './views/user/UserIndex.vue';
 import DepartmentIndex from './views/department/DepartmentIndex.vue';
 import ManagerIndex from './views/manager/ManagerIndex.vue';
@@ -28,6 +29,11 @@ const routes = [
         path: '/programmer_reports',
         name: 'programmer.reports',
         component: ProgrammerReports,
+      },
+      {
+        path: '/project_logs/:project_id',
+        name: 'project.logs',
+        component: ProjectLogs,
       },
       {
         path: '/user/index',

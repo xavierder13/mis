@@ -102,7 +102,7 @@ class ProjectController extends Controller
             $project->date_approve = Carbon::parse($request->get('date_approved'))->format('Y-m-d');
         }
         $project->ideal = $request->get('ideal');
-        $project->template = $request->get('template_percent');
+        $project->template_percent = $request->get('template_percent');
         $project->type = $request->get('type');
         $project->status = "Pending";
         $project->save();

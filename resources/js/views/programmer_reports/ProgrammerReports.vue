@@ -2,9 +2,27 @@
   <div class="flex column">
     <div id="_wrapper" class="pa-5">
       <v-main>
+        <v-breadcrumbs :items="items">
+          <template v-slot:item="{ item }">
+            <v-breadcrumbs-item :to="item.link" :disabled="item.disabled">
+              {{ item.text.toUpperCase() }}
+            </v-breadcrumbs-item>
+          </template>
+        </v-breadcrumbs>
         <v-card>
           <v-card-title>
-            Programmer Projects
+            <v-select
+              v-model="filter_project_by_programmer"
+              :items="programmers"
+              item-text="name"
+              item-value="id"
+              label="Report Status"
+              hide-details=""
+              v-if="user_type == 'Admin'"
+            ></v-select>
+
+            {{ user_type == "Programmer" ? user + " Projects" : "" }}
+
             <v-spacer></v-spacer>
             <v-text-field
               v-model="search"
@@ -75,6 +93,7 @@
                                 <v-text-field
                                   name="remarks_date"
                                   v-model="computedRemarksDateFormatted"
+                                  label="Date"
                                   hint="MM/DD/YYYY"
                                   persistent-hint
                                   prepend-icon="mdi-calendar"
@@ -104,7 +123,7 @@
                               <template v-slot:activator="{ on, attrs }">
                                 <v-text-field
                                   v-model="remarks_time"
-                                  label="Picker in dialog"
+                                  label="Time"
                                   prepend-icon="mdi-clock-time-four-outline"
                                   scrollable
                                   readonly
@@ -380,7 +399,12 @@
                       <v-divider class="ma-0"></v-divider>
                       <v-list-item>
                         <v-list-item-title>
-                          <v-btn x-small width="100px" color="info">
+                          <v-btn
+                            x-small
+                            width="100px"
+                            color="info"
+                            @click="viewProjectLogs(item)"
+                          >
                             <v-icon small class="mr-2"> mdi-eye </v-icon>
                             View
                           </v-btn>
@@ -434,13 +458,19 @@ export default {
   data() {
     return {
       items: [
-        { title: "Click Me" },
-        { title: "Click Me" },
-        { title: "Click Me" },
-        { title: "Click Me 2" },
+        {
+          text: "Home",
+          disabled: false,
+          link: "/dashboard",
+        },
+        {
+          text: "Programmer's Projects",
+          disabled: false,
+        },
       ],
       search: "",
       search_report_status: "",
+      filter_project_by_programmer: "",
       headers: [
         {
           text: "Approved/ Filing Date",
@@ -567,6 +597,9 @@ export default {
       remarks_date: "",
       remarks_time: "",
       remarks: "",
+      user: localStorage.getItem("user"),
+      user_type: localStorage.getItem("user_type"),
+      user_id: localStorage.getItem("user_id"),
     };
   },
 
@@ -578,12 +611,17 @@ export default {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
-        console.log(response.data);
         this.projects = response.data.projects;
         this.departments = response.data.departments;
         this.programmers = response.data.programmers;
         this.validators = response.data.validators;
         this.loading = false;
+
+        if (this.user_type == "Admin") {
+          this.filter_project_by_programmer = this.programmers[0].id;
+        } else {
+          this.filter_project_by_programmer = parseInt(this.user_id);
+        }
       });
     },
 
@@ -626,12 +664,10 @@ export default {
         Axios.post("/api/project_log/store", data, {
           headers: {
             Authorization: "Bearer " + access_token,
-          }
+          },
         }).then(
           (response) => {
-            console.log(response.data);
-            if(response.data.success)
-            {
+            if (response.data.success) {
               this.showAlert();
               this.close();
             }
@@ -642,26 +678,14 @@ export default {
             console.log(error);
             this.disabled = false;
           }
-        )
-
+        );
       }
-
     },
-    deleteProject(project_id) {
-      const data = { project_id: project_id };
-
-      Axios.post("/api/project/delete", data, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
-        (response) => {
-          console.log(response.data);
-        },
-        (error) => {
-          console.log(error);
-        }
-      );
+    viewProjectLogs(item) {
+      this.$router.push({
+        name: "project.logs",
+        params: { project_id: item.id },
+      });
     },
 
     showAlert() {
@@ -700,21 +724,7 @@ export default {
       this.remarks_time = "";
       this.remarks = "";
     },
-    getRefNumber() {
-      Axios.get("/api/project/get_ref_no", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
-        (response) => {
-          let ref_no = response.data;
-          this.editedItem.ref_no = ref_no;
-        },
-        (error) => {
-          console.log(error);
-        }
-      );
-    },
+
     updateReportStatus(project_id) {
       this.editedItem.project_id = project_id;
 
@@ -724,7 +734,6 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
           if (response.data.success) {
             Object.assign(this.projects[this.editedIndex], this.editedItem);
             this.showAlert();
@@ -749,12 +758,20 @@ export default {
 
       this.projects.forEach((value, index) => {
         if (this.search_report_status == value.status) {
-          filteredProjects.push(value);
+          if (this.filter_project_by_programmer == value.programmer_id) {
+            filteredProjects.push(value);
+          } else {
+            filteredProjects.push(value);
+          }
         }
       });
 
       if (!this.search_report_status) {
-        return this.projects;
+        this.projects.forEach((value, index) => {
+          if (this.filter_project_by_programmer == value.programmer_id) {
+            filteredProjects.push(value);
+          }
+        });
       }
 
       this.report_status = [
@@ -777,20 +794,7 @@ export default {
         errors.push("Report Title is required.");
       return errors;
     },
-    departmentErrors() {
-      const errors = [];
-      if (!this.$v.editedItem.department_id.$dirty) return errors;
-      !this.$v.editedItem.department_id.required &&
-        errors.push("Department is required.");
-      return errors;
-    },
-    programmerErrors() {
-      const errors = [];
-      if (!this.$v.editedItem.programmer_id.$dirty) return errors;
-      !this.$v.editedItem.programmer_id.required &&
-        errors.push("Programmer is required.");
-      return errors;
-    },
+
     computedProgramDateFormatted() {
       this.editedItem.program_date = this.formatDate(this.program_date);
       return this.editedItem.program_date;
@@ -801,18 +805,6 @@ export default {
     },
     computedRemarksDateFormatted() {
       return this.formatDate(this.remarks_date);
-    },
-    typeErrors() {
-      const errors = [];
-      if (!this.$v.editedItem.type.$dirty) return errors;
-      !this.$v.editedItem.type.required && errors.push("Type is required.");
-      return errors;
-    },
-    typeErrors() {
-      const errors = [];
-      if (!this.$v.editedItem.type.$dirty) return errors;
-      !this.$v.editedItem.type.required && errors.push("Type is required.");
-      return errors;
     },
     remarks_dateErrors() {
       const errors = [];

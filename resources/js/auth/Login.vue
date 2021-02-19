@@ -131,6 +131,8 @@
             { 
 
               localStorage.setItem('user', response.data.user.name);
+              localStorage.setItem('user_id', response.data.user.id);
+              localStorage.setItem('user_type', response.data.user.type);
               localStorage.setItem('access_token', response.data.access_token);
               // localStorage.setItem('user_permissions', JSON.stringify(response.data.user_permissions));
               // localStorage.setItem('user_roles', JSON.stringify(response.data.user_roles));

@@ -90,6 +90,9 @@
                                   programmerOnChange()
                               "
                               @blur="$v.editedItem.programmer_id.$touch()"
+                              :readonly="
+                                user_type == 'Programmer' ? true : false
+                              "
                             ></v-autocomplete>
                           </v-col>
                         </v-row>
@@ -119,7 +122,6 @@
                               @blur="$v.editedItem.type.$touch()"
                             ></v-autocomplete>
                           </v-col>
-
                         </v-row>
                         <v-row>
                           <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
@@ -191,22 +193,22 @@
                           </v-col>
                           <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field-money
-                                class="mt-2"
-                                v-model="editedItem.template_percent"
-                                v-bind:properties="{
-                                  name: 'template_percent',
-                                  suffix: '%',
-                                  placeholder: '0.00',
-                                  label: 'Template %',
-                                }"
-                                v-bind:options="{
-                                  length: 4,
-                                  precision: 2,
-                                  empty: null,
-                                }"
-                                v-bind:label="'Template %'"
-                              >
-                              </v-text-field-money>
+                              class="mt-2"
+                              v-model="editedItem.template_percent"
+                              v-bind:properties="{
+                                name: 'template_percent',
+                                suffix: '%',
+                                placeholder: '0.00',
+                                label: 'Template %',
+                              }"
+                              v-bind:options="{
+                                length: 4,
+                                precision: 2,
+                                empty: null,
+                              }"
+                              v-bind:label="'Template %'"
+                            >
+                            </v-text-field-money>
                           </v-col>
                         </v-row>
                       </v-container>
@@ -241,7 +243,7 @@
                 loading-text="Loading... Please wait"
               >
                 <template v-slot:item.template_percent="{ item }">
-                  {{ item.template_percent ? item.template_percent + '%' : "" }}
+                  {{ item.template_percent ? item.template_percent + "%" : "" }}
                 </template>
 
                 <template v-slot:item.actions="{ item }">
@@ -250,10 +252,16 @@
                     class="mr-2"
                     color="green"
                     @click="editProject(item)"
+                    v-if="user_type == 'Admin' || user_id == item.programmer_id"
                   >
                     mdi-pencil
                   </v-icon>
-                  <v-icon small color="red" @click="showConfirmAlert(item)">
+                  <v-icon
+                    small
+                    color="red"
+                    @click="showConfirmAlert(item)"
+                    v-if="user_type == 'Admin' || user_id == item.programmer_id"
+                  >
                     mdi-delete
                   </v-icon>
                 </template>
@@ -356,6 +364,9 @@ export default {
         project_delete: false,
       },
       loading: true,
+      user: localStorage.getItem("user"),
+      user_type: localStorage.getItem("user_type"),
+      user_id: localStorage.getItem("user_id"),
     };
   },
 
@@ -367,7 +378,6 @@ export default {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
-        console.log(response.data);
         this.projects = response.data.projects;
         this.departments = response.data.departments;
         this.programmers = response.data.programmers;
@@ -484,7 +494,6 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
               if (response.data.success) {
                 Object.assign(this.projects[this.editedIndex], this.editedItem);
                 this.showAlert();
@@ -507,7 +516,6 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
               if (response.data.success) {
                 this.showAlert();
                 this.close();
@@ -530,7 +538,11 @@ export default {
       this.editedItem = this.defaultItem;
       this.date_received = "";
       this.date_approved = "";
- 
+
+      if (this.user_type == "Programmer") {
+        this.editedItem.programmer_id = parseInt(this.user_id);
+        this.editedItem.programmer = this.user;
+      }
     },
     getRefNumber() {
       Axios.get("/api/project/get_ref_no", {
@@ -624,6 +636,7 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProject();
+    this.user = localStorage.getItem("user");
   },
 };
 </script>
