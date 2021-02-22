@@ -174,7 +174,17 @@
             <template v-slot:item.status="{ item, index }">
               <v-chip
                 v-if="editedIndex != index"
-                :color="item.status == 'For Validation' ? 'info' : 'secondary'"
+                :color="
+                  item.status == 'For Validation'
+                    ? 'info'
+                    : item.status == 'Ongoing'
+                    ? 'secondary'
+                    : item.status == 'Pending'
+                    ? 'warning'
+                    : item.status == 'Accepted'
+                    ? 'success'
+                    : 'error'
+                "
               >
                 {{ item.status }}
               </v-chip>
@@ -206,6 +216,7 @@ let user_roles;
 import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
+import moment from "moment";
 
 export default {
   mixins: [validationMixin],
@@ -300,11 +311,64 @@ export default {
         this.project = response.data.project;
         this.project_logs = response.data.project_logs;
         this.loading = false;
+
+        let program_hrs = 0;
+
+        this.project_logs.forEach((value, index) => {
+          
+          let line_remarks_datetime = new Date(value.remarks_date + " " + value.remarks_time);
+          let noon_time = new Date(value.remarks_date + " 12:00:00");
+          let remarks_datetime = moment(line_remarks_datetime, "YYYY-MM-DD");
+          let next_line_status = this.project_logs[index].status;
+          let prev_line_status = this.project_logs[index].status;
+          let start = new Date(value.remarks_date + " " + "8:00:00");
+          let start_datetime = moment(start, "YYYY-MM-DD");
+          let end = new Date(value.remarks_date + " " + "17:00:00");
+          let end_datetime = moment(end, "YYYY-MM-DD");
+          let hour_diff = "";
+
+          // get the previous status if index is greater than 0
+          if (index > 0) {
+            prev_line_status = this.project_logs[index - 1].status;
+          }
+
+          // get the next status if index is greater than 0
+          if (this.project_logs.length > (index + 1)) {
+            next_line_status = this.project_logs[index + 1].status;
+          }
+
+          if (value.status == "Ongoing") {
+            
+            if (next_line_status == "Ongoing") {
+      
+              hour_diff = end_datetime.diff(remarks_datetime, "minute");
+              // exclude breaktime
+              if (line_remarks_datetime < noon_time) {
+                hour_diff = hour_diff - 60;
+              }
+            } 
+            else 
+            {
+              hour_diff = remarks_datetime.diff(start_datetime, "minute");
+              // exclude breaktime
+              if (line_remarks_datetime > noon_time) {
+                hour_diff = hour_diff - 60;
+              }
+            }
+            program_hrs = program_hrs + hour_diff / 60;
+            console.log((hour_diff/60).toFixed(2));
+          } 
+          else 
+          {
+
+          }
+        });
+        console.log("Total Programming Hours: " + parseFloat(program_hrs).toFixed(2));
       });
     },
     save() {
       this.$v.$touch();
-      
+
       if (!this.$v.$error) {
         this.disabled = true;
         if (this.editedIndex > -1) {
@@ -371,7 +435,8 @@ export default {
       this.editedItem = Object.assign({}, item);
       if (item.remarks_date) {
         remarks_date = item.remarks_date.split("/");
-        this.editedItem.remarks_date = remarks_date[2] + "-" + remarks_date[0] + "-" + remarks_date[1];
+        this.editedItem.remarks_date =
+          remarks_date[2] + "-" + remarks_date[0] + "-" + remarks_date[1];
       }
     },
 

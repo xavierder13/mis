@@ -47,6 +47,7 @@ class ProjectLogController extends Controller
 
     public function store(Request $request)
     {   
+        return Carbon::parse($request->get('remarks_date'). ' ' .$request->get('remarks_time'))->format('Y-m-d H:i');
 
         $rules = [
             'remarks_date.required' => 'Remarks Date is required',
@@ -83,6 +84,8 @@ class ProjectLogController extends Controller
                          ->where('id', '=', $project_log->id)
                          ->first();
 
+
+
         return response()->json(['success' => 'Record has successfully added', 'project_log' => $project_log], 200);   
     }
 
@@ -108,10 +111,14 @@ class ProjectLogController extends Controller
             return response()->json($validator->errors(), 200);
         }
 
+        Project::where('id', '=', $request->get('project_id'))
+               ->update(['status' => $request->get('status')]);
+
         $project_log = ProjectLog::find($project_log_id);
         $project_log->remarks_date = Carbon::parse($request->get('remarks_date'))->format('Y-m-d');
         $project_log->remarks_time = Carbon::parse($request->get('remarks_time'))->format('H:i');
         $project_log->remarks = $request->get('remarks');
+        $project_log->status = $request->get('status');
         $project_log->save();
 
         $project_log = DB::table('project_logs')

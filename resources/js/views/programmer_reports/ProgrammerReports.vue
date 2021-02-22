@@ -10,13 +10,13 @@
           </template>
         </v-breadcrumbs>
         <v-card>
-          <v-card-title>
+          <v-card-title >
             <v-select
               v-model="filter_project_by_programmer"
               :items="programmers"
               item-text="name"
               item-value="id"
-              label="Report Status"
+              label="Programmer"
               hide-details=""
               v-if="user_type == 'Admin'"
             ></v-select>
@@ -583,6 +583,7 @@ export default {
         { text: "For Validation", value: "For Validation" },
         { text: "Ongoing", value: "Ongoing" },
         { text: "Pending", value: "Pending" },
+        { text: "Accepted", value: "Accepted" },
       ],
       report_status: [
         { text: "For Validation", value: "For Validation" },
@@ -622,6 +623,7 @@ export default {
         } else {
           this.filter_project_by_programmer = parseInt(this.user_id);
         }
+        
       });
     },
 
@@ -629,7 +631,7 @@ export default {
       let program_date = "";
       let validation_date = "";
 
-      this.editedIndex = this.projects.indexOf(item);
+      this.editedIndex = this.filteredProjects.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.program_date = "";
       this.validation_date = "";
