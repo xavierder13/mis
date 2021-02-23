@@ -217,6 +217,7 @@ import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import moment from "moment";
+import ProgrammerReportsVue from '../programmer_reports/ProgrammerReports.vue';
 
 export default {
   mixins: [validationMixin],
@@ -313,6 +314,7 @@ export default {
         this.loading = false;
 
         let program_hrs = 0;
+        let remainder = 0;
 
         this.project_logs.forEach((value, index) => {
           
@@ -325,7 +327,8 @@ export default {
           let start_datetime = moment(start, "YYYY-MM-DD");
           let end = new Date(value.remarks_date + " " + "17:00:00");
           let end_datetime = moment(end, "YYYY-MM-DD");
-          let hour_diff = "";
+          let mins = 0;
+          
 
           // get the previous status if index is greater than 0
           if (index > 0) {
@@ -341,28 +344,31 @@ export default {
             
             if (next_line_status == "Ongoing") {
       
-              hour_diff = end_datetime.diff(remarks_datetime, "minute");
+              mins = end_datetime.diff(remarks_datetime, "minute");
               // exclude breaktime
               if (line_remarks_datetime < noon_time) {
-                hour_diff = hour_diff - 60;
+                mins = mins - 60;
               }
             } 
             else 
             {
-              hour_diff = remarks_datetime.diff(start_datetime, "minute");
+              mins = remarks_datetime.diff(start_datetime, "minute");
               // exclude breaktime
               if (line_remarks_datetime > noon_time) {
-                hour_diff = hour_diff - 60;
+                mins = mins - 60;
               }
             }
-            program_hrs = program_hrs + hour_diff / 60;
-            console.log((hour_diff/60).toFixed(2));
+            
+            remainder = remainder + (mins % 60);
+            program_hrs = program_hrs + parseInt(mins / 60);
+
           } 
           else 
           {
 
           }
         });
+        program_hrs = program_hrs + parseInt(remainder / 60) + ((remainder % 60) / 100)
         console.log("Total Programming Hours: " + parseFloat(program_hrs).toFixed(2));
       });
     },
