@@ -10,7 +10,7 @@
           </template>
         </v-breadcrumbs>
         <v-card>
-          <v-card-title >
+          <v-card-title>
             <v-select
               v-model="filter_project_by_programmer"
               :items="programmers"
@@ -200,6 +200,10 @@
                 :items="filteredProjects"
                 :search="search"
                 :loading="loading"
+                :items-per-page="30"
+                :footer-props="{
+                  'items-per-page-options': [30, 40, 50, -1],
+                }"
                 loading-text="Loading... Please wait"
               >
                 <template v-slot:item.template_percent="{ item, index }">
@@ -623,7 +627,6 @@ export default {
         } else {
           this.filter_project_by_programmer = parseInt(this.user_id);
         }
-        
       });
     },
 

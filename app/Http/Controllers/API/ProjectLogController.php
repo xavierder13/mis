@@ -47,7 +47,7 @@ class ProjectLogController extends Controller
 
     public function store(Request $request)
     {   
-        return Carbon::parse($request->get('remarks_date'). ' ' .$request->get('remarks_time'))->format('Y-m-d H:i');
+        // return Carbon::parse($request->get('remarks_date'). ' ' .$request->get('remarks_time'))->format('Y-m-d H:i');
 
         $rules = [
             'remarks_date.required' => 'Remarks Date is required',

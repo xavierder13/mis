@@ -240,6 +240,10 @@
                 :items="projects"
                 :search="search"
                 :loading="loading"
+                :items-per-page="30"
+                :footer-props="{
+                  'items-per-page-options': [30, 40, 50, -1],
+                }"
                 loading-text="Loading... Please wait"
               >
                 <template v-slot:item.template_percent="{ item }">

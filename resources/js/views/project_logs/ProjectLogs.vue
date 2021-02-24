@@ -169,6 +169,10 @@
             :items="project_logs"
             :search="search"
             :loading="loading"
+            :items-per-page="30"
+            :footer-props="{
+              'items-per-page-options': [30, 40, 50, -1],
+            }"
             loading-text="Loading... Please wait"
           >
             <template v-slot:item.status="{ item, index }">
@@ -217,7 +221,7 @@ import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import moment from "moment";
-import ProgrammerReportsVue from '../programmer_reports/ProgrammerReports.vue';
+import ProgrammerReportsVue from "../programmer_reports/ProgrammerReports.vue";
 
 export default {
   mixins: [validationMixin],
@@ -317,59 +321,144 @@ export default {
         let remainder = 0;
 
         this.project_logs.forEach((value, index) => {
-          
-          let line_remarks_datetime = new Date(value.remarks_date + " " + value.remarks_time);
-          let noon_time = new Date(value.remarks_date + " 12:00:00");
-          let remarks_datetime = moment(line_remarks_datetime, "YYYY-MM-DD");
+          let line_remarks_date = new Date(value.remarks_date);
+          let line_remarks_time = value.remarks_time;
+          let line_remarks_datetime = moment(
+            new Date(value.remarks_date + " " + value.remarks_time),
+            "YYYY-MM-DD"
+          );
+          let next_line_remarks_date = moment(
+            new Date(this.project_logs[index].remarks_date),
+            "YYYY-MM-DD"
+          );
+          let next_line_remarks_time = this.project_logs[index].remarks_time;
+          let next_line_remarks_datetime = moment(
+            new Date(
+              this.project_logs[index].remarks_date +
+                " " +
+                this.project_logs[index].remarks_time
+            ),
+            "YYYY-MM-DD"
+          );
+          let prev_line_remarks_date = moment(
+            new Date(this.project_logs[index].remarks_date),
+            "YYYY-MM-DD"
+          );
+          let prev_line_remarks_datetime = moment(
+            new Date(
+              this.project_logs[index].remarks_date +
+                " " +
+                this.project_logs[index].remarks_time
+            ),
+            "YYYY-MM-DD"
+          );
+          let prev_line_remarks_time = this.project_logs[index].remarks_time;
           let next_line_status = this.project_logs[index].status;
           let prev_line_status = this.project_logs[index].status;
+          let noon_time = new Date(value.remarks_date + " 12:00:00");
           let start = new Date(value.remarks_date + " " + "8:00:00");
           let start_datetime = moment(start, "YYYY-MM-DD");
           let end = new Date(value.remarks_date + " " + "17:00:00");
           let end_datetime = moment(end, "YYYY-MM-DD");
           let mins = 0;
-          
 
           // get the previous status if index is greater than 0
           if (index > 0) {
             prev_line_status = this.project_logs[index - 1].status;
+            prev_line_remarks_date = moment(
+              new Date(this.project_logs[index - 1].remarks_date),
+              "YYYY-MM-DD"
+            );
+            prev_line_remarks_time = this.project_logs[index - 1].remarks_time;
+            prev_line_remarks_datetime = moment(
+              new Date(
+                this.project_logs[index - 1].remarks_date +
+                  " " +
+                  this.project_logs[index - 1].remarks_time
+              ),
+              "YYYY-MM-DD"
+            );
           }
 
           // get the next status if index is greater than 0
-          if (this.project_logs.length > (index + 1)) {
+          if (this.project_logs.length > index + 1) {
             next_line_status = this.project_logs[index + 1].status;
+            next_line_remarks_date = moment(
+              new Date(this.project_logs[index + 1].remarks_date),
+              "YYYY-MM-DD"
+            );
+            next_line_remarks_time = this.project_logs[index + 1].remarks_time;
+            next_line_remarks_datetime = moment(
+              new Date(
+                this.project_logs[index + 1].remarks_date +
+                  " " +
+                  this.project_logs[index + 1].remarks_time
+              ),
+              "YYYY-MM-DD"
+            );
           }
 
           if (value.status == "Ongoing") {
             
             if (next_line_status == "Ongoing") {
-      
-              mins = end_datetime.diff(remarks_datetime, "minute");
+
+              // if ongoing logs is same day
+              if(line_remarks_date == next_line_remarks_date)
+              {
+                mins = next_line_remarks_datetime.diff(line_remarks_datetime, "minute")
+              }
+              else
+              {
+                mins = end_datetime.diff(line_remarks_datetime, "minute");
+              }
+              
               // exclude breaktime
               if (line_remarks_datetime < noon_time) {
                 mins = mins - 60;
               }
-            } 
-            else 
-            {
-              mins = remarks_datetime.diff(start_datetime, "minute");
+            } else if (next_line_status == "Pending") {
+
+              // if ongoing logs is same day
+              if(line_remarks_date == next_line_remarks_date)
+              {
+                mins = next_line_remarks_datetime.diff(line_remarks_datetime, "minute")
+              }
+              else
+              {
+                mins = line_remarks_datetime.diff(start_datetime, "minute");
+              }
+              
+            } else {
+
+              // if for validation logs is same day
+              if(line_remarks_date == next_line_remarks_date)
+              {
+                mins = next_line_remarks_datetime.diff(line_remarks_datetime, "minute")
+              }
+              else
+              {
+                mins = line_remarks_datetime.diff(start_datetime, "minute");
+              }
               // exclude breaktime
               if (line_remarks_datetime > noon_time) {
                 mins = mins - 60;
               }
             }
-            
+
             remainder = remainder + (mins % 60);
             program_hrs = program_hrs + parseInt(mins / 60);
 
-          } 
-          else 
-          {
-
+            console.log(
+              "Hours: " + parseInt(mins / 60) + " Mins: " + (mins % 60)
+            );
+          } else {
           }
         });
-        program_hrs = program_hrs + parseInt(remainder / 60) + ((remainder % 60) / 100)
-        console.log("Total Programming Hours: " + parseFloat(program_hrs).toFixed(2));
+        program_hrs =
+          program_hrs + parseInt(remainder / 60) + (remainder % 60) / 100;
+        console.log(
+          "Total Programming Hours: " + parseFloat(program_hrs).toFixed(2)
+        );
       });
     },
     save() {
