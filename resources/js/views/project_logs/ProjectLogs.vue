@@ -316,150 +316,10 @@ export default {
         this.project = response.data.project;
         this.project_logs = response.data.project_logs;
         this.loading = false;
-
-        let program_hrs = 0;
-        let remainder = 0;
-
-        this.project_logs.forEach((value, index) => {
-          let line_remarks_date = new Date(value.remarks_date);
-          let line_remarks_time = value.remarks_time;
-          let line_remarks_datetime = moment(
-            new Date(value.remarks_date + " " + value.remarks_time),
-            "YYYY-MM-DD"
-          );
-          let next_line_remarks_date = moment(
-            new Date(this.project_logs[index].remarks_date),
-            "YYYY-MM-DD"
-          );
-          let next_line_remarks_time = this.project_logs[index].remarks_time;
-          let next_line_remarks_datetime = moment(
-            new Date(
-              this.project_logs[index].remarks_date +
-                " " +
-                this.project_logs[index].remarks_time
-            ),
-            "YYYY-MM-DD"
-          );
-          let prev_line_remarks_date = moment(
-            new Date(this.project_logs[index].remarks_date),
-            "YYYY-MM-DD"
-          );
-          let prev_line_remarks_datetime = moment(
-            new Date(
-              this.project_logs[index].remarks_date +
-                " " +
-                this.project_logs[index].remarks_time
-            ),
-            "YYYY-MM-DD"
-          );
-          let prev_line_remarks_time = this.project_logs[index].remarks_time;
-          let next_line_status = this.project_logs[index].status;
-          let prev_line_status = this.project_logs[index].status;
-          let noon_time = new Date(value.remarks_date + " 12:00:00");
-          let start = new Date(value.remarks_date + " " + "8:00:00");
-          let start_datetime = moment(start, "YYYY-MM-DD");
-          let end = new Date(value.remarks_date + " " + "17:00:00");
-          let end_datetime = moment(end, "YYYY-MM-DD");
-          let mins = 0;
-
-          // get the previous status if index is greater than 0
-          if (index > 0) {
-            prev_line_status = this.project_logs[index - 1].status;
-            prev_line_remarks_date = moment(
-              new Date(this.project_logs[index - 1].remarks_date),
-              "YYYY-MM-DD"
-            );
-            prev_line_remarks_time = this.project_logs[index - 1].remarks_time;
-            prev_line_remarks_datetime = moment(
-              new Date(
-                this.project_logs[index - 1].remarks_date +
-                  " " +
-                  this.project_logs[index - 1].remarks_time
-              ),
-              "YYYY-MM-DD"
-            );
-          }
-
-          // get the next status if index is greater than 0
-          if (this.project_logs.length > index + 1) {
-            next_line_status = this.project_logs[index + 1].status;
-            next_line_remarks_date = moment(
-              new Date(this.project_logs[index + 1].remarks_date),
-              "YYYY-MM-DD"
-            );
-            next_line_remarks_time = this.project_logs[index + 1].remarks_time;
-            next_line_remarks_datetime = moment(
-              new Date(
-                this.project_logs[index + 1].remarks_date +
-                  " " +
-                  this.project_logs[index + 1].remarks_time
-              ),
-              "YYYY-MM-DD"
-            );
-          }
-
-          if (value.status == "Ongoing") {
-            
-            if (next_line_status == "Ongoing") {
-
-              // if ongoing logs is same day
-              if(line_remarks_date == next_line_remarks_date)
-              {
-                mins = next_line_remarks_datetime.diff(line_remarks_datetime, "minute")
-              }
-              else
-              {
-                mins = end_datetime.diff(line_remarks_datetime, "minute");
-              }
-              
-              // exclude breaktime
-              if (line_remarks_datetime < noon_time) {
-                mins = mins - 60;
-              }
-            } else if (next_line_status == "Pending") {
-
-              // if ongoing logs is same day
-              if(line_remarks_date == next_line_remarks_date)
-              {
-                mins = next_line_remarks_datetime.diff(line_remarks_datetime, "minute")
-              }
-              else
-              {
-                mins = line_remarks_datetime.diff(start_datetime, "minute");
-              }
-              
-            } else {
-
-              // if for validation logs is same day
-              if(line_remarks_date == next_line_remarks_date)
-              {
-                mins = next_line_remarks_datetime.diff(line_remarks_datetime, "minute")
-              }
-              else
-              {
-                mins = line_remarks_datetime.diff(start_datetime, "minute");
-              }
-              // exclude breaktime
-              if (line_remarks_datetime > noon_time) {
-                mins = mins - 60;
-              }
-            }
-
-            remainder = remainder + (mins % 60);
-            program_hrs = program_hrs + parseInt(mins / 60);
-
-            console.log(
-              "Hours: " + parseInt(mins / 60) + " Mins: " + (mins % 60)
-            );
-          } else {
-          }
-        });
-        program_hrs =
-          program_hrs + parseInt(remainder / 60) + (remainder % 60) / 100;
-        console.log(
-          "Total Programming Hours: " + parseFloat(program_hrs).toFixed(2)
-        );
+        this.computeProgramHours;
       });
+
+      
     },
     save() {
       this.$v.$touch();
@@ -652,6 +512,207 @@ export default {
       !this.$v.editedItem.remarks.required &&
         errors.push("Remarks is required.");
       return errors;
+    },
+    computeProgramHours() {
+      let program_hrs = 0;
+      let remainder = 0;
+
+      this.project_logs.forEach((value, index) => {
+        let now_date = moment(
+          new Date().toISOString().substring(0, 10),
+          "YYYY-MM-DD"
+        );
+        let now_datetime = moment(new Date(), "YYYY-MM-DD");
+        let now_datetime_start = moment(
+          new Date(new Date().toISOString().substring(0, 10) + " 08:00:00"),
+          "YYYY-MM-DD"
+        );
+        let now_datetime_end = moment(
+          new Date(now_date + " 17:00:00"),
+          "YYYY-MM-DD"
+        );
+        let now_noon_time = new Date(
+          new Date().toISOString().substring(0, 10) + " 12:00:00"
+        );
+        let line_remarks_date = moment(
+          new Date(value.remarks_date),
+          "YYYY-MM-DD"
+        );
+        let line_remarks_time = value.remarks_time;
+        let line_remarks_datetime = moment(
+          new Date(value.remarks_date + " " + value.remarks_time),
+          "YYYY-MM-DD"
+        );
+        let next_line_remarks_date = moment(
+          new Date(this.project_logs[index].remarks_date),
+          "YYYY-MM-DD"
+        );
+        let next_line_remarks_time = this.project_logs[index].remarks_time;
+        let next_line_remarks_datetime = moment(
+          new Date(
+            this.project_logs[index].remarks_date +
+              " " +
+              this.project_logs[index].remarks_time
+          ),
+          "YYYY-MM-DD"
+        );
+        let prev_line_remarks_date = moment(
+          new Date(this.project_logs[index].remarks_date),
+          "YYYY-MM-DD"
+        );
+        let prev_line_remarks_datetime = moment(
+          new Date(
+            this.project_logs[index].remarks_date +
+              " " +
+              this.project_logs[index].remarks_time
+          ),
+          "YYYY-MM-DD"
+        );
+        let prev_line_remarks_time = this.project_logs[index].remarks_time;
+        let next_line_status = this.project_logs[index].status;
+        let prev_line_status = this.project_logs[index].status;
+        let noon_time = new Date(value.remarks_date + " 12:00:00");
+        let start = new Date(value.remarks_date + " " + "8:00:00");
+        let start_datetime = moment(start, "YYYY-MM-DD");
+        let end = new Date(value.remarks_date + " " + "17:00:00");
+        let end_datetime = moment(end, "YYYY-MM-DD");
+        let mins = 0;
+        let last_index = this.project_logs.length - 1;
+
+        // get the previous status if index is greater than 0
+        if (index > 0) {
+          prev_line_status = this.project_logs[index - 1].status;
+          prev_line_remarks_date = moment(
+            new Date(this.project_logs[index - 1].remarks_date),
+            "YYYY-MM-DD"
+          );
+          prev_line_remarks_time = this.project_logs[index - 1].remarks_time;
+          prev_line_remarks_datetime = moment(
+            new Date(
+              this.project_logs[index - 1].remarks_date +
+                " " +
+                this.project_logs[index - 1].remarks_time
+            ),
+            "YYYY-MM-DD"
+          );
+        }
+
+        // get the next status if index is greater than 0
+        if (this.project_logs.length > index + 1) {
+          next_line_status = this.project_logs[index + 1].status;
+          next_line_remarks_date = moment(
+            new Date(this.project_logs[index + 1].remarks_date),
+            "YYYY-MM-DD"
+          );
+          next_line_remarks_time = this.project_logs[index + 1].remarks_time;
+          next_line_remarks_datetime = moment(
+            new Date(
+              this.project_logs[index + 1].remarks_date +
+                " " +
+                this.project_logs[index + 1].remarks_time
+            ),
+            "YYYY-MM-DD"
+          );
+        }
+
+        // date difference of the current line remarks_date and next line remarks_date
+        let date_diff = next_line_remarks_date.diff(line_remarks_date, "day");
+
+        if (value.status == "Ongoing") {
+          if (next_line_status == "Ongoing") {
+            // if ongoing logs is same day
+            if (date_diff == 0) {
+              mins = next_line_remarks_datetime.diff(
+                line_remarks_datetime,
+                "minute"
+              );
+
+              if (
+                line_remarks_datetime < noon_time &&
+                next_line_remarks_datetime > noon_time
+              ) {
+                mins = mins - 60;
+              }
+            } else {
+              mins = end_datetime.diff(line_remarks_datetime, "minute");
+              // exclude breaktime
+              if (line_remarks_datetime < noon_time) {
+                mins = mins - 60;
+              }
+            }
+
+            // if last index is ongoing
+            if (last_index == index) {
+              let curr_date_diff = now_date.diff(line_remarks_date, "day");
+
+              if (curr_date_diff == 0) {
+                mins = end_datetime.diff(line_remarks_datetime, "minute");
+
+                if (line_remarks_datetime < noon_time) {
+                  mins = mins - 60;
+                }
+              } else {
+                // multiply 8 hrs (480 mins) into date difference except current date
+
+                mins = end_datetime.diff(line_remarks_datetime, "minute");
+
+                if (curr_date_diff > 0) {
+                  mins = mins + 480 * (curr_date_diff - 1);
+                  mins = mins - 60 * (curr_date_diff - 1);
+
+                  if (now_datetime > now_noon_time) {
+                    mins =
+                      mins + now_datetime.diff(now_datetime_start, "minute");
+                    mins = mins - 60;
+                  }
+                  // console.log((60 * (curr_date_diff - 1)));
+                }
+              }
+            }
+          } else if (next_line_status == "Pending") {
+            // if ongoing logs is same day
+            if (date_diff == 0) {
+              mins = next_line_remarks_datetime.diff(
+                line_remarks_datetime,
+                "minute"
+              );
+              // exclude breaktime
+              if (line_remarks_datetime < noon_time) {
+                mins = mins - 60;
+              }
+            } else {
+              mins = line_remarks_datetime.diff(start_datetime, "minute");
+            }
+          } else {
+            // if for validation logs is same day
+            if (date_diff == 0) {
+              mins = next_line_remarks_datetime.diff(
+                line_remarks_datetime,
+                "minute"
+              );
+              // exclude breaktime
+              if (line_remarks_datetime > noon_time) {
+                mins = mins - 60;
+              }
+            } else {
+              mins = line_remarks_datetime.diff(start_datetime, "minute");
+            }
+          }
+
+          remainder = remainder + (mins % 60);
+          program_hrs = program_hrs + parseInt(mins / 60);
+
+          console.log(
+            "Hours: " + parseInt(mins / 60) + " Mins: " + (mins % 60)
+          );
+        } else {
+        }
+      });
+      program_hrs =
+        program_hrs + parseInt(remainder / 60) + (remainder % 60) / 100;
+      console.log(
+        "Total Programming Hours: " + parseFloat(program_hrs).toFixed(2)
+      );
     },
   },
   mounted() {
