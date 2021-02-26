@@ -84,8 +84,6 @@ class ProjectLogController extends Controller
                          ->where('id', '=', $project_log->id)
                          ->first();
 
-
-
         return response()->json(['success' => 'Record has successfully added', 'project_log' => $project_log], 200);   
     }
 

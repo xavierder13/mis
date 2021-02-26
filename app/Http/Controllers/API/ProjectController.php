@@ -43,11 +43,16 @@ class ProjectController extends Controller
 
         $validators = User::where('type', '=', 'Validator')->get();
 
+        $project_logs = Project::with('project_logs')
+                               ->where('status', '!=', 'Cancelled')
+                               ->get();
+
         return response()->json([
             'projects' => $projects, 
             'departments' => $departments,
             'programmers' => $programmers,
             'validators' => $validators,
+            'project_logs' => $project_logs,
         ], 200);
     }
 
