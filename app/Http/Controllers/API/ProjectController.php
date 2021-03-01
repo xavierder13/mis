@@ -22,7 +22,7 @@ class ProjectController extends Controller
                     ->join('managers', 'departments.id', '=', 'managers.department_id')
                     ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
                     ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
-                    ->select('projects.id', 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
+                    ->select(DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
                              DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
                              DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
@@ -45,6 +45,7 @@ class ProjectController extends Controller
 
         $project_logs = Project::with('project_logs')
                                ->where('status', '!=', 'Cancelled')
+                               ->orderBy('id', 'Desc')
                                ->get();
 
         return response()->json([

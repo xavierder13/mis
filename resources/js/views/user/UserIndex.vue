@@ -1,6 +1,14 @@
 <template>
   <div class="flex column">
     <div id="_wrapper" class="pa-5">
+      <v-overlay :absolute="absolute" :value="overlay">
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="primary"
+          indeterminate
+        ></v-progress-circular>
+      </v-overlay>
       <v-main>
         <v-breadcrumbs :items="items">
           <template v-slot:item="{ item }">
@@ -91,7 +99,9 @@
                               label="Confirm Password"
                               required
                               @input="$v.confirm_password.$touch()"
-                              @blur="$v.confirm_password.$touch() + dummyPassword"
+                              @blur="
+                                $v.confirm_password.$touch() + dummyPassword
+                              "
                               @keyup="passwordChange()"
                               @focus="onFocus()"
                               type="password"
@@ -109,9 +119,7 @@
                               label="Report Type"
                               required
                               :error-messages="typeErrors"
-                              @change="
-                                $v.editedItem.type.$touch()
-                              "
+                              @change="$v.editedItem.type.$touch()"
                               @blur="$v.editedItem.type.$touch()"
                             ></v-autocomplete>
                           </v-col>
@@ -209,6 +217,8 @@ export default {
   },
   data() {
     return {
+      absolute: true,
+      overlay: false,
       items: [
         {
           text: "Home",
@@ -252,7 +262,7 @@ export default {
         email: "",
         password: "",
         confirm_password: "",
-        type:"",
+        type: "",
         role: "",
         roles: [],
         active: "Y",
@@ -284,19 +294,15 @@ export default {
     },
 
     editUser(item) {
-      
       this.editedIndex = this.users.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.dialog = true;
       this.emailReadonly = true;
       this.password = "password";
       this.confirm_password = "password";
-      if(item.active == 'Y')
-      {
+      if (item.active == "Y") {
         this.switch1 = true;
-      }
-      else
-      {
+      } else {
         this.switch1 = false;
       }
     },
@@ -348,7 +354,6 @@ export default {
 
           //Call delete User function
           this.deleteProject(user_id);
-
         }
       });
     },
@@ -367,15 +372,14 @@ export default {
 
       if (!this.$v.$error) {
         this.disabled = true;
+        this.overlay = true;
 
         if (this.editedIndex > -1) {
-          
-          if(this.passwordHasChanged)
-          {
+          if (this.passwordHasChanged) {
             this.editedItem.password = this.password;
             this.editedItem.confirm_password = this.confirm_password;
           }
-          
+
           const data = this.editedItem;
           const user_id = this.editedItem.id;
 
@@ -391,16 +395,16 @@ export default {
                 this.showAlert();
                 this.close();
               }
-
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
               this.disabled = false;
             }
           );
         } else {
-          
           this.editedItem.password = this.password;
           this.editedItem.confirm_password = this.confirm_password;
 
@@ -414,17 +418,18 @@ export default {
             (response) => {
               console.log(response.data);
               if (response.data.success) {
-                
                 this.showAlert();
                 this.close();
 
                 //push recently added data from database
                 this.users.push(response.data.user);
               }
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
               this.disabled = false;
             }
           );
@@ -442,7 +447,6 @@ export default {
       this.switch1 = true;
     },
     onFocus() {
-
       if (this.editedIndex > -1) {
         if (!this.passwordHasChanged) {
           this.password = "";
@@ -451,12 +455,9 @@ export default {
       }
     },
     passwordChange() {
-      if(this.password || this.confirm_password)
-      {
+      if (this.password || this.confirm_password) {
         this.passwordHasChanged = true;
-      }
-      else
-      {
+      } else {
         this.passwordHasChanged = false;
       }
     },

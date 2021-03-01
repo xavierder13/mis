@@ -43,18 +43,20 @@
           </v-list-item-icon>
           <v-list-item-title>Reports</v-list-item-title>
         </v-list-item>
-        <v-list-item link :to="{ name: 'user.index' }">
+        <v-list-item
+          link
+          :to="{ name: 'user.index' }"
+          v-if="user_type == 'Admin'"
+        >
           <v-list-item-icon>
             <v-icon>mdi-account-arrow-right-outline</v-icon>
           </v-list-item-icon>
           <v-list-item-title>User</v-list-item-title>
         </v-list-item>
 
-        <v-list-group
-          no-action
-        >
+        <v-list-group no-action v-if="user_type == 'Admin'">
           <!-- List Group Icon-->
-         <v-icon slot="prependIcon">mdi-cog</v-icon>
+          <v-icon slot="prependIcon">mdi-cog</v-icon>
           <!-- List Group Title -->
           <template v-slot:activator>
             <v-list-item-content>
@@ -72,10 +74,7 @@
               <v-list-item-title>Manager</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item
-            link
-            to="/ref_no_setting/index"
-          >
+          <v-list-item link to="/ref_no_setting/index">
             <v-list-item-content>
               <v-list-item-title>Ref No. Settings</v-list-item-title>
             </v-list-item-content>
@@ -88,7 +87,14 @@
         </v-list-group>
       </v-list>
     </v-navigation-drawer>
-
+    <v-overlay :absolute="absolute" :value="overlay">
+      <v-progress-circular
+        :size="70"
+        :width="7"
+        color="primary"
+        indeterminate
+      ></v-progress-circular>
+    </v-overlay>
     <!-- Content -->
     <router-view />
   </v-app>
@@ -102,6 +108,8 @@ import Axios from "axios";
 export default {
   data() {
     return {
+      absolute: true,
+      overlay: false,
       drawer: true,
       mini: false,
       right: null,
@@ -109,12 +117,15 @@ export default {
       user: null,
       loading: null,
       initiated: false,
-      user: "",
+      user: localStorage.getItem("user"),
+      user_type: localStorage.getItem("user_type"),
+      user_id: localStorage.getItem("user_id"),
     };
   },
 
   methods: {
     logout() {
+      this.overlay = true;
       Axios.get("/api/auth/logout", {
         headers: {
           Authorization: "Bearer " + access_token,
@@ -122,12 +133,14 @@ export default {
       }).then(
         (response) => {
           if (response.data.success) {
+            this.overlay = false;
             localStorage.removeItem("access_token");
             localStorage.removeItem("user");
             this.$router.push("/login").catch(() => {});
           }
         },
         (error) => {
+          this.overlay = false;
           console.log(error);
         }
       );
@@ -136,7 +149,6 @@ export default {
 
   mounted() {
     access_token = localStorage.getItem("access_token");
-    this.user = localStorage.getItem("user");
   },
 };
 </script>

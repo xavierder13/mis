@@ -1,6 +1,14 @@
 <template>
   <div class="flex column">
     <div id="_wrapper" class="pa-5">
+      <v-overlay :absolute="absolute" :value="overlay">
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="primary"
+          indeterminate
+        ></v-progress-circular>
+      </v-overlay>
       <v-main>
         <v-breadcrumbs :items="items">
           <template v-slot:item="{ item }">
@@ -66,7 +74,10 @@
                               label="Department"
                               required
                               :error-messages="departmentErrors"
-                              @change="$v.editedItem.department_id.$touch() + departmentOnChange()"
+                              @change="
+                                $v.editedItem.department_id.$touch() +
+                                  departmentOnChange()
+                              "
                               @blur="$v.editedItem.department_id.$touch()"
                             ></v-autocomplete>
                           </v-col>
@@ -147,6 +158,8 @@ export default {
   },
   data() {
     return {
+      absolute: true,
+      overlay: false,
       switch1: true,
       search: "",
       headers: [
@@ -293,6 +306,7 @@ export default {
       this.$v.$touch();
 
       if (!this.$v.$error) {
+        this.overlay = true;
         this.disabled = true;
 
         if (this.editedIndex > -1) {
@@ -313,11 +327,13 @@ export default {
                 this.showAlert();
                 this.close();
               }
-
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
+              this.disabled = false;
             }
           );
         } else {
@@ -338,9 +354,13 @@ export default {
                 //push recently added data from database
                 this.managers.push(response.data.manager);
               }
+              this.overlay = false;
+              this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
+              this.disabled = false;
             }
           );
         }
@@ -354,18 +374,15 @@ export default {
       this.editedItem.active = "Y";
       this.switch1 = true;
     },
-    departmentOnChange()
-    {
+    departmentOnChange() {
       let department_id = this.editedItem.department_id;
 
-      for(let [key, val] of this.departments.entries())
-      {
-        if(department_id == val.id)
-        {
+      for (let [key, val] of this.departments.entries()) {
+        if (department_id == val.id) {
           this.editedItem.department = val.name;
         }
       }
-    }
+    },
   },
   computed: {
     formTitle() {

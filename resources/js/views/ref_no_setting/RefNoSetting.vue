@@ -1,6 +1,14 @@
 <template>
   <div class="flex column">
     <div id="_wrapper" class="pa-5">
+      <v-overlay :absolute="absolute" :value="overlay">
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="primary"
+          indeterminate
+        ></v-progress-circular>
+      </v-overlay>
       <v-main>
         <v-breadcrumbs :items="items">
           <template v-slot:item="{ item }">
@@ -71,6 +79,8 @@ export default {
   },
   data() {
     return {
+      absolute: true,
+      overlay: false,
       switch1: true,
       disabled: false,
       items: [
@@ -126,13 +136,12 @@ export default {
     save() {
       if (!this.$v.$error) {
         this.disabled = true;
+        this.overlay = true;
 
         const data = {
           start: this.start,
           active: this.active,
         };
-
-        console.log(data);
 
         let settings_id = this.settings.id;
 
@@ -146,11 +155,13 @@ export default {
             if (response.data.success) {
               this.showAlert();
             }
-
+            this.overlay = false;
             this.disabled = false;
           },
           (error) => {
             console.log(error);
+            this.overlay = false;
+            this.disabled = false;
           }
         );
       }

@@ -1,6 +1,14 @@
 <template>
   <div class="flex column">
     <div id="_wrapper" class="pa-5">
+      <v-overlay :absolute="absolute" :value="overlay">
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="primary"
+          indeterminate
+        ></v-progress-circular>
+      </v-overlay>
       <v-main>
         <v-breadcrumbs :items="items">
           <template v-slot:item="{ item }">
@@ -49,8 +57,16 @@
                               v-model="editedItem.department"
                               label="Department"
                               required
-                              :error-messages="departmentIsTaken ? departmentError : departmentErrors"
-                              @input="$v.editedItem.department.$touch() + (departmentIsTaken = false) + (departmentError = '')"
+                              :error-messages="
+                                departmentIsTaken
+                                  ? departmentError
+                                  : departmentErrors
+                              "
+                              @input="
+                                $v.editedItem.department.$touch() +
+                                  (departmentIsTaken = false) +
+                                  (departmentError = '')
+                              "
                               @blur="$v.editedItem.department.$touch()"
                             ></v-text-field>
                           </v-col>
@@ -101,11 +117,7 @@
               >
                 mdi-pencil
               </v-icon>
-              <v-icon
-                small
-                color="red"
-                @click="showConfirmAlert(item)"
-              >
+              <v-icon small color="red" @click="showConfirmAlert(item)">
                 mdi-delete
               </v-icon>
             </template>
@@ -134,6 +146,8 @@ export default {
   },
   data() {
     return {
+      absolute: true,
+      overlay: false,
       switch1: true,
       search: "",
       headers: [
@@ -190,17 +204,13 @@ export default {
     },
 
     editDepartment(item) {
-      
       this.editedIndex = this.departments.indexOf(item);
       this.editedItem.id = item.id;
       this.editedItem.department = item.name;
       this.editedItem.active = item.active;
-      if(this.editedItem.active == "Y")
-      {
+      if (this.editedItem.active == "Y") {
         this.switch1 = true;
-      }
-      else
-      {
+      } else {
         this.switch1 = false;
       }
       this.dialog = true;
@@ -281,6 +291,7 @@ export default {
       this.$v.$touch();
 
       if (!this.$v.$error) {
+        this.overlay = true;
         this.disabled = true;
 
         if (this.editedIndex > -1) {
@@ -293,22 +304,23 @@ export default {
             },
           }).then(
             (response) => {
-
               if (response.data.success) {
-                Object.assign(this.departments[this.editedIndex], response.data.department);
+                Object.assign(
+                  this.departments[this.editedIndex],
+                  response.data.department
+                );
                 this.showAlert();
                 this.close();
-              }
-              else if(response.data.department)
-              {
+              } else if (response.data.department) {
                 this.departmentIsTaken = true;
-                this.departmentError = 'Department already exists';
+                this.departmentError = "Department already exists";
               }
-
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
             }
           );
         } else {
@@ -322,23 +334,21 @@ export default {
             (response) => {
               console.log(response.data);
               if (response.data.success) {
-                
                 this.showAlert();
                 this.close();
 
                 //push recently added data from database
                 this.departments.push(response.data.department);
-              }
-              else if(response.data.department)
-              {
+              } else if (response.data.department) {
                 this.departmentIsTaken = true;
-                this.departmentError = 'Department already exists';
+                this.departmentError = "Department already exists";
               }
-
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
             }
           );
         }
@@ -372,14 +382,12 @@ export default {
         this.editedItem.active = "N";
         return " Inactive";
       }
-
     },
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
 
     this.getDepartment();
-
   },
 };
 </script>

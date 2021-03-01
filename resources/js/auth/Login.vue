@@ -1,35 +1,24 @@
 <template>
   <v-app v-if="!user">
     <v-main>
-      <v-container
-        fluid
-        fill-height
-      >
-        <v-layout
-          align-center
-          justify-center
-        >
-          <v-flex
-            xs12
-            sm8
-            md4
-          >
+      <v-container fluid fill-height>
+        <v-layout align-center justify-center>
+          <v-flex xs12 sm8 md4>
+            <v-overlay :absolute="absolute" :value="overlay">
+              <v-progress-circular
+                :size="70"
+                :width="7"
+                color="primary"
+                indeterminate
+              ></v-progress-circular>
+            </v-overlay>
             <v-card class="elevation-12">
-              <v-toolbar
-                color="dark"
-                dark
-                flat
-              >
-                <v-toolbar-title color >Login</v-toolbar-title>
+              <v-toolbar color="dark" dark flat>
+                <v-toolbar-title color>Login</v-toolbar-title>
                 <v-spacer></v-spacer>
               </v-toolbar>
               <v-card-text>
-                <v-alert
-                  dense
-                  outlined
-                  type="error"
-                  v-if="isInvalid"
-                >
+                <v-alert dense outlined type="error" v-if="isInvalid">
                   Invalid Credentials
                 </v-alert>
                 <v-form class="mr-5 ml-5">
@@ -62,7 +51,9 @@
                 </v-form>
               </v-card-text>
               <v-card-actions class="mr-5 ml-5">
-                <v-btn color="primary" class="mb-5 mr-5" block @click="login">Login</v-btn>
+                <v-btn color="primary" class="mb-5 mr-5" block @click="login"
+                  >Login</v-btn
+                >
               </v-card-actions>
             </v-card>
           </v-flex>
@@ -73,101 +64,94 @@
 </template>
 
 <script>
+import Axios from "axios";
+import { validationMixin } from "vuelidate";
+import { required, maxLength, email } from "vuelidate/lib/validators";
 
-  import Axios from 'axios';
-  import { validationMixin } from "vuelidate";
-  import { required, maxLength, email } from "vuelidate/lib/validators";
+export default {
+  name: "login",
+  mixins: [validationMixin],
 
-  export default {
-    name: 'login',
-    mixins: [validationMixin],
-
-    validations: {
-      email: { required },
-      password: { required },
+  validations: {
+    email: { required },
+    password: { required },
+  },
+  data() {
+    return {
+      email: "",
+      password: "",
+      user: null,
+      isInvalid: false,
+      absolute: true,
+      overlay: false,
+    };
+  },
+  computed: {
+    emailErrors() {
+      const errors = [];
+      if (!this.$v.email.$dirty) return errors;
+      // !this.$v.lastname.maxLength &&
+      // errors.push("Name must be at most 10 characters long");
+      !this.$v.email.required && errors.push("email is required.");
+      return errors;
     },
-    data () {
-      return {
-        email: "",
-        password: "",
-        user: null,
-        isInvalid: false,
-      }
+
+    passwordErrors() {
+      const errors = [];
+      if (!this.$v.password.$dirty) return errors;
+      !this.$v.password.required && errors.push("Password is required.");
+      return errors;
     },
-    computed: {
+  },
+  methods: {
+    login() {
+      this.$v.$touch();
 
-      emailErrors() {
-        const errors = [];
-        if (!this.$v.email.$dirty) return errors;
-        // !this.$v.lastname.maxLength &&
-          // errors.push("Name must be at most 10 characters long");
-        !this.$v.email.required && errors.push("email is required.");
-        return errors;
-      },
+      if (!this.$v.$error) {
+        this.overlay = true;
+        const email = this.email;
+        const password = this.password;
+        const data = { email: email, password: password };
 
-      passwordErrors() {
-        const errors = [];
-        if (!this.$v.password.$dirty) return errors;
-        !this.$v.password.required && errors.push("Password is required.");
-        return errors;
-      },
-
-    },
-    methods: {
-
-      login() {
-
-         this.$v.$touch();
-
-        if(!this.$v.$error)
-        {
-
-          const email = this.email;
-          const password = this.password;
-          const data = {email: email, password: password};
-
-          Axios.post('/api/auth/login', data).then( (response) => {
-            if(response.data.access_token)
-            { 
-
-              localStorage.setItem('user', response.data.user.name);
-              localStorage.setItem('user_id', response.data.user.id);
-              localStorage.setItem('user_type', response.data.user.type);
-              localStorage.setItem('access_token', response.data.access_token);
+        Axios.post("/api/auth/login", data).then(
+          (response) => {
+            if (response.data.access_token) {
+              localStorage.setItem("user", response.data.user.name);
+              localStorage.setItem("user_id", response.data.user.id);
+              localStorage.setItem("user_type", response.data.user.type);
+              localStorage.setItem("access_token", response.data.access_token);
               // localStorage.setItem('user_permissions', JSON.stringify(response.data.user_permissions));
               // localStorage.setItem('user_roles', JSON.stringify(response.data.user_roles));
-              this.$router.push('/').catch(e => {});
+              this.$router.push("/").catch((e) => {});
               this.clear();
               this.email = null;
               this.password = null;
-
-            }
-            else
-            {
+              this.overlay = false;
+            } else {
               this.isInvalid = true;
+              this.overlay = false;
             }
-            
-          }, (error) => {
+          },
+          (error) => {
             console.log(error);
-          });
-
-        }
-      },
-      
-      clear() {
-        this.$v.$reset();
-        this.isInvalid = false;
+          }
+        );
       }
-
     },
 
-    mounted() {
-      let self = this;
-      window.addEventListener('keyup', function (event) {
+    clear() {
+      this.$v.$reset();
+      this.isInvalid = false;
+    },
+  },
+
+  mounted() {
+    let self = this;
+    window.addEventListener("keyup", function (event) {
       if (event.keyCode === 13) {
         self.login();
       }
-    })
-    }
-  }
+    });
+  },
+};
 </script>

@@ -1,6 +1,14 @@
 <template>
   <div class="flex column">
     <div id="_wrapper" class="pa-5">
+      <v-overlay :absolute="absolute" :value="overlay">
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="primary"
+          indeterminate
+        ></v-progress-circular>
+      </v-overlay>
       <v-main>
         <v-breadcrumbs :items="items">
           <template v-slot:item="{ item }">
@@ -421,7 +429,7 @@
                     x-small
                     color="primary"
                     v-if="editedIndex == index"
-                    @click="updateReportStatus(item.id)"
+                    @click="updateReportStatus()"
                   >
                     save
                   </v-btn>
@@ -473,6 +481,8 @@ export default {
   },
   data() {
     return {
+      absolute: true,
+      overlay: false,
       items: [
         {
           text: "Home",
@@ -629,7 +639,6 @@ export default {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
-
         this.projects = response.data.projects;
         this.project_logs = response.data.project_logs;
         this.departments = response.data.departments;
@@ -675,6 +684,7 @@ export default {
       this.$v.$touch();
 
       if (!this.$v.$error) {
+        this.overlay = true;
         this.disabled = true;
         const data = {
           project_id: this.editedItem.id,
@@ -694,11 +704,12 @@ export default {
               this.showAlert();
               this.close();
             }
-
+            this.overlay = false;
             this.disabled = false;
           },
           (error) => {
             console.log(error);
+            this.overlay = false;
             this.disabled = false;
           }
         );
@@ -748,9 +759,9 @@ export default {
       this.remarks = "";
     },
 
-    updateReportStatus(project_id) {
-      this.editedItem.project_id = project_id;
+    updateReportStatus() {
 
+      this.overlay = true;
       Axios.post("/api/project/update_status", this.editedItem, {
         headers: {
           Authorization: "Bearer " + access_token,
@@ -758,12 +769,15 @@ export default {
       }).then(
         (response) => {
           if (response.data.success) {
-            Object.assign(this.projects[this.editedIndex], this.editedItem);
+            
+            this.overlay = false;
+            Object.assign(this.filteredProjects[this.editedIndex], this.editedItem);
             this.showAlert();
             this.clear();
           }
         },
         (error) => {
+          this.overlay = false;
           console.log(error);
         }
       );
@@ -804,7 +818,7 @@ export default {
         { text: "Accepted", value: "Accepted" },
         { text: "Cancelled", value: "Cancelled" },
       ];
-      
+
       return filteredProjects;
     },
     formTitle() {
@@ -985,16 +999,17 @@ export default {
                   mins = mins - 60;
                 }
               }
-  
+
               // if last index is ongoing
               if (last_index == index) {
-                
                 let curr_date_diff = now_date.diff(line_remarks_date, "day");
 
                 // if last remarks log is equal to current date
                 if (curr_date_diff == 0) {
                   if (prev_line_status == "Ongoing") {
-                    mins = now_datetime.diff(line_remarks_datetime, "minute");
+                    if (now_datetime > line_remarks_datetime) {
+                      mins = now_datetime.diff(line_remarks_datetime, "minute");
+                    }
                     if (
                       now_datetime > noon_time &&
                       line_remarks_datetime < noon_time
@@ -1002,9 +1017,19 @@ export default {
                       mins = mins - 60;
                     }
                   } else {
-                    mins = now_datetime.diff(now_datetime_start, "minute");
-                    if (now_datetime > noon_time) {
-                      mins = mins - 60;
+                    if (prev_date_diff > 0) {
+                      mins = line_remarks_datetime.diff(
+                        start_datetime,
+                        "minute"
+                      );
+                      if (line_remarks_datetime > noon_time) {
+                        mins = mins - 60;
+                      }
+                    } else {
+                      mins = now_datetime.diff(line_remarks_datetime, "minute");
+                      if (line_remarks_datetime < noon_time) {
+                        mins = mins - 60;
+                      }
                     }
                   }
                 } else {
@@ -1053,9 +1078,9 @@ export default {
             remainder = remainder + (mins % 60);
             program_hrs = program_hrs + parseInt(mins / 60);
 
-            // console.log(
-            //   "Hours: " + parseInt(mins / 60) + " Mins: " + (mins % 60)
-            // );
+            console.log(
+              "Hours: " + parseInt(mins / 60) + " Mins: " + (mins % 60)
+            );
           }
         });
         program_hrs =
@@ -1063,10 +1088,8 @@ export default {
         // console.log(
         //   "Total Programming Hours: " + parseFloat(program_hrs).toFixed(2)
         // );
-        this.projects[i].program_hrs = program_hrs;
+        this.projects[i].program_hrs = program_hrs.toFixed(2);
       });
-      
-      
     },
     computeValidateHours() {
       this.project_logs.forEach((val, i) => {
@@ -1200,20 +1223,22 @@ export default {
                 mins = end_datetime.diff(line_remarks_datetime, "minute");
                 mins = mins + 480 * (date_diff - 1);
 
-                if (now_datetime > now_noon_time) {
+                if (line_remarks_datetime < now_noon_time) {
                   mins = mins - 60;
                 }
               }
 
               // if last index is ongoing
               if (last_index == index) {
-             
                 let curr_date_diff = now_date.diff(line_remarks_date, "day");
 
                 // if last remarks log is equal to current date
                 if (curr_date_diff == 0) {
                   if (prev_line_status == "For Validation") {
-                    mins = now_datetime.diff(line_remarks_datetime, "minute");
+                    if (now_datetime > line_remarks_datetime) {
+                      mins = now_datetime.diff(line_remarks_datetime, "minute");
+                    }
+
                     if (
                       now_datetime > noon_time &&
                       line_remarks_datetime < noon_time
@@ -1221,9 +1246,19 @@ export default {
                       mins = mins - 60;
                     }
                   } else {
-                    mins = now_datetime.diff(now_datetime_start, "minute");
-                    if (now_datetime > noon_time) {
-                      mins = mins - 60;
+                    if (prev_date_diff > 0) {
+                      mins = line_remarks_datetime.diff(
+                        start_datetime,
+                        "minute"
+                      );
+                      if (line_remarks_datetime > noon_time) {
+                        mins = mins - 60;
+                      }
+                    } else {
+                      mins = now_datetime.diff(line_remarks_datetime, "minute");
+                      if (line_remarks_datetime < noon_time) {
+                        mins = mins - 60;
+                      }
                     }
                   }
                 } else {
@@ -1235,7 +1270,7 @@ export default {
                     mins =
                       mins + now_datetime.diff(now_datetime_start, "minute");
 
-                    if (line_remarks_datetime < now_noon_time) {
+                    if (now_datetime > now_noon_time) {
                       mins = mins - 60;
                     }
 
@@ -1282,9 +1317,8 @@ export default {
         // console.log(
         //   "Total Validation Hours: " + parseFloat(validate_hrs).toFixed(2)
         // );
-        this.projects[i].validate_hrs = validate_hrs;
+        this.projects[i].validate_hrs = validate_hrs.toFixed(2);
       });
-
     },
   },
   mounted() {

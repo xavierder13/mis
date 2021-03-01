@@ -1,6 +1,14 @@
 <template>
   <div class="flex column">
     <div id="_wrapper" class="pa-5">
+      <v-overlay :absolute="absolute" :value="overlay">
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="primary"
+          indeterminate
+        ></v-progress-circular>
+      </v-overlay>
       <v-main>
         <v-breadcrumbs :items="items">
           <template v-slot:item="{ item }">
@@ -245,6 +253,8 @@ export default {
   },
   data() {
     return {
+      absolute: true,
+      overlay: false,
       items: [
         {
           text: "Home",
@@ -325,7 +335,7 @@ export default {
         this.project = response.data.project;
         this.project_logs = response.data.project_logs;
         this.loading = false;
-        // this.computeProgramHours;
+        this.computeProgramHours;
         this.computeValidateHours;
       });
     },
@@ -333,6 +343,7 @@ export default {
       this.$v.$touch();
 
       if (!this.$v.$error) {
+        this.overlay = true;
         this.disabled = true;
         if (this.editedIndex > -1) {
           let project_log_id = this.editedItem.id;
@@ -353,14 +364,16 @@ export default {
                   this.project_logs[this.editedIndex],
                   response.data.project_log
                 );
+
                 this.showAlert();
                 this.close();
               }
-
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
               this.disabled = false;
             }
           );
@@ -379,11 +392,12 @@ export default {
                 this.showAlert();
                 this.close();
               }
-
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
               this.disabled = false;
             }
           );
@@ -526,7 +540,6 @@ export default {
       let remainder = 0;
 
       this.project_logs.forEach((value, index) => {
-        
         let line_remarks_date = moment(
           new Date(value.remarks_date),
           "YYYY-MM-DD"
@@ -651,7 +664,9 @@ export default {
               // if last remarks log is equal to current date
               if (curr_date_diff == 0) {
                 if (prev_line_status == "Ongoing") {
-                  mins = now_datetime.diff(line_remarks_datetime, "minute");
+                  if (now_datetime > line_remarks_datetime) {
+                    mins = now_datetime.diff(line_remarks_datetime, "minute");
+                  }
                   if (
                     now_datetime > noon_time &&
                     line_remarks_datetime < noon_time
@@ -659,9 +674,16 @@ export default {
                     mins = mins - 60;
                   }
                 } else {
-                  mins = now_datetime.diff(now_datetime_start, "minute");
-                  if (now_datetime > noon_time) {
-                    mins = mins - 60;
+                  if (prev_date_diff > 0) {
+                    mins = line_remarks_datetime.diff(start_datetime, "minute");
+                    if (line_remarks_datetime > noon_time) {
+                      mins = mins - 60;
+                    }
+                  } else {
+                    mins = now_datetime.diff(line_remarks_datetime, "minute");
+                    if (line_remarks_datetime < noon_time) {
+                      mins = mins - 60;
+                    }
                   }
                 }
               } else {
@@ -725,7 +747,6 @@ export default {
       let remainder = 0;
 
       this.project_logs.forEach((value, index) => {
-        
         let line_remarks_date = moment(
           new Date(value.remarks_date),
           "YYYY-MM-DD"
@@ -850,7 +871,10 @@ export default {
               // if last remarks log is equal to current date
               if (curr_date_diff == 0) {
                 if (prev_line_status == "For Validation") {
-                  mins = now_datetime.diff(line_remarks_datetime, "minute");
+                  if (now_datetime > line_remarks_datetime) {
+                    mins = now_datetime.diff(line_remarks_datetime, "minute");
+                  }
+
                   if (
                     now_datetime > noon_time &&
                     line_remarks_datetime < noon_time
@@ -858,9 +882,16 @@ export default {
                     mins = mins - 60;
                   }
                 } else {
-                  mins = now_datetime.diff(now_datetime_start, "minute");
-                  if (now_datetime > noon_time) {
-                    mins = mins - 60;
+                  if (prev_date_diff > 0) {
+                    mins = line_remarks_datetime.diff(start_datetime, "minute");
+                    if (line_remarks_datetime > noon_time) {
+                      mins = mins - 60;
+                    }
+                  } else {
+                    mins = now_datetime.diff(line_remarks_datetime, "minute");
+                    if (line_remarks_datetime < noon_time) {
+                      mins = mins - 60;
+                    }
                   }
                 }
               } else {

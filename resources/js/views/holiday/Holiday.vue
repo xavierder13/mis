@@ -1,6 +1,14 @@
 <template>
   <div class="flex column">
     <div id="_wrapper" class="pa-5">
+      <v-overlay :absolute="absolute" :value="overlay">
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="primary"
+          indeterminate
+        ></v-progress-circular>
+      </v-overlay>
       <v-main>
         <v-breadcrumbs :items="items">
           <template v-slot:item="{ item }">
@@ -127,11 +135,7 @@
               >
                 mdi-pencil
               </v-icon>
-              <v-icon
-                small
-                color="red"
-                @click="showConfirmAlert(item)"
-              >
+              <v-icon small color="red" @click="showConfirmAlert(item)">
                 mdi-delete
               </v-icon>
             </template>
@@ -161,6 +165,8 @@ export default {
   },
   data() {
     return {
+      absolute: true,
+      overlay: false,
       input_date: false,
       holiday_date: "",
       switch1: true,
@@ -200,7 +206,6 @@ export default {
         holiday_delete: false,
       },
       loading: true,
-      
     };
   },
 
@@ -218,13 +223,12 @@ export default {
     },
 
     editHoliday(item) {
-      
       let holiday_date = "";
 
       this.editedIndex = this.holidays.indexOf(item);
       this.editedItem.id = item.id;
       this.editedItem.holiday = item.name;
-      this.holiday_date = item.holiday_date
+      this.holiday_date = item.holiday_date;
       this.dialog = true;
 
       if (item.holiday_date) {
@@ -232,7 +236,6 @@ export default {
         this.holiday_date =
           holiday_date[2] + "-" + holiday_date[0] + "-" + holiday_date[1];
       }
-      
     },
 
     deleteHoliday(holiday_id) {
@@ -304,13 +307,13 @@ export default {
         this.editedItem = Object.assign({}, this.defaultItem);
         this.editedIndex = -1;
       });
-      
     },
 
     save() {
       this.$v.$touch();
 
       if (!this.$v.$error) {
+        this.overlay = true;
         this.disabled = true;
 
         if (this.editedIndex > -1) {
@@ -325,15 +328,19 @@ export default {
             (response) => {
               console.log(response.data);
               if (response.data.success) {
-                Object.assign(this.holidays[this.editedIndex], response.data.holiday);
+                Object.assign(
+                  this.holidays[this.editedIndex],
+                  response.data.holiday
+                );
                 this.showAlert();
                 this.close();
               }
-
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
               this.disabled = false;
             }
           );
@@ -348,18 +355,18 @@ export default {
             (response) => {
               console.log(response.data);
               if (response.data.success) {
-                
                 this.showAlert();
                 this.close();
 
                 //push recently added data from database
                 this.holidays.push(response.data.holiday);
               }
-
+              this.overlay = false;
               this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.overlay = false;
               this.disabled = false;
             }
           );
@@ -404,7 +411,6 @@ export default {
     access_token = localStorage.getItem("access_token");
 
     this.getHoliday();
-
   },
 };
 </script>
