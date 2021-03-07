@@ -19,7 +19,26 @@
         </v-breadcrumbs>
         <v-card>
           <v-card-title>
-            {{ project.ref_no + " - " + project.report_title }}
+            {{ project.ref_no ? project.ref_no + " - " + project.report_title : ''}} 
+            
+            <v-chip 
+                v-if="project.status"
+                :color="
+                  project.status == 'For Validation'
+                    ? 'info'
+                    : project.status == 'Ongoing'
+                    ? 'secondary'
+                    : project.status == 'Pending'
+                    ? 'warning'
+                    : project.status == 'Accepted'
+                    ? 'success'
+                    : 'error'
+                "
+                class="ml-4"
+                outlined
+              >
+                {{ project.status }}
+              </v-chip>
             <v-spacer></v-spacer>
 
             <template>
@@ -35,6 +54,7 @@
                       (dialog = true) +
                       (editedItem.status = project.status)
                   "
+                  v-if="project.status != 'Accepted'"
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
@@ -50,9 +70,11 @@
                           <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-select
                               v-model="editedItem.status"
+                              label="Report Status"
                               :items="report_status"
                               item-text="text"
                               item-value="value"
+                              :readonly="editedIndex > -1 ? true : false"
                             ></v-select>
                           </v-col>
                         </v-row>
@@ -150,6 +172,11 @@
                             ></v-textarea>
                           </v-col>
                         </v-row>
+                        <v-row>
+                          <v-col cols="4">
+                            <v-switch v-model="switch1" label="Turn Over" @click="turnoverStatus()"></v-switch>
+                          </v-col>
+                        </v-row>
                       </v-container>
                     </v-card-text>
 
@@ -201,7 +228,7 @@
                 {{ item.status }}
               </v-chip>
             </template>
-            <template v-slot:item.actions="{ item, index }">
+            <template v-slot:item.actions="{ item, index }" v-if="project.status != 'Accepted'">
               <v-icon
                 small
                 class="mr-2"
@@ -253,6 +280,7 @@ export default {
   },
   data() {
     return {
+      switch1: false,
       absolute: true,
       overlay: false,
       items: [
@@ -277,6 +305,8 @@ export default {
         { text: "Time", value: "remarks_time", sortable: false },
         { text: "Status", value: "status", sortable: false },
         { text: "Remarks", value: "remarks", sortable: false },
+        { text: "Turn Over", value: "turnover", sortable: false },
+        { text: "Minutes Diff", value: "mins_diff", sortable: false },
         { text: "Actions", value: "actions", sortable: false, width: "80px" },
       ],
       disabled: false,
@@ -293,12 +323,14 @@ export default {
         remarks_date: "",
         remarks_time: "",
         remarks: "",
+        turnover: "",
       },
       defaultItem: {
         status: "",
         remarks_date: "",
         remarks_time: "",
         remarks: "",
+        turnover: "",
       },
       permissions: {
         project_log_list: false,
@@ -325,7 +357,7 @@ export default {
       this.loading = true;
 
       let project_id = this.$route.params.project_id;
-
+      
       Axios.get("/api/project_log/index/" + project_id, {
         headers: {
           Authorization: "Bearer " + access_token,
@@ -340,14 +372,14 @@ export default {
       });
     },
     save() {
+ 
       this.$v.$touch();
-
       if (!this.$v.$error) {
         this.overlay = true;
         this.disabled = true;
         if (this.editedIndex > -1) {
           let project_log_id = this.editedItem.id;
-
+          
           Axios.post(
             "/api/project_log/update/" + project_log_id,
             this.editedItem,
@@ -365,8 +397,11 @@ export default {
                   response.data.project_log
                 );
 
+                this.project.status = response.data.status;
+
                 this.showAlert();
                 this.close();
+                this.getProjectLogs();
               }
               this.overlay = false;
               this.disabled = false;
@@ -378,7 +413,7 @@ export default {
             }
           );
         } else {
-          this.editedItem.project_id = this.project.id;
+          this.editedItem.project_id = this.project.project_id;
 
           Axios.post("/api/project_log/store", this.editedItem, {
             headers: {
@@ -389,8 +424,12 @@ export default {
               console.log(response.data);
               if (response.data.success) {
                 this.project_logs.push(response.data.project_log);
+
+                this.project.status = response.data.status;
+
                 this.showAlert();
                 this.close();
+                this.getProjectLogs();
               }
               this.overlay = false;
               this.disabled = false;
@@ -415,6 +454,13 @@ export default {
         this.editedItem.remarks_date =
           remarks_date[2] + "-" + remarks_date[0] + "-" + remarks_date[1];
       }
+      if(item.turnover == 'Y') {
+        this.switch1 = true;
+      }
+      else
+      {
+        this.switch1 = false;
+      }
     },
 
     deleteProjectLog(project_log_id) {
@@ -427,6 +473,7 @@ export default {
       }).then(
         (response) => {
           console.log(response.data);
+          this.getProjectLogs();
         },
         (error) => {
           console.log(error);
@@ -498,6 +545,7 @@ export default {
         { text: "Accepted", value: "Accepted" },
         { text: "Cancelled", value: "Cancelled" },
       ];
+      this.switch1 = false;
     },
 
     formatDate(date) {
@@ -505,6 +553,16 @@ export default {
 
       const [year, month, day] = date.split("-");
       return `${month}/${day}/${year}`;
+    },
+    turnoverStatus() {
+      if (this.switch1) {
+        this.editedItem.turnover = "Y";
+      } 
+      else
+      {
+        this.editedItem.turnover = "";
+      }
+
     },
   },
   computed: {
@@ -535,421 +593,7 @@ export default {
         errors.push("Remarks is required.");
       return errors;
     },
-    computeProgramHours() {
-      let program_hrs = 0;
-      let remainder = 0;
-
-      this.project_logs.forEach((value, index) => {
-        let line_remarks_date = moment(
-          new Date(value.remarks_date),
-          "YYYY-MM-DD"
-        );
-        let line_remarks_time = value.remarks_time;
-        let line_remarks_datetime = moment(
-          new Date(value.remarks_date + " " + value.remarks_time),
-          "YYYY-MM-DD"
-        );
-        let next_line_remarks_date = moment(
-          new Date(this.project_logs[index].remarks_date),
-          "YYYY-MM-DD"
-        );
-        let next_line_remarks_time = this.project_logs[index].remarks_time;
-        let next_line_remarks_datetime = moment(
-          new Date(
-            this.project_logs[index].remarks_date +
-              " " +
-              this.project_logs[index].remarks_time
-          ),
-          "YYYY-MM-DD"
-        );
-        let prev_line_remarks_date = moment(
-          new Date(this.project_logs[index].remarks_date),
-          "YYYY-MM-DD"
-        );
-        let prev_line_remarks_datetime = moment(
-          new Date(
-            this.project_logs[index].remarks_date +
-              " " +
-              this.project_logs[index].remarks_time
-          ),
-          "YYYY-MM-DD"
-        );
-        let prev_line_remarks_time = this.project_logs[index].remarks_time;
-        let next_line_status = this.project_logs[index].status;
-        let prev_line_status = this.project_logs[index].status;
-        let noon_time = new Date(value.remarks_date + " 12:00:00");
-        let start = new Date(value.remarks_date + " " + "8:00:00");
-        let start_datetime = moment(start, "YYYY-MM-DD");
-        let end = new Date(value.remarks_date + " " + "17:00:00");
-        let end_datetime = moment(end, "YYYY-MM-DD");
-        let mins = 0;
-        let last_index = this.project_logs.length - 1;
-
-        // get the previous status if index is greater than 0
-        if (index > 0) {
-          prev_line_status = this.project_logs[index - 1].status;
-          prev_line_remarks_date = moment(
-            new Date(this.project_logs[index - 1].remarks_date),
-            "YYYY-MM-DD"
-          );
-          prev_line_remarks_time = this.project_logs[index - 1].remarks_time;
-          prev_line_remarks_datetime = moment(
-            new Date(
-              this.project_logs[index - 1].remarks_date +
-                " " +
-                this.project_logs[index - 1].remarks_time
-            ),
-            "YYYY-MM-DD"
-          );
-        }
-
-        // get the next status if index is greater than 0
-        if (this.project_logs.length > index + 1) {
-          next_line_status = this.project_logs[index + 1].status;
-          next_line_remarks_date = moment(
-            new Date(this.project_logs[index + 1].remarks_date),
-            "YYYY-MM-DD"
-          );
-          next_line_remarks_time = this.project_logs[index + 1].remarks_time;
-          next_line_remarks_datetime = moment(
-            new Date(
-              this.project_logs[index + 1].remarks_date +
-                " " +
-                this.project_logs[index + 1].remarks_time
-            ),
-            "YYYY-MM-DD"
-          );
-        }
-
-        // date difference of the current line remarks_date and next line remarks_date
-        let date_diff = next_line_remarks_date.diff(line_remarks_date, "day");
-
-        // date difference of the previous line remarks_date and current line remarks_date
-        let prev_date_diff = line_remarks_date.diff(
-          prev_line_remarks_date,
-          "day"
-        );
-
-        if (value.status == "Ongoing") {
-          if (next_line_status == "Ongoing") {
-            // if ongoing logs is same day
-            if (date_diff == 0) {
-              mins = next_line_remarks_datetime.diff(
-                line_remarks_datetime,
-                "minute"
-              );
-
-              if (
-                line_remarks_datetime < noon_time &&
-                next_line_remarks_datetime > noon_time
-              ) {
-                mins = mins - 60;
-              }
-            } else {
-              let curr_date_diff = now_date.diff(line_remarks_date, "day");
-
-              // multiply 8 hrs (480 mins) into date difference except current date
-              mins = end_datetime.diff(line_remarks_datetime, "minute");
-              mins = mins + 480 * (date_diff - 1);
-
-              if (line_remarks_datetime > now_noon_time) {
-                mins = mins - 60;
-              }
-            }
-
-            // if last index is ongoing
-            if (last_index == index) {
-              let curr_date_diff = now_date.diff(line_remarks_date, "day");
-
-              // if last remarks log is equal to current date
-              if (curr_date_diff == 0) {
-                if (prev_line_status == "Ongoing") {
-                  if (now_datetime > line_remarks_datetime) {
-                    mins = now_datetime.diff(line_remarks_datetime, "minute");
-                  }
-                  if (
-                    now_datetime > noon_time &&
-                    line_remarks_datetime < noon_time
-                  ) {
-                    mins = mins - 60;
-                  }
-                } else {
-                  if (prev_date_diff > 0) {
-                    mins = line_remarks_datetime.diff(start_datetime, "minute");
-                    if (line_remarks_datetime > noon_time) {
-                      mins = mins - 60;
-                    }
-                  } else {
-                    mins = now_datetime.diff(line_remarks_datetime, "minute");
-                    if (line_remarks_datetime < noon_time) {
-                      mins = mins - 60;
-                    }
-                  }
-                }
-              } else {
-                // multiply 8 hrs (480 mins) into date difference except current date
-                mins = end_datetime.diff(line_remarks_datetime, "minute");
-
-                if (curr_date_diff > 0) {
-                  mins = mins + 480 * (curr_date_diff - 1);
-                  mins = mins + now_datetime.diff(now_datetime_start, "minute");
-
-                  if (now_datetime > now_noon_time) {
-                    mins = mins - 60;
-                  }
-
-                  // console.log((60 * (curr_date_diff - 1)));
-                }
-              }
-            }
-          } else if (next_line_status == "Pending") {
-            // if ongoing logs is same day
-            if (date_diff == 0) {
-              mins = next_line_remarks_datetime.diff(
-                line_remarks_datetime,
-                "minute"
-              );
-              // exclude breaktime
-              if (line_remarks_datetime < noon_time) {
-                mins = mins - 60;
-              }
-            } else {
-              mins = line_remarks_datetime.diff(start_datetime, "minute");
-            }
-          } else {
-            // if previous status is ongoing
-            if (prev_line_status == "Ongoing") {
-              if (prev_date_diff > 0) {
-                mins = line_remarks_datetime.diff(start_datetime, "minute");
-                if (line_remarks_datetime > noon_time) {
-                  mins = mins - 60;
-                }
-              }
-            }
-          }
-
-          remainder = remainder + (mins % 60);
-          program_hrs = program_hrs + parseInt(mins / 60);
-
-          console.log(
-            "Hours: " + parseInt(mins / 60) + " Mins: " + (mins % 60)
-          );
-        }
-      });
-      program_hrs =
-        program_hrs + parseInt(remainder / 60) + (remainder % 60) / 100;
-      console.log(
-        "Total Programming Hours: " + parseFloat(program_hrs).toFixed(2)
-      );
-    },
-    computeValidateHours() {
-      let validate_hrs = 0;
-      let remainder = 0;
-
-      this.project_logs.forEach((value, index) => {
-        let line_remarks_date = moment(
-          new Date(value.remarks_date),
-          "YYYY-MM-DD"
-        );
-        let line_remarks_time = value.remarks_time;
-        let line_remarks_datetime = moment(
-          new Date(value.remarks_date + " " + value.remarks_time),
-          "YYYY-MM-DD"
-        );
-        let next_line_remarks_date = moment(
-          new Date(this.project_logs[index].remarks_date),
-          "YYYY-MM-DD"
-        );
-        let next_line_remarks_time = this.project_logs[index].remarks_time;
-        let next_line_remarks_datetime = moment(
-          new Date(
-            this.project_logs[index].remarks_date +
-              " " +
-              this.project_logs[index].remarks_time
-          ),
-          "YYYY-MM-DD"
-        );
-        let prev_line_remarks_date = moment(
-          new Date(this.project_logs[index].remarks_date),
-          "YYYY-MM-DD"
-        );
-        let prev_line_remarks_datetime = moment(
-          new Date(
-            this.project_logs[index].remarks_date +
-              " " +
-              this.project_logs[index].remarks_time
-          ),
-          "YYYY-MM-DD"
-        );
-        let prev_line_remarks_time = this.project_logs[index].remarks_time;
-        let next_line_status = this.project_logs[index].status;
-        let prev_line_status = this.project_logs[index].status;
-        let noon_time = new Date(value.remarks_date + " 12:00:00");
-        let start = new Date(value.remarks_date + " " + "8:00:00");
-        let start_datetime = moment(start, "YYYY-MM-DD");
-        let end = new Date(value.remarks_date + " " + "17:00:00");
-        let end_datetime = moment(end, "YYYY-MM-DD");
-        let mins = 0;
-        let last_index = this.project_logs.length - 1;
-
-        // get the previous status if index is greater than 0
-        if (index > 0) {
-          prev_line_status = this.project_logs[index - 1].status;
-          prev_line_remarks_date = moment(
-            new Date(this.project_logs[index - 1].remarks_date),
-            "YYYY-MM-DD"
-          );
-          prev_line_remarks_time = this.project_logs[index - 1].remarks_time;
-          prev_line_remarks_datetime = moment(
-            new Date(
-              this.project_logs[index - 1].remarks_date +
-                " " +
-                this.project_logs[index - 1].remarks_time
-            ),
-            "YYYY-MM-DD"
-          );
-        }
-
-        // get the next status if index is greater than 0
-        if (this.project_logs.length > index + 1) {
-          next_line_status = this.project_logs[index + 1].status;
-          next_line_remarks_date = moment(
-            new Date(this.project_logs[index + 1].remarks_date),
-            "YYYY-MM-DD"
-          );
-          next_line_remarks_time = this.project_logs[index + 1].remarks_time;
-          next_line_remarks_datetime = moment(
-            new Date(
-              this.project_logs[index + 1].remarks_date +
-                " " +
-                this.project_logs[index + 1].remarks_time
-            ),
-            "YYYY-MM-DD"
-          );
-        }
-
-        // date difference of the current line remarks_date and next line remarks_date
-        let date_diff = next_line_remarks_date.diff(line_remarks_date, "day");
-
-        // date difference of the previous line remarks_date and current line remarks_date
-        let prev_date_diff = line_remarks_date.diff(
-          prev_line_remarks_date,
-          "day"
-        );
-
-        if (value.status == "For Validation") {
-          if (next_line_status == "For Validation") {
-            // if ongoing logs is same day
-            if (date_diff == 0) {
-              mins = next_line_remarks_datetime.diff(
-                line_remarks_datetime,
-                "minute"
-              );
-
-              if (
-                line_remarks_datetime < noon_time &&
-                next_line_remarks_datetime > noon_time
-              ) {
-                mins = mins - 60;
-              }
-            } else {
-              let curr_date_diff = now_date.diff(line_remarks_date, "day");
-
-              // multiply 8 hrs (480 mins) into date difference except current date
-              mins = end_datetime.diff(line_remarks_datetime, "minute");
-              mins = mins + 480 * (date_diff - 1);
-
-              if (line_remarks_datetime < now_noon_time) {
-                mins = mins - 60;
-              }
-            }
-
-            // if last index is ongoing
-            if (last_index == index) {
-              let curr_date_diff = now_date.diff(line_remarks_date, "day");
-
-              // if last remarks log is equal to current date
-              if (curr_date_diff == 0) {
-                if (prev_line_status == "For Validation") {
-                  if (now_datetime > line_remarks_datetime) {
-                    mins = now_datetime.diff(line_remarks_datetime, "minute");
-                  }
-
-                  if (
-                    now_datetime > noon_time &&
-                    line_remarks_datetime < noon_time
-                  ) {
-                    mins = mins - 60;
-                  }
-                } else {
-                  if (prev_date_diff > 0) {
-                    mins = line_remarks_datetime.diff(start_datetime, "minute");
-                    if (line_remarks_datetime > noon_time) {
-                      mins = mins - 60;
-                    }
-                  } else {
-                    mins = now_datetime.diff(line_remarks_datetime, "minute");
-                    if (line_remarks_datetime < noon_time) {
-                      mins = mins - 60;
-                    }
-                  }
-                }
-              } else {
-                // multiply 8 hrs (480 mins) into date difference except current date
-                mins = end_datetime.diff(line_remarks_datetime, "minute");
-
-                if (curr_date_diff > 0) {
-                  mins = mins + 480 * (curr_date_diff - 1);
-                  mins = mins + now_datetime.diff(now_datetime_start, "minute");
-
-                  if (now_datetime > now_noon_time) {
-                    mins = mins - 60;
-                  }
-
-                  // console.log((60 * (curr_date_diff - 1)));
-                }
-              }
-            }
-          } else if (next_line_status == "Pending") {
-            // if ongoing logs is same day
-            if (date_diff == 0) {
-              mins = next_line_remarks_datetime.diff(
-                line_remarks_datetime,
-                "minute"
-              );
-              // exclude breaktime
-              if (line_remarks_datetime < noon_time) {
-                mins = mins - 60;
-              }
-            } else {
-              mins = line_remarks_datetime.diff(start_datetime, "minute");
-            }
-          } else {
-            // if previous status is ongoing
-            if (prev_line_status == "For Validation") {
-              if (prev_date_diff > 0) {
-                mins = line_remarks_datetime.diff(start_datetime, "minute");
-                if (line_remarks_datetime > noon_time) {
-                  mins = mins - 60;
-                }
-              }
-            }
-          }
-
-          remainder = remainder + (mins % 60);
-          validate_hrs = validate_hrs + parseInt(mins / 60);
-
-          console.log(
-            "Hours: " + parseInt(mins / 60) + " Mins: " + (mins % 60)
-          );
-        }
-      });
-      validate_hrs =
-        validate_hrs + parseInt(remainder / 60) + (remainder % 60) / 100;
-      console.log(
-        "Total Validation Hours: " + parseFloat(validate_hrs).toFixed(2)
-      );
-    },
+        
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
