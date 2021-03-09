@@ -9,6 +9,7 @@ use App\ProjectLog;
 use Carbon\Carbon;
 use Validator;
 use DB;
+use App\Holiday;
 
 class ProjectLogController extends Controller
 {
@@ -43,7 +44,11 @@ class ProjectLogController extends Controller
                                       ->orderBy('remarks_time', 'Asc')
                                       ->get();
             // calculate hours difference per remarks log
-            $this->calculateHours($project_logs); 
+            if(count($project_logs))
+            {
+                $this->calculateHours($project_logs); 
+            }
+            
         }
         
         $project_logs = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), 'remarks_time', 'remarks', 'status', 'turnover', 'mins_diff')
@@ -52,7 +57,18 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
 
+        $first_ongoing_log = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), 'remarks_time', 'remarks', 'status', 'turnover', 'mins_diff')
+                                  ->where('project_id' , '=', $project_id)
+                                  ->orderBy('remarks_date', 'Asc')
+                                  ->orderBy('remarks_time', 'Asc')
+                                  ->get();
         
+        $first_validation_log = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), 'remarks_time', 'remarks', 'status', 'turnover', 'mins_diff')
+                                  ->where('project_id' , '=', $project_id)
+                                  ->where('project_id' , '=', $project_id)
+                                  ->orderBy('remarks_date', 'Asc')
+                                  ->orderBy('remarks_time', 'Asc')
+                                  ->get();
 
         return response()->json(['project' => $project, 'project_logs' => $project_logs], 200);
 
@@ -224,6 +240,7 @@ class ProjectLogController extends Controller
     {
         $project_log = ProjectLog::find($request->get('project_log_id'));
         $project_id = $project_log->project_id;
+        
         //if record is empty then display error page
         if(empty($project_log->id))
         {
@@ -238,14 +255,121 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
 
-        // calculate hours difference per remarks log
-        $this->calculateHours($project_logs);
+        $last_project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                  ->orderBy('remarks_date', 'Desc')
+                                  ->orderBy('remarks_time', 'Desc')
+                                  ->first();
+        if(count($project_logs) > 0)
+        {
+            // calculate hours difference per remarks log 
+            $this->calculateHours($project_logs);
+        }
+        
+        $status = "";
+        if(count($project_logs) > 0)
+        {
+            if($last_project_logs->turnover)
+            {
+                if($last_project_logs->status == "Ongoing")
+                {
+                    $status = "For Validation";
+                }
+                elseif($last_project_logs->status == "For Validation")
+                {
+                    $status = "Ongoing";
+                }
+                else
+                {
+                    $status = $last_project_logs->status;
+                }
+            }
+            else
+            {   
+                $status = $last_project_logs->status;   
+            }
+        } 
+        else
+        {
+            $status = "Pending"; 
+        }
+        
+        Project::where('id', '=', $project_id)
+               ->update(['status' => $status]);
 
-        return response()->json(['success' => 'Record has been deleted'], 200);
+        return response()->json(['success' => 'Record has been deleted', 'status' => $status,], 200);
+    }
+
+    public function project_turnover(Request $request)
+    {   
+        
+        $project_id = $request->get('project_id');
+        $project = Project::find($project_id);
+        $project_logs = ProjectLog::where('project_id', '=', $project_id)->get();
+        $status = $request->get('status');
+        $remarks = "";
+
+        if($project->status == 'For Validation')
+        {
+            $remarks = "Return to Programmer";
+        }
+        else
+        {   
+            $remarks = $request->get('status');
+        }
+
+        // if the current status has changed then turn over to programmer or validator
+        if($project->status != $status && $project->status != 'Pending')
+        {
+            // create remarks log with turn over status
+            $project_log = new ProjectLog();
+            $project_log->project_id = $project_id;
+            $project_log->remarks_date = Carbon::parse($request->get('remarks_date'))->format('Y-m-d');
+            $project_log->remarks_time = Carbon::parse($request->get('remarks_time'))->format('H:i');
+            $project_log->remarks = $remarks;
+            $project_log->status = $project->status;
+
+            if($project->status == 'For Validation' || $project->status == 'Ongoing')
+            {   
+                $project_log->turnover = 'Y';
+            }
+            
+            $project_log->save();
+        }
+
+        // create new remarks log
+        $project_log = new ProjectLog();
+        $project_log->project_id = $project_id;
+        $project_log->remarks_date = Carbon::parse($request->get('remarks_date'))->format('Y-m-d');
+        $project_log->remarks_time = Carbon::parse($request->get('remarks_time'))->format('H:i');
+        $project_log->remarks = $request->get('remarks');
+        $project_log->status = $request->get('status');
+        $project_log->save();
+        
+        // get latest data
+        $project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                  ->orderBy('remarks_date', 'Asc')
+                                  ->orderBy('remarks_time', 'Asc')
+                                  ->get();
+
+        if(count($project_logs) > 0)
+        {
+            // calculate hours difference per remarks log 
+            $this->calculateHours($project_logs);
+        }
+
+        Project::where('id', '=', $project_id)
+                ->update(['status' => $request->get('status')]);
+
+        return response()->json([
+            'success' => 'Record has successfully added', 
+            'project_log' => $project_log, 
+            'status' => $status,
+        ], 200);   
     }
 
     public function calculateHours($project_logs)
     {   
+
         $project_id = $project_logs->first()->project_id;
         $datetime_now = Carbon::now();
         $date_now = Carbon::now()->format('Y-m-d');
@@ -258,6 +382,14 @@ class ProjectLogController extends Controller
         if($hr_now == 12)
         {
             $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
+        }
+
+        $holidays = Holiday::all();
+        $holidays_array = [];
+
+        foreach($holidays as $i => $holiday)
+        {
+            $holidays_array[] = $holiday->holiday_date;
         }
 
         foreach($project_logs as $i => $log)
@@ -304,7 +436,7 @@ class ProjectLogController extends Controller
             // if last remarks time is between noon time then set into 1:00 pm
             if($curr_remarks_hr == 12)
             {
-                $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 13:00');
+                $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 12:00');
             }
 
             
@@ -312,7 +444,7 @@ class ProjectLogController extends Controller
             if($curr_days_diff == 0)
             {   
                 // exclude sunday
-                if($curr_remarks_day != 'Sun')
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
                 {
                     $curr_mins = $curr_remarks_datetime->diffInMinutes($next_remarks_datetime);
                 
@@ -326,7 +458,8 @@ class ProjectLogController extends Controller
             }
             else
             {   
-                if($curr_remarks_day != 'Sun')
+                // exclude sunday and holidays
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
                 {   
                     $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
                     // less 1 hour(noon break)
@@ -341,19 +474,23 @@ class ProjectLogController extends Controller
                 // {
                 //     $curr_mins = $curr_mins + (($curr_days_diff - 1) * 480);    
                 // }
-
-                for($x = 1; $curr_days_diff > $x; $x++)
+                if($curr_days_diff > 1)
                 {
-                    $day = Carbon::parse($curr_remarks_datetime->addDays($x))->format('D');
-                    // exclude sunday
-                    if($day != 'Sun')
-                    {
-                        $curr_mins = $curr_mins + 480;
-                    }
-                }  
-    
-                // exclude sunday
-                if($next_remarks_day != 'Sun')
+                    for($x = 1; $curr_days_diff > $x; $x++)
+                    {   
+                        $date = Carbon::parse($curr_remarks_datetime->addDays($x))->format('Y-m-d');
+                        $day = Carbon::parse($curr_remarks_datetime->addDays($x))->format('D');
+
+                        // exclude sunday// exclude sunday and holidays
+                        if($day != 'Sun' && in_array($date, $holidays_array) == false)
+                        {
+                            $curr_mins = $curr_mins + 480;
+                        }
+                    }  
+                }
+                
+                // exclude sunday and holidays
+                if($next_remarks_day != 'Sun' && in_array($next_remarks_date, $holidays_array) == false)
                 {
                     $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
 

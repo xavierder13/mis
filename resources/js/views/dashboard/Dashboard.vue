@@ -463,7 +463,7 @@ export default {
         if (result.value) {
           // <-- if confirmed
 
-          const project_id = item.id;
+          const project_id = item.project_id;
           const index = this.projects.indexOf(item);
 
           //Call delete Patient function
@@ -501,7 +501,7 @@ export default {
 
         if (this.editedIndex > -1) {
           const data = this.editedItem;
-          const project_id = this.editedItem.id;
+          const project_id = this.editedItem.project_id;
 
           Axios.post("/api/project/update/" + project_id, data, {
             headers: {

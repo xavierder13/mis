@@ -320,15 +320,15 @@ export default {
       editedIndex: -1,
       editedItem: {
         status: "",
-        remarks_date: "",
-        remarks_time: "",
+        remarks_date: new Date().toISOString().substr(0, 10),
+        remarks_time: new Date().toTimeString().substr(0,5),
         remarks: "",
         turnover: "",
       },
       defaultItem: {
         status: "",
-        remarks_date: "",
-        remarks_time: "",
+        remarks_date: new Date().toISOString().substr(0, 10),
+        remarks_time: new Date().toTimeString().substr(0,5),
         remarks: "",
         turnover: "",
       },
@@ -354,6 +354,7 @@ export default {
 
   methods: {
     getProjectLogs() {
+
       this.loading = true;
 
       let project_id = this.$route.params.project_id;

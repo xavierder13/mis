@@ -12,6 +12,7 @@ use App\Project;
 use App\ProjectLog;
 use App\User;
 use App\RefNoSetting;
+use App\Holiday;
 use Carbon\Carbon;
 
 class ProjectController extends Controller
@@ -214,6 +215,7 @@ class ProjectController extends Controller
     {   
         // return $request;
         $project = Project::find($request->get('project_id'));
+
         $project->template_percent = $request->get('template_percent');
         if($request->get('program_date'))
         {
@@ -225,15 +227,14 @@ class ProjectController extends Controller
             $project->validation_date = Carbon::parse($request->get('validation_date'))->format('Y-m-d');
         }
         $project->validation_percent = $request->get('validation_percent');
-        $project->status = $request->get('status');
         $project->save();
-
+        
         return response()->json(['success' => 'Record has been updated', 'project' => $project], 200);
 
     }
 
     public function delete(Request $request)
-    {
+    {   
         $project = Project::find($request->get('project_id'));
 
         //if record is empty then display error page
@@ -271,6 +272,7 @@ class ProjectController extends Controller
 
     public function calculateHours($project_logs)
     {   
+
         $project_id = $project_logs->first()->project_id;
         $datetime_now = Carbon::now();
         $date_now = Carbon::now()->format('Y-m-d');
@@ -285,17 +287,27 @@ class ProjectController extends Controller
             $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
         }
 
+        $holidays = Holiday::all();
+        $holidays_array = [];
+
+        foreach($holidays as $i => $holiday)
+        {
+            $holidays_array[] = $holiday->holiday_date;
+        }
+
         foreach($project_logs as $i => $log)
         {
             $num_rows = count($project_logs);
 
             $next_remarks_date = Carbon::parse($date_now)->format('Y-m-d');
+            $next_remarks_day = Carbon::parse($date_now)->format('D');
             $next_remarks_time = $time_now;
-
+            
             // if last index
             if($i < ($num_rows - 1))
             {
                 $next_remarks_date = Carbon::parse($project_logs[$i+1]->remarks_date)->format('Y-m-d');
+                $next_remarks_day = Carbon::parse($project_logs[$i+1]->remarks_date)->format('D');
                 $next_remarks_time = $project_logs[$i+1]->remarks_time;
                 $next_status = $project_logs[$i+1]->status;
             }
@@ -307,6 +319,7 @@ class ProjectController extends Controller
             $next_end_datetime = Carbon::parse($next_remarks_date . ' 17:00');
 
             $curr_remarks_date = Carbon::parse($log->remarks_date)->format('Y-m-d');
+            $curr_remarks_day = Carbon::parse($log->remarks_date)->format('D');
             $curr_remarks_time = $log->remarks_time;
             $curr_remarks_hr = explode(':', $curr_remarks_time)[0];
             $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' ' . $curr_remarks_time);
@@ -326,43 +339,90 @@ class ProjectController extends Controller
             // if last remarks time is between noon time then set into 1:00 pm
             if($curr_remarks_hr == 12)
             {
-                $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 13:00');
+                $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 12:00');
             }
-
-            
+ 
             // calculate programming hours for every remarks log
             if($curr_days_diff == 0)
             {   
-                
-                $curr_mins = $curr_remarks_datetime->diffInMinutes($next_remarks_datetime);
-                
-                // less 1 hour(noon break)
-                if($next_remarks_hr >= 12 && $curr_remarks_hr <= 12)
+                // exclude sunday
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
                 {
-                    $curr_mins = $curr_mins - 60;
+                    $curr_mins = $curr_remarks_datetime->diffInMinutes($next_remarks_datetime);
+                
+                    // less 1 hour(noon break)
+                    if($next_remarks_hr >= 12 && $curr_remarks_hr <= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
                 }
+                
             }
             else
             {   
-                $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
-                $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
+                // exclude sunday and holidays
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
+                {   
+                    $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
+                    // less 1 hour(noon break)
+                    if($curr_remarks_hr <= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
 
+                }
+                
+                // if($curr_days_diff > 1)
+                // {
+                //     $curr_mins = $curr_mins + (($curr_days_diff - 1) * 480);    
+                // }
                 if($curr_days_diff > 1)
                 {
-                    $curr_mins = $curr_mins + (($curr_days_diff - 1) * 480);    
+                    for($x = 1; $curr_days_diff > $x; $x++)
+                    {   
+                        $date = Carbon::parse($curr_remarks_datetime->addDays($x))->format('Y-m-d');
+                        $day = Carbon::parse($curr_remarks_datetime->addDays($x))->format('D');
+
+                        // exclude sunday// exclude sunday and holidays
+                        if($day != 'Sun' && in_array($date, $holidays_array) == false)
+                        {
+                            $curr_mins = $curr_mins + 480;
+                        }
+                    }  
+                }
+                
+                // exclude sunday and holidays
+                if($next_remarks_day != 'Sun' && in_array($next_remarks_date, $holidays_array) == false)
+                {
+                    $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
+
+                    // less 1 hour(noon break)
+                    if($next_remarks_hr >= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
                 }
 
-                // less 1 hour(noon break)
-                if($curr_remarks_hr <= 12)
-                {
-                    $curr_mins = $curr_mins - 60;
-                }
 
-                // less 1 hour(noon break)
-                if($next_remarks_hr >= 12)
-                {
-                    $curr_mins = $curr_mins - 60;
-                }
+                // $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
+                // $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
+
+                // if($curr_days_diff > 1)
+                // {
+                //     $curr_mins = $curr_mins + (($curr_days_diff - 1) * 480);    
+                // }
+
+                // // less 1 hour(noon break)
+                // if($curr_remarks_hr <= 12)
+                // {
+                //     $curr_mins = $curr_mins - 60;
+                // }
+
+                // // less 1 hour(noon break)
+                // if($next_remarks_hr >= 12)
+                // {
+                //     $curr_mins = $curr_mins - 60;
+                // }
                 
             }
 

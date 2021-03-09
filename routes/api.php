@@ -107,6 +107,11 @@ Route::group(['prefix' => 'project_log', 'middleware' => ['auth:api']], function
         'as' => 'project_log.delete',
     ]);
 
+    Route::post('/project_turnover', [
+        'uses' => 'API\ProjectLogController@project_turnover',
+        'as' => 'project_log.project_turnover',
+    ]);
+
 });
 
 // User Routes

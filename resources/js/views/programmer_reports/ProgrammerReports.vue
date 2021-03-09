@@ -29,7 +29,7 @@
               v-if="user_type == 'Admin'"
             ></v-select>
 
-            {{ user_type == "Programmer" ? user + " Projects" : "" }}
+            {{ user_type == "Programmer" ? "My Projects" : "" }}
 
             <v-spacer></v-spacer>
             <v-text-field
@@ -66,6 +66,18 @@
                               label="Reference #"
                               readonly
                             ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                            <v-select
+                              v-model="status"
+                              label="Report Status"
+                              :items="report_status"
+                              item-text="text"
+                              item-value="value"
+                              :readonly="editedIndex > -1 ? true : false"
+                            ></v-select>
                           </v-col>
                         </v-row>
                         <v-row>
@@ -346,7 +358,7 @@
                   }}
                 </template>
                 <template v-slot:item.status="{ item, index }">
-                  <v-select
+                  <!-- <v-select
                     v-model="editedItem.status"
                     :items="report_status"
                     item-text="text"
@@ -354,9 +366,8 @@
                     class="ma-0 pa-0"
                     hide-details
                     v-if="editedIndex == index"
-                  ></v-select>
+                  ></v-select> -->
                   <v-chip
-                    v-if="editedIndex != index"
                     :color="
                       item.status == 'For Validation'
                         ? 'info'
@@ -401,7 +412,7 @@
                             x-small
                             width="100px"
                             color="primary"
-                            @click="(editedItem = item) + (dialog = true)"
+                            @click="(editedItem = item) + (dialog = true) + (status = item.status)"
                           >
                             <v-icon small class="mr-2"> mdi-plus </v-icon>
                             Remarks
@@ -622,8 +633,9 @@ export default {
       status: [],
       input_remarks_date: false,
       time_modal: false,
-      remarks_date: "",
-      remarks_time: "",
+      status: "",
+      remarks_date: new Date().toISOString().substr(0, 10),
+      remarks_time: new Date().toTimeString().substr(0,5),
       remarks: "",
       user: localStorage.getItem("user"),
       user_type: localStorage.getItem("user_type"),
@@ -682,24 +694,26 @@ export default {
     },
     addRemarks() {
       this.$v.$touch();
-
+      
       if (!this.$v.$error) {
         this.overlay = true;
         this.disabled = true;
+        
         const data = {
-          project_id: this.editedItem.id,
+          project_id: this.editedItem.project_id,
           remarks_date: this.remarks_date,
           remarks_time: this.remarks_time,
           remarks: this.remarks,
-          status: this.editedItem.status,
+          status: this.status,
         };
 
-        Axios.post("/api/project_log/store", data, {
+        Axios.post("/api/project_log/project_turnover", data, {
           headers: {
             Authorization: "Bearer " + access_token,
           },
         }).then(
           (response) => {
+            console.log(response.data);
             if (response.data.success) {
               this.showAlert();
               this.close();
@@ -754,8 +768,8 @@ export default {
         { text: "Accepted", value: "Accepted" },
         { text: "Cancelled", value: "Cancelled" },
       ];
-      this.remarks_date = "";
-      this.remarks_time = "";
+      this.remarks_date = new Date().toISOString().substr(0, 10),
+      this.remarks_time = new Date().toTimeString().substr(0,5),
       this.remarks = "";
     },
 
@@ -767,6 +781,7 @@ export default {
         },
       }).then(
         (response) => {
+          console.log(response.data);
           if (response.data.success) {
             this.overlay = false;
             Object.assign(
@@ -793,14 +808,12 @@ export default {
   computed: {
     filteredProjects() {
       let filteredProjects = [];
-
+      
       this.projects.forEach((value, index) => {
         if (this.search_report_status == value.status) {
           if (this.filter_project_by_programmer == value.programmer_id) {
             filteredProjects.push(value);
-          } else {
-            filteredProjects.push(value);
-          }
+          } 
         }
       });
 
@@ -823,7 +836,7 @@ export default {
       return filteredProjects;
     },
     formTitle() {
-      return this.editedIndex === -1 ? "New Project" : "Edit Project";
+      return this.editedIndex === -1 ? "New Remarks" : "Edit Renarks";
     },
     report_titleErrors() {
       const errors = [];
