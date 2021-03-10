@@ -17,29 +17,9 @@ use Carbon\Carbon;
 
 class ProjectController extends Controller
 {   
-    public function index()
-    {    
-        $projects = Project::where('projects.status', '!=', 'Cancelled')
-                           ->select(DB::raw('*'), DB::raw('id as project_id'))
-                           ->get();
-        
-        // calculate programming/validation hrs for all projects
-        foreach($projects as $i => $project)
-        {
-            if($project->status != 'Accepted')
-            {   
-                $project_logs = ProjectLog::where('project_id', '=', $project->project_id)
-                                        ->orderBy('remarks_date', 'Asc')
-                                        ->orderBy('remarks_time', 'Asc')
-                                        ->get();
-                if(count($project_logs))
-                {
-                    // calculate hours difference per remarks log
-                    $this->calculateHours($project_logs); 
-                }                          
-            }
-        }      
 
+    public function index()
+    {
         $projects = DB::table('projects')
                     ->join('departments', 'projects.department_id', '=','departments.id')
                     ->join('managers', 'departments.id', '=', 'managers.department_id')
@@ -59,6 +39,75 @@ class ProjectController extends Controller
                     ->where('projects.status', '!=', 'Cancelled')
                     ->orderBy('projects.id', 'Desc')
                     ->get();
+
+        $departments = Department::with('managers')->get();
+
+        $programmers = User::where('type', '=', 'Programmer')->get();
+
+        $validators = User::where('type', '=', 'Validator')->get();
+
+
+        return response()->json([
+            'projects' => $projects, 
+            'departments' => $departments,
+            'programmers' => $programmers,
+            'validators' => $validators,
+        ], 200);
+
+    }
+    public function programmer_reports(Request $request)
+    {   
+        $filter_date = Carbon::parse($request->get('filter_date'))->format('Y-m-d');
+        $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
+        $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
+
+        $projects = Project::where('projects.status', '!=', 'Cancelled')
+                           ->select(DB::raw('*'), DB::raw('id as project_id'))
+                           ->get();
+        
+        // calculate programming/validation hrs for all projects
+        foreach($projects as $i => $project)
+        {
+            if($project->status != 'Accepted')
+            {   
+                $project_logs = ProjectLog::where('project_id', '=', $project->project_id)
+                                        ->orderBy('remarks_date', 'Asc')
+                                        ->orderBy('remarks_time', 'Asc')
+                                        ->get();
+                if(count($project_logs))
+                {
+                    // calculate hours difference per remarks log
+                    $this->calculateHours($project_logs); 
+                }                          
+            }
+        }    
+
+        $projects = DB::table('projects')
+                    ->join('departments', 'projects.department_id', '=','departments.id')
+                    ->join('managers', 'departments.id', '=', 'managers.department_id')
+                    ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
+                    ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
+                    ->select(DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
+                             DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
+                             DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
+                             DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
+                             DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
+                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
+                             DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
+                             DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
+                             DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
+                             'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
+                             'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
+                    ->where('projects.status', '!=', 'Cancelled')
+                    ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
+                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
+                              ->orWhereNull('projects.accepted_date');
+                    })
+                    ->orderBy('project_id', 'Desc')
+                    ->get();
+
+        $project_logs = Project::with('project_logs')->where('status', '!=', 'Cancelled')->get();
         
         $departments = Department::with('managers')->get();
 
@@ -71,6 +120,7 @@ class ProjectController extends Controller
             'departments' => $departments,
             'programmers' => $programmers,
             'validators' => $validators,
+            'project_logs' => $project_logs,
         ], 200);
     }
 

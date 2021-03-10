@@ -43,9 +43,15 @@ Route::prefix('auth')->group(function(){
 
 // Projects/Dashboard Routes
 Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
+    
     Route::get('/index', [
         'uses' => 'API\ProjectController@index',
         'as' => 'project.index',
+    ]);
+
+    Route::post('/programmer_reports', [
+        'uses' => 'API\ProjectController@programmer_reports',
+        'as' => 'project.programmer_reports',
     ]);
 
     Route::post('/store', [

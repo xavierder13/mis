@@ -57,19 +57,6 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
 
-        $first_ongoing_log = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), 'remarks_time', 'remarks', 'status', 'turnover', 'mins_diff')
-                                  ->where('project_id' , '=', $project_id)
-                                  ->orderBy('remarks_date', 'Asc')
-                                  ->orderBy('remarks_time', 'Asc')
-                                  ->get();
-        
-        $first_validation_log = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), 'remarks_time', 'remarks', 'status', 'turnover', 'mins_diff')
-                                  ->where('project_id' , '=', $project_id)
-                                  ->where('project_id' , '=', $project_id)
-                                  ->orderBy('remarks_date', 'Asc')
-                                  ->orderBy('remarks_time', 'Asc')
-                                  ->get();
-
         return response()->json(['project' => $project, 'project_logs' => $project_logs], 200);
 
     }
@@ -109,9 +96,6 @@ class ProjectLogController extends Controller
         {   
             $status = 'Ongoing';
         }
-
-        Project::where('id', '=', $project_id)
-                ->update(['status' => $status]);
         
         $project_log = new ProjectLog();
         $project_log->project_id = $project_id;
@@ -127,6 +111,17 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
+        
+        $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+
+        $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+
+        Project::where('id', '=', $project_id)
+                ->update([
+                    'status' => $status, 
+                    'program_date' => $first_ongoing_log,
+                    'validation_date' => $first_validation_log,
+                ]);
 
         // calculate hours difference per remarks log
         $this->calculateHours($project_logs);
@@ -219,6 +214,16 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
+
+        $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+
+        $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+
+        Project::where('id', '=', $project_id)
+                ->update([
+                    'program_date' => $first_ongoing_log,
+                    'validation_date' => $first_validation_log,
+                ]);
                                   
         // calculate hours difference per remarks log
         $this->calculateHours($project_logs);
@@ -259,6 +264,7 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_date', 'Desc')
                                   ->orderBy('remarks_time', 'Desc')
                                   ->first();
+
         if(count($project_logs) > 0)
         {
             // calculate hours difference per remarks log 
@@ -287,6 +293,17 @@ class ProjectLogController extends Controller
             {   
                 $status = $last_project_logs->status;   
             }
+
+            $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+
+            $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+
+            Project::where('id', '=', $project_id)
+                    ->update([
+                        'status' => $status, 
+                        'program_date' => $first_ongoing_log,
+                        'validation_date' => $first_validation_log,
+                    ]);
         } 
         else
         {

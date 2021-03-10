@@ -48,6 +48,34 @@
               label="Report Status"
               hide-details=""
             ></v-select>
+            <v-spacer></v-spacer>
+            <v-menu
+              v-model="input_filter_date"
+              :close-on-content-click="false"
+              transition="scale-transition"
+              offset-y
+              max-width="290px"
+              min-width="290px"
+            >
+              <template v-slot:activator="{ on, attrs }">
+                <v-text-field
+                  name="filter_date"
+                  v-model="computedFilterDateFormatted"
+                  label="As Of"
+                  hint="MM/DD/YYYY"
+                  persistent-hint
+                  prepend-icon="mdi-calendar"
+                  readonly
+                  v-bind="attrs"
+                  v-on="on"
+                ></v-text-field>
+              </template>
+              <v-date-picker
+                v-model="filter_date"
+                no-title
+                @input="input_filter_date = false + getProject()"
+              ></v-date-picker>
+            </v-menu>
             <template>
               <v-toolbar flat>
                 <v-dialog v-model="dialog" max-width="700px">
@@ -249,7 +277,7 @@
                       : ""
                   }}
                 </template>
-                <template v-slot:item.program_date="{ item, index }">
+                <!-- <template v-slot:item.program_date="{ item, index }">
                   <v-menu
                     v-model="input_program_date"
                     :close-on-content-click="false"
@@ -278,7 +306,7 @@
                     ></v-date-picker>
                   </v-menu>
                   {{ editedIndex != index ? item.program_date : "" }}
-                </template>
+                </template> -->
                 <template v-slot:item.program_percent="{ item, index }">
                   <v-text-field-money
                     v-model="editedItem.program_percent"
@@ -301,7 +329,7 @@
                       : ""
                   }}
                 </template>
-                <template v-slot:item.validation_date="{ item, index }">
+                <!-- <template v-slot:item.validation_date="{ item, index }">
                   <v-menu
                     v-model="input_validation_date"
                     :close-on-content-click="false"
@@ -334,7 +362,7 @@
                       ? item.validation_date
                       : ""
                   }}
-                </template>
+                </template> -->
                 <template v-slot:item.validation_percent="{ item, index }">
                   <v-text-field-money
                     v-model="editedItem.validation_percent"
@@ -412,7 +440,11 @@
                             x-small
                             width="100px"
                             color="primary"
-                            @click="(editedItem = item) + (dialog = true) + (status = item.status)"
+                            @click="
+                              (editedItem = item) +
+                                (dialog = true) +
+                                (status = item.status)
+                            "
                           >
                             <v-icon small class="mr-2"> mdi-plus </v-icon>
                             Remarks
@@ -508,10 +540,17 @@ export default {
       search: "",
       search_report_status: "",
       filter_project_by_programmer: "",
+      filter_date: new Date().toISOString().substr(0, 10),
       headers: [
         {
           text: "Approved/ Filing Date",
           value: "date_approved",
+          sortable: false,
+          width: "100px",
+        },
+        {
+          text: "Date Accepted",
+          value: "accepted_date",
           sortable: false,
           width: "100px",
         },
@@ -575,6 +614,7 @@ export default {
         },
         { text: "Actions", value: "actions", sortable: false, width: "80px" },
       ],
+      input_filter_date: false,
       input_program_date: false,
       input_validation_date: false,
       program_date: "",
@@ -635,7 +675,7 @@ export default {
       time_modal: false,
       status: "",
       remarks_date: new Date().toISOString().substr(0, 10),
-      remarks_time: new Date().toTimeString().substr(0,5),
+      remarks_time: new Date().toTimeString().substr(0, 5),
       remarks: "",
       user: localStorage.getItem("user"),
       user_type: localStorage.getItem("user_type"),
@@ -646,7 +686,8 @@ export default {
   methods: {
     getProject() {
       this.loading = true;
-      Axios.get("/api/project/index", {
+      const data = { filter_date: this.filter_date};
+      Axios.post("/api/project/programmer_reports", data, {
         headers: {
           Authorization: "Bearer " + access_token,
         },
@@ -694,11 +735,11 @@ export default {
     },
     addRemarks() {
       this.$v.$touch();
-      
+
       if (!this.$v.$error) {
         this.overlay = true;
         this.disabled = true;
-        
+
         const data = {
           project_id: this.editedItem.project_id,
           remarks_date: this.remarks_date,
@@ -768,9 +809,9 @@ export default {
         { text: "Accepted", value: "Accepted" },
         { text: "Cancelled", value: "Cancelled" },
       ];
-      this.remarks_date = new Date().toISOString().substr(0, 10),
-      this.remarks_time = new Date().toTimeString().substr(0,5),
-      this.remarks = "";
+      (this.remarks_date = new Date().toISOString().substr(0, 10)),
+        (this.remarks_time = new Date().toTimeString().substr(0, 5)),
+        (this.remarks = "");
     },
 
     updateReportStatus() {
@@ -808,12 +849,12 @@ export default {
   computed: {
     filteredProjects() {
       let filteredProjects = [];
-      
+
       this.projects.forEach((value, index) => {
         if (this.search_report_status == value.status) {
           if (this.filter_project_by_programmer == value.programmer_id) {
             filteredProjects.push(value);
-          } 
+          }
         }
       });
 
@@ -857,6 +898,9 @@ export default {
     computedRemarksDateFormatted() {
       return this.formatDate(this.remarks_date);
     },
+    computedFilterDateFormatted() {
+      return this.formatDate(this.filter_date);
+    },
     remarks_dateErrors() {
       const errors = [];
       if (!this.$v.remarks_date.$dirty) return errors;
@@ -877,7 +921,6 @@ export default {
       !this.$v.remarks.required && errors.push("Remarks is required.");
       return errors;
     },
-    
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
