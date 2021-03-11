@@ -73,7 +73,7 @@
               <v-date-picker
                 v-model="filter_date"
                 no-title
-                @input="input_filter_date = false + getProject()"
+                @input="input_filter_date = false + calculateHoursByDate()"
               ></v-date-picker>
             </v-menu>
             <template>
@@ -252,8 +252,29 @@
                 :footer-props="{
                   'items-per-page-options': [30, 40, 50, -1],
                 }"
+                item-key="project_id"
+                group-by="status"
+                class="elevation-1"
+                :expanded.sync="expanded"
                 loading-text="Loading... Please wait"
               >
+                <template
+                  v-slot:group.header="{ items, headers, toggle, isOpen }"
+                >
+                  <td :colspan="headers.length">
+                    <v-btn
+                      @click="toggle"
+                      small
+                      icon
+                      :ref="items"
+                      :data-open="isOpen"
+                    >
+                      <v-icon v-if="isOpen">mdi-chevron-up</v-icon>
+                      <v-icon v-else>mdi-chevron-down</v-icon>
+                    </v-btn>
+                    <strong>{{ items[0].status.toUpperCase() }}</strong>
+                  </td>
+                </template>
                 <template v-slot:item.template_percent="{ item, index }">
                   <v-text-field-money
                     v-model="editedItem.template_percent"
@@ -524,6 +545,7 @@ export default {
   },
   data() {
     return {
+      expanded: [],
       absolute: true,
       overlay: false,
       items: [
@@ -545,14 +567,14 @@ export default {
         {
           text: "Approved/ Filing Date",
           value: "date_approved",
-          sortable: false,
           width: "100px",
+          sortable: false,
         },
         {
           text: "Date Accepted",
           value: "accepted_date",
-          sortable: false,
           width: "100px",
+          sortable: false,
         },
         { text: "Ref No.", value: "ref_no", sortable: false },
         { text: "Report Title", value: "report_title", sortable: false },
@@ -563,32 +585,32 @@ export default {
         {
           text: "Template %",
           value: "template_percent",
-          sortable: false,
           width: "100px",
+          sortable: false,
         },
         {
           text: "Program Date",
           value: "program_date",
-          sortable: false,
           width: "150px",
+          sortable: false,
         },
         {
           text: "Program %",
           value: "program_percent",
-          sortable: false,
           width: "100px",
+          sortable: false,
         },
         {
           text: "Validation Date",
           value: "validation_date",
-          sortable: false,
           width: "150px",
+          sortable: false,
         },
         {
           text: "Validation %",
           value: "validation_percent",
-          sortable: false,
           width: "100px",
+          sortable: false,
         },
         { text: "Validator", value: "validator", sortable: false },
         { text: "Report Type", value: "type", sortable: false },
@@ -597,22 +619,22 @@ export default {
         {
           text: "Validation hrs. (This Month)",
           value: "",
-          sortable: false,
           width: "120px",
+          sortable: false,
         },
         {
           text: "Program hrs.  (This Month)",
           value: "",
-          sortable: false,
           width: "120px",
+          sortable: false,
         },
         {
           text: "Report Status",
           value: "status",
-          sortable: false,
           width: "170px",
+          sortable: false,
         },
-        { text: "Actions", value: "actions", sortable: false, width: "80px" },
+        { text: "Actions", value: "actions", width: "80px", sortable: false },
       ],
       input_filter_date: false,
       input_program_date: false,
@@ -626,6 +648,7 @@ export default {
       departments: [],
       programmers: [],
       validators: [],
+      holidays: [],
       types: [
         { text: "New", value: "New" },
         { text: "Change Order", value: "Change Order" },
@@ -686,17 +709,19 @@ export default {
   methods: {
     getProject() {
       this.loading = true;
-      const data = { filter_date: this.filter_date};
-      Axios.post("/api/project/programmer_reports", data, {
+      const data = { filter_date: this.filter_date };
+      Axios.get("/api/project/index", {
         headers: {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
         console.log(response.data);
         this.projects = response.data.projects;
+        this.project_logs = response.data.project_logs;
         this.departments = response.data.departments;
         this.programmers = response.data.programmers;
         this.validators = response.data.validators;
+        this.holidays = response.data.holidays;
         this.loading = false;
 
         if (this.user_type == "Admin") {
@@ -845,10 +870,194 @@ export default {
       const [year, month, day] = date.split("-");
       return `${month}/${day}/${year}`;
     },
+    calculateHoursByDate() {
+      let filter_date = new Date(this.filter_date);
+      let firstDay = new Date(
+        filter_date.getFullYear(),
+        filter_date.getMonth(),
+        1
+      );
+
+      let lastDay = new Date(
+        filter_date.getFullYear(),
+        filter_date.getMonth() + 1,
+        0
+      );
+
+    
+      this.project_logs.forEach((value, index) => {
+        let filtered_project_logs = [];
+        let program_hrs = 0;
+        let program_mins = 0;
+        let validate_hrs = 0;
+        let validate_mins = 0;
+        let program_mins_remainder = 0;
+        let validate_mins_remainder = 0;
+        let time_now = new Date().toTimeString().substr(0, 5);
+        let hr_now = new Date().toTimeString().substr(0, 2);
+        let filter_date = moment(new Date(this.filter_date).toISOString().substring(0, 10), "YYYY-MM-DD");
+        let filter_datetime = moment(new Date(this.filter_date + ' ' + time_now), "YYYY-MM-DD");
+        let filter_start_time = moment(new Date(this.filter_date + ' 08:00'), "YYYY-MM-DD");
+        let filter_end_time = moment(new Date(this.filter_date + ' 17:00'), "YYYY-MM-DD");
+        let filter_day = new Date(this.filter_date).toDateString().substr(0, 3);
+
+        if(hr_now == 12)
+        {
+          filter_datetime = moment(new Date(this.filter_date + ' 13:00'), "YYYY-MM-DD");
+        }
+
+        // filter project logs as of [filtered_date]
+        value.project_logs.forEach((val, i) => {
+          let remarks_date = new Date(val.remarks_date);
+          if (remarks_date <= filter_date) {
+            filtered_project_logs.push(val);
+          }
+        });
+
+        // sort remarks_date
+        filtered_project_logs.sort((a, b) =>
+          new Date(a.remarks_date) < new Date(b.remarks_date) ? 1 : -1
+        );
+        
+        filtered_project_logs.forEach((val, i) => {
+         
+          let remarks_hr = val.remarks_time.split(':')[0];
+          let remarks_date = moment(new Date(val.remarks_date), "YYYY-MM-DD");
+          let remarks_datetime = moment(new Date(val.remarks_date + ' ' + val.remarks_time), "YYYY-MM-DD");
+          let remarks_day = new Date(val.remarks_date).toDateString().substring(0, 3);
+          let remarks_start_time = moment(new Date(val.remarks_date + ' 08:00'), "YYYY-MM-DD");
+          let remarks_end_time = moment(new Date(val.remarks_date + ' 17:00'), "YYYY-MM-DD");
+          let day_diff = filter_date.diff(remarks_date, "day");             
+ 
+          // if last remarks time is between noon time then set into 1:00 pm
+          if(remarks_hr == 12)
+          {
+              remarks_datetime = moment(new Date(val.remarks_date + ' 12:00'), "YYYY-MM-DD");
+          }
+          
+          if(i == 0)
+          {
+            if(val.status == 'Ongoing')
+            {
+              if (day_diff == 0) {
+                // exclude sunday
+                if(remarks_day != 'Sun' && this.holidays.includes(val.remarks_date) == false)
+                {
+                  program_mins = program_mins + remarks_datetime.diff(filter_datetime
+                    ,
+                    "minute"
+                  );
+                    // less 1 hour(noon break)
+                    if(hr_now >= 12 && remarks_hr <= 12)
+                    {
+                        program_mins = program_mins - 60;
+                    }
+                }
+
+              }
+              else
+              {
+                if(remarks_day != 'Sun' && this.holidays.includes(val.remarks_date) == false)
+                {
+                  program_mins = program_mins + remarks_end_time.diff(remarks_datetime
+                    ,
+                    "minute"
+                  );
+
+                  if(remarks_hr <= 12)
+                  {
+                    program_mins = program_mins - 60;
+                  }
+                }
+                
+
+                if(day_diff > 1)
+                {
+                    for(let x = 1; day_diff > x; x++)
+                    {     
+                        let remarksdate = new Date(val.remarks_date);
+                        let date = remarksdate.setDate(remarksdate.getDate() + x);
+                        let day = remarksdate.setDate(remarksdate.getDate() + x);
+
+                        // exclude sunday// exclude sunday and holidays
+                        if(day != 'Sun' && this.holidays.includes(date) == false)
+                        {
+                            program_mins = program_mins + 480;
+                        }
+                    }  
+                }
+
+                // exclude sunday and holidays
+                if(filter_day != 'Sun' && this.holidays.includes(this.filter_date) == false)
+                {
+                    program_mins = program_mins + filter_datetime.diff(filter_start_time
+                    ,
+                    "minute"
+                  ); 
+
+                    // less 1 hour(noon break)
+                    if(hr_now >= 12)
+                    {
+                        program_mins = program_mins - 60;
+                    }
+                }
+
+                
+                if(val.turnover == 'Y' || val.status == 'Pending' || val.status == 'Accepted')
+                {
+                    program_mins = 0;
+                }  
+
+              }
+
+            }
+          }
+          else
+          {
+            if(val.status == 'Ongoing')
+            {
+              program_mins = program_mins + val.mins_diff;
+            }
+
+            if(val.status == 'For Validation')
+            {
+              validate_mins = validate_mins + val.mins_diff;
+            }
+          }
+
+        });
+
+        program_mins_remainder = program_mins % 60;
+        validate_mins_remainder = validate_mins % 60;
+        program_hrs = parseInt(program_mins / 60) + (program_mins_remainder / 100);
+        validate_hrs = parseInt(validate_mins / 60) + (validate_mins_remainder / 100);
+        
+        this.projects.forEach((val, i) => {
+          if (val.project_id == value.id) {
+            this.projects[i].program_hrs = program_hrs;
+            this.projects[i].validate_hrs = validate_hrs;
+          }
+        });
+      });
+
+    },
   },
   computed: {
     filteredProjects() {
+      let filter_date = new Date(this.filter_date);
+      let firstDay = new Date(
+        filter_date.getFullYear(),
+        filter_date.getMonth(),
+        1
+      );
+      let lastDay = new Date(
+        filter_date.getFullYear(),
+        filter_date.getMonth() + 1,
+        0
+      );
+
       let filteredProjects = [];
+      let filteredAcceptedProjects = [];
 
       this.projects.forEach((value, index) => {
         if (this.search_report_status == value.status) {
@@ -866,6 +1075,17 @@ export default {
         });
       }
 
+      filteredProjects.forEach((value, index) => {
+        let accepted_date = new Date(value.accepted_date);
+
+        if (
+          (accepted_date >= firstDay && accepted_date <= lastDay) ||
+          !value.accepted_date
+        ) {
+          filteredAcceptedProjects.push(value);
+        }
+      });
+
       this.report_status = [
         { text: "For Validation", value: "For Validation" },
         { text: "Ongoing", value: "Ongoing" },
@@ -874,10 +1094,11 @@ export default {
         { text: "Cancelled", value: "Cancelled" },
       ];
 
-      return filteredProjects;
+      return filteredAcceptedProjects;
     },
+
     formTitle() {
-      return this.editedIndex === -1 ? "New Remarks" : "Edit Renarks";
+      return this.editedIndex === -1 ? "New Remarks" : "Edit Remarks";
     },
     report_titleErrors() {
       const errors = [];

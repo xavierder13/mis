@@ -20,46 +20,9 @@ class ProjectController extends Controller
 
     public function index()
     {
-        $projects = DB::table('projects')
-                    ->join('departments', 'projects.department_id', '=','departments.id')
-                    ->join('managers', 'departments.id', '=', 'managers.department_id')
-                    ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
-                    ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
-                    ->select(DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
-                             DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
-                             DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
-                             DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
-                             DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
-                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
-                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
-                             DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
-                             DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
-                             'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
-                             'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
-                    ->where('projects.status', '!=', 'Cancelled')
-                    ->orderBy('projects.id', 'Desc')
-                    ->get();
-
-        $departments = Department::with('managers')->get();
-
-        $programmers = User::where('type', '=', 'Programmer')->get();
-
-        $validators = User::where('type', '=', 'Validator')->get();
-
-
-        return response()->json([
-            'projects' => $projects, 
-            'departments' => $departments,
-            'programmers' => $programmers,
-            'validators' => $validators,
-        ], 200);
-
-    }
-    public function programmer_reports(Request $request)
-    {   
-        $filter_date = Carbon::parse($request->get('filter_date'))->format('Y-m-d');
-        $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
-        $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
+        // $filter_date = Carbon::parse($request->get('filter_date'))->format('Y-m-d');
+        // $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
+        // $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
 
         $projects = Project::where('projects.status', '!=', 'Cancelled')
                            ->select(DB::raw('*'), DB::raw('id as project_id'))
@@ -100,10 +63,10 @@ class ProjectController extends Controller
                              'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
-                    ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
-                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
-                              ->orWhereNull('projects.accepted_date');
-                    })
+                    // ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
+                    //     $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
+                    //           ->orWhereNull('projects.accepted_date');
+                    // })
                     ->orderBy('project_id', 'Desc')
                     ->get();
 
@@ -115,13 +78,23 @@ class ProjectController extends Controller
 
         $validators = User::where('type', '=', 'Validator')->get();
 
+        $holidays = Holiday::all();
+        $holidays_array = [];
+
+        foreach($holidays as $i => $holiday)
+        {
+            $holidays_array[] = $holiday->holiday_date;
+        }
+
         return response()->json([
             'projects' => $projects, 
             'departments' => $departments,
             'programmers' => $programmers,
             'validators' => $validators,
             'project_logs' => $project_logs,
+            'holidays' => $holidays_array
         ], 200);
+
     }
 
     public function store(Request $request)
@@ -385,11 +358,23 @@ class ProjectController extends Controller
             {
                 $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 13:00');
             }
+            
+            // if last remarks time is 5pm and beyond then set into 5:00 pm
+            if($next_remarks_hr >= 17)
+            {
+                $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 17:00');
+            }
 
             // if last remarks time is between noon time then set into 1:00 pm
             if($curr_remarks_hr == 12)
             {
                 $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 12:00');
+            }
+            
+            // if last remarks time is 5pm and beyond then set into 5:00 pm
+            if($curr_remarks_hr == 12)
+            {
+                $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
             }
  
             // calculate programming hours for every remarks log

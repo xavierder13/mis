@@ -49,11 +49,6 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
         'as' => 'project.index',
     ]);
 
-    Route::post('/programmer_reports', [
-        'uses' => 'API\ProjectController@programmer_reports',
-        'as' => 'project.programmer_reports',
-    ]);
-
     Route::post('/store', [
         'uses' => 'API\ProjectController@store',
         'as' => 'project.store',

@@ -449,11 +449,23 @@ class ProjectLogController extends Controller
             {
                 $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 13:00');
             }
+            
+            // if last remarks time is 5pm and beyond then set into 5:00 pm
+            if($next_remarks_hr >= 17)
+            {
+                $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 17:00');
+            }
 
             // if last remarks time is between noon time then set into 1:00 pm
             if($curr_remarks_hr == 12)
             {
                 $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 12:00');
+            }
+            
+            // if last remarks time is 5pm and beyond then set into 5:00 pm
+            if($curr_remarks_hr == 12)
+            {
+                $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
             }
 
             
