@@ -19,15 +19,57 @@ class ProjectController extends Controller
 {   
 
     public function index()
+    {  
+
+        $projects = DB::table('projects')
+                    ->join('departments', 'projects.department_id', '=','departments.id')
+                    ->join('managers', 'departments.id', '=', 'managers.department_id')
+                    ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
+                    ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
+                    ->select(DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
+                             DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
+                             DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
+                             DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
+                             DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
+                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
+                             DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
+                             DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
+                             DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
+                             'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
+                             'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
+                    ->where('projects.status', '!=', 'Cancelled')
+                    ->orderBy('project_id', 'Desc')
+                    ->get();
+        
+        $departments = Department::with('managers')->get();
+
+        $programmers = User::where('type', '=', 'Programmer')->get();
+
+        $validators = User::where('type', '=', 'Validator')->get();
+
+
+        return response()->json([
+            'projects' => $projects, 
+            'departments' => $departments,
+            'programmers' => $programmers,
+            'validators' => $validators,
+        ], 200);
+
+    }
+
+    public function programmer_reports(Request $request)
     {
-        // $filter_date = Carbon::parse($request->get('filter_date'))->format('Y-m-d');
-        // $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
-        // $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
+        $filter_date = Carbon::parse($request->get('filter_date'))->format('Y-m-d');
+        $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
+        $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
 
         $projects = Project::where('projects.status', '!=', 'Cancelled')
                            ->select(DB::raw('*'), DB::raw('id as project_id'))
                            ->get();
-        
+
+        $project_execution_hrs = [];
+                           
         // calculate programming/validation hrs for all projects
         foreach($projects as $i => $project)
         {
@@ -41,8 +83,15 @@ class ProjectController extends Controller
                 {
                     // calculate hours difference per remarks log
                     $this->calculateHours($project_logs); 
+                    
                 }                          
             }
+
+            $project_execution_hrs[] = [
+                'project_id' => $project->project_id,
+                'execution_hrs' => $this->calculateHrsPerParamDate($project->project_id, $filter_date)
+            ];
+
         }    
 
         $projects = DB::table('projects')
@@ -63,14 +112,13 @@ class ProjectController extends Controller
                              'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
-                    // ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
-                    //     $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
-                    //           ->orWhereNull('projects.accepted_date');
-                    // })
+                    // ->where('projects.ref_no', '=', '4')
+                    ->where(function($query) use ($firstOfMonth, $filter_date) {
+                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
+                              ->orWhereNull('projects.accepted_date');
+                    })
                     ->orderBy('project_id', 'Desc')
                     ->get();
-
-        $project_logs = Project::with('project_logs')->where('status', '!=', 'Cancelled')->get();
         
         $departments = Department::with('managers')->get();
 
@@ -78,21 +126,12 @@ class ProjectController extends Controller
 
         $validators = User::where('type', '=', 'Validator')->get();
 
-        $holidays = Holiday::all();
-        $holidays_array = [];
-
-        foreach($holidays as $i => $holiday)
-        {
-            $holidays_array[] = $holiday->holiday_date;
-        }
-
         return response()->json([
             'projects' => $projects, 
             'departments' => $departments,
             'programmers' => $programmers,
             'validators' => $validators,
-            'project_logs' => $project_logs,
-            'holidays' => $holidays_array
+            'project_execution_hrs' => $project_execution_hrs,
         ], 200);
 
     }
@@ -353,6 +392,12 @@ class ProjectController extends Controller
 
             $curr_mins = 0;
 
+            // if new remarks time is between noon time then set into 8:00 am
+            if($next_remarks_hr < 8)
+            {
+                $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 08:00');
+            }
+
             // if new remarks time is between noon time then set into 1:00 pm
             if($next_remarks_hr == 12)
             {
@@ -416,7 +461,7 @@ class ProjectController extends Controller
                     for($x = 1; $curr_days_diff > $x; $x++)
                     {   
                         $date = Carbon::parse($curr_remarks_datetime->addDays($x))->format('Y-m-d');
-                        $day = Carbon::parse($curr_remarks_datetime->addDays($x))->format('D');
+                        $day = Carbon::parse($date)->format('D');
 
                         // exclude sunday// exclude sunday and holidays
                         if($day != 'Sun' && in_array($date, $holidays_array) == false)
@@ -437,27 +482,6 @@ class ProjectController extends Controller
                         $curr_mins = $curr_mins - 60;
                     }
                 }
-
-
-                // $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
-                // $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
-
-                // if($curr_days_diff > 1)
-                // {
-                //     $curr_mins = $curr_mins + (($curr_days_diff - 1) * 480);    
-                // }
-
-                // // less 1 hour(noon break)
-                // if($curr_remarks_hr <= 12)
-                // {
-                //     $curr_mins = $curr_mins - 60;
-                // }
-
-                // // less 1 hour(noon break)
-                // if($next_remarks_hr >= 12)
-                // {
-                //     $curr_mins = $curr_mins - 60;
-                // }
                 
             }
 
@@ -489,6 +513,208 @@ class ProjectController extends Controller
         Project::where('id', '=', $project_id)
                ->update(['program_hrs' => $program_hrs, 'validate_hrs' => $validate_hrs]);
    
+    }
+
+    public function calculateHrsPerParamDate($project_id, $filter_date)
+    {   
+        $time_now = Carbon::now()->format('H:i');
+        $date_now = Carbon::parse($filter_date)->format('Y-m-d');
+        $datetime_now = Carbon::parse($filter_date . ' ' . $time_now);
+        $hr_now = explode(':', $time_now)[0];
+        $start_now = Carbon::parse($date_now . ' 08:00');
+        $end_now = Carbon::parse($date_now . ' 17:00');
+
+        $program_sum_mins = 0;
+        $validate_sum_mins = 0;
+
+        $curr_mins = 0;
+        
+        // if time now is between noon time then set into 1:00 pm
+        if($hr_now == 12)
+        {
+            $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
+        }
+
+        
+        
+        $log = ProjectLog::where('project_id', '=', $project_id)
+                                   ->where('remarks_date', '<=', $filter_date)
+                                   ->orderBy('remarks_date', 'desc')
+                                   ->orderBy('remarks_time', 'desc')
+                                   ->orderBy('id', 'desc')
+                                   ->first(); 
+        // if logs has no data
+        if(!$log)
+        {
+            return ['program_hrs' => 0 , 'validate_hrs' => 0];
+        }
+
+        $next_remarks_time = Carbon::now()->format('H:i');
+        $next_remarks_date = Carbon::parse($date_now)->format('Y-m-d');
+        $next_remarks_datetime = Carbon::parse($next_remarks_date . ' ' . $next_remarks_time);
+        $next_remarks_day = Carbon::parse($date_now)->format('D');
+        $next_remarks_hr = explode(':', $next_remarks_time)[0];
+        $next_start_datetime = Carbon::parse($next_remarks_date . ' 08:00');
+        $next_end_datetime = Carbon::parse($next_remarks_date . ' 17:00');
+
+        $curr_remarks_date = Carbon::parse($log->remarks_date)->format('Y-m-d');
+        $curr_remarks_day = Carbon::parse($log->remarks_date)->format('D');
+        $curr_remarks_time = $log->remarks_time;
+        $curr_remarks_hr = explode(':', $curr_remarks_time)[0];
+        $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' ' . $curr_remarks_time);
+        $curr_start_datetime = Carbon::parse($curr_remarks_date . ' 08:00');
+        $curr_end_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
+        $curr_status = $log->status;
+        $curr_days_diff = Carbon::parse($curr_remarks_date . ' 00:00')->diffInDays(Carbon::parse($next_remarks_date . ' 00:00'));
+
+        // if new remarks time is between noon time then set into 8:00 am
+        if($next_remarks_hr < 8)
+        {
+            $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 08:00');
+        }
+
+        // if new remarks time is between noon time then set into 1:00 pm
+        if($next_remarks_hr == 12)
+        {
+            $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 13:00');
+        }
+        
+        // if last remarks time is 5pm and beyond then set into 5:00 pm
+        if($next_remarks_hr >= 17)
+        {
+            $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 17:00');
+        }
+
+        // if last remarks time is between noon time then set into 1:00 pm
+        if($curr_remarks_hr == 12)
+        {
+            $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 12:00');
+        }
+        
+        // if last remarks time is 5pm and beyond then set into 5:00 pm
+        if($curr_remarks_hr == 12)
+        {
+            $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
+        }
+
+        
+        // if the last remarks log is not turnover
+        if(!$log->turnover || $log->status == 'Ongoing' || $log->status == 'For Validation')
+        {
+            // calculate programming hours for every remarks log
+            if($curr_days_diff == 0)
+            {   
+                // exclude sunday
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
+                {
+                    $curr_mins = $curr_remarks_datetime->diffInMinutes($next_remarks_datetime);
+                
+                    // less 1 hour(noon break)
+                    if($next_remarks_hr >= 12 && $curr_remarks_hr <= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
+                }
+                
+            }
+            else
+            {   
+                
+                // exclude sunday and holidays
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
+                {   
+                    $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
+                    // less 1 hour(noon break)
+                    if($curr_remarks_hr <= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
+
+                }
+                
+                if($curr_days_diff > 1)
+                {   
+                    for($x = 1; $curr_days_diff > $x; $x++)
+                    {   
+                        $date = Carbon::parse($curr_remarks_datetime->addDays($x))->format('Y-m-d');
+                        $day = Carbon::parse($date)->format('D');
+                        // exclude sunday// exclude sunday and holidays
+                        if($day != 'Sun' && in_array($date, $holidays_array) == false)
+                        {   
+                            
+                            $curr_mins = $curr_mins + 480;
+                        }
+                    }  
+                }
+                
+                // exclude sunday and holidays
+                if($next_remarks_day != 'Sun' && in_array($next_remarks_date, $holidays_array) == false)
+                {
+                    
+                    $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
+
+                    // less 1 hour(noon break)
+                    if($next_remarks_hr >= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
+                }
+
+                
+            }
+
+            if($log->turnover == 'Y' || $log->status == 'Pending' || $log->status == 'Accepted')
+            {
+                $curr_mins = 0;
+            } 
+
+        }
+
+        $program_hrs = 0;
+        $validate_hrs = 0;
+
+        $ongoing_mins =  ProjectLog::where('project_id', '=', $project_id)
+                                ->where('remarks_date', '<=', $filter_date)
+                                ->where('status', '=', 'Ongoing')
+                                ->sum('mins_diff');
+
+        $validation_mins =  ProjectLog::where('project_id', '=', $project_id)
+                                ->where('remarks_date', '<=', $filter_date)
+                                ->where('status', '=', 'For Validation')
+                                ->sum('mins_diff');
+
+        if($log->status == 'Ongoing')
+        {   
+            $ongoing_mins =  ProjectLog::where('project_id', '=', $project_id)
+                                ->where('id', '!=', $log->id)
+                                ->where('remarks_date', '<=', $filter_date)
+                                ->where('status', '=', 'Ongoing')
+                                ->sum('mins_diff');
+            
+            $ongoing_mins = $ongoing_mins + $curr_mins;
+
+
+        }
+        else if($log->status == 'For Validation')
+        {   
+            $validation_mins =  ProjectLog::where('project_id', '=', $project_id)
+                                ->where('id', '!=', $log->id)
+                                ->where('remarks_date', '<=', $filter_date)
+                                ->where('status', '=', 'For Validation')
+                                ->sum('mins_diff');
+
+            $validation_mins = $validation_mins + $curr_mins;
+        }
+        
+        $program_remainder = $ongoing_mins % 60;
+        $program_hrs = intval($ongoing_mins / 60) + ($program_remainder / 100);
+        
+        $validation_remainder = $validation_mins % 60;
+        $validate_hrs = intval($validation_mins / 60) + ($validation_remainder / 100);
+
+        
+        return ['program_hrs' => $program_hrs, 'validate_hrs' => $validate_hrs];
+
     }
     
 }

@@ -57,7 +57,11 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
 
-        return response()->json(['project' => $project, 'project_logs' => $project_logs], 200);
+        return response()->json([
+            'project' => $project, 
+            'project_logs' => $project_logs,
+            $this->calculateHrsThisMonth($project_id, '2021-02-28'),
+        ], 200);
 
     }
 
@@ -443,6 +447,12 @@ class ProjectLogController extends Controller
             $curr_days_diff = Carbon::parse($curr_remarks_date . ' 00:00')->diffInDays(Carbon::parse($next_remarks_date . ' 00:00'));
 
             $curr_mins = 0;
+            
+            // if new remarks time is between noon time then set into 8:00 am
+            if($next_remarks_hr < 8)
+            {
+                $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 08:00');
+            }  
 
             // if new remarks time is between noon time then set into 1:00 pm
             if($next_remarks_hr == 12)
@@ -508,7 +518,7 @@ class ProjectLogController extends Controller
                     for($x = 1; $curr_days_diff > $x; $x++)
                     {   
                         $date = Carbon::parse($curr_remarks_datetime->addDays($x))->format('Y-m-d');
-                        $day = Carbon::parse($curr_remarks_datetime->addDays($x))->format('D');
+                        $day = Carbon::parse($date)->format('D');
 
                         // exclude sunday// exclude sunday and holidays
                         if($day != 'Sun' && in_array($date, $holidays_array) == false)
@@ -529,27 +539,6 @@ class ProjectLogController extends Controller
                         $curr_mins = $curr_mins - 60;
                     }
                 }
-
-
-                // $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
-                // $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
-
-                // if($curr_days_diff > 1)
-                // {
-                //     $curr_mins = $curr_mins + (($curr_days_diff - 1) * 480);    
-                // }
-
-                // // less 1 hour(noon break)
-                // if($curr_remarks_hr <= 12)
-                // {
-                //     $curr_mins = $curr_mins - 60;
-                // }
-
-                // // less 1 hour(noon break)
-                // if($next_remarks_hr >= 12)
-                // {
-                //     $curr_mins = $curr_mins - 60;
-                // }
                 
             }
 
@@ -581,6 +570,44 @@ class ProjectLogController extends Controller
         Project::where('id', '=', $project_id)
                ->update(['program_hrs' => $program_hrs, 'validate_hrs' => $validate_hrs]);
    
+    }
+
+    public function calculateHrsThisMonth($project_id, $filter_date)
+    {   
+        $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
+        $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
+        $time_now = Carbon::now()->format('H:i');
+        $date_now = Carbon::parse($filter_date)->format('Y-m-d');
+        $datetime_now = Carbon::parse($filter_date . ' ' . $time_now);
+        $hr_now = explode(':', $time_now)[0];
+        $start_now = Carbon::parse($date_now . ' 08:00');
+        $end_now = Carbon::parse($date_now . ' 17:00');
+
+        $program_sum_mins = 0;
+        $validate_sum_mins = 0;
+
+        $curr_mins = 0;
+        
+        // if time now is between noon time then set into 1:00 pm
+        if($hr_now == 12)
+        {
+            $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
+        }
+
+        $last_log = ProjectLog::where('project_id', '=', $project_id)
+                               ->where('remarks_date', '<=', $filter_date)
+                               ->orderBy('remarks_date', 'desc')
+                               ->orderBy('remarks_time', 'desc')
+                               ->orderBy('id', 'desc')
+                               ->first();
+
+        $first_log = ProjectLog::where('project_id', '=', $project_id)
+                               ->where('remarks_date', '<=', $filter_date)
+                               ->orderBy('remarks_date', 'asc')
+                               ->orderBy('remarks_time', 'asc')
+                               ->orderBy('id', 'asc')
+                               ->first();
+                                  
     }
 
 }

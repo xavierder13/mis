@@ -618,13 +618,13 @@ export default {
         { text: "Program hrs.", value: "program_hrs", sortable: false },
         {
           text: "Validation hrs. (This Month)",
-          value: "",
+          value: "validate_hrs_tm",
           width: "120px",
           sortable: false,
         },
         {
           text: "Program hrs.  (This Month)",
-          value: "",
+          value: "program_hrs_tm",
           width: "120px",
           sortable: false,
         },
@@ -645,6 +645,7 @@ export default {
       dialog: false,
       projects: [],
       project_logs: [],
+      project_execution_hrs: [],
       departments: [],
       programmers: [],
       validators: [],
@@ -710,14 +711,15 @@ export default {
     getProject() {
       this.loading = true;
       const data = { filter_date: this.filter_date };
-      Axios.get("/api/project/index", {
+      Axios.post("/api/project/programmer_reports", data, {
         headers: {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
-        console.log(response.data);
+        
         this.projects = response.data.projects;
         this.project_logs = response.data.project_logs;
+        this.project_execution_hrs = response.data.project_execution_hrs;
         this.departments = response.data.departments;
         this.programmers = response.data.programmers;
         this.validators = response.data.validators;
@@ -730,8 +732,18 @@ export default {
           this.filter_project_by_programmer = parseInt(this.user_id);
         }
 
-        this.computeProgramHours;
-        this.computeValidateHours;
+        this.project_execution_hrs.forEach((value, index) => {
+          this.filteredProjects.forEach((val, index) => {
+            if(value.project_id == val.project_id)
+            {
+              this.filteredProjects[index].program_hrs = value.execution_hrs.program_hrs;
+              this.filteredProjects[index].validate_hrs = value.execution_hrs.validate_hrs;
+              this.filteredProjects[index].program_hrs_tm = value.execution_hrs.program_hrs;
+              this.filteredProjects[index].validate_hrs_tm = value.execution_hrs.validate_hrs;
+            }
+          });
+        });
+
       });
     },
 
@@ -871,176 +883,9 @@ export default {
       return `${month}/${day}/${year}`;
     },
     calculateHoursByDate() {
-      let filter_date = new Date(this.filter_date);
-      let firstDay = new Date(
-        filter_date.getFullYear(),
-        filter_date.getMonth(),
-        1
-      );
-
-      let lastDay = new Date(
-        filter_date.getFullYear(),
-        filter_date.getMonth() + 1,
-        0
-      );
-
+      this.getProject();
+    }
     
-      this.project_logs.forEach((value, index) => {
-        let filtered_project_logs = [];
-        let program_hrs = 0;
-        let program_mins = 0;
-        let validate_hrs = 0;
-        let validate_mins = 0;
-        let program_mins_remainder = 0;
-        let validate_mins_remainder = 0;
-        let time_now = new Date().toTimeString().substr(0, 5);
-        let hr_now = new Date().toTimeString().substr(0, 2);
-        let filter_date = moment(new Date(this.filter_date).toISOString().substring(0, 10), "YYYY-MM-DD");
-        let filter_datetime = moment(new Date(this.filter_date + ' ' + time_now), "YYYY-MM-DD");
-        let filter_start_time = moment(new Date(this.filter_date + ' 08:00'), "YYYY-MM-DD");
-        let filter_end_time = moment(new Date(this.filter_date + ' 17:00'), "YYYY-MM-DD");
-        let filter_day = new Date(this.filter_date).toDateString().substr(0, 3);
-
-        if(hr_now == 12)
-        {
-          filter_datetime = moment(new Date(this.filter_date + ' 13:00'), "YYYY-MM-DD");
-        }
-
-        // filter project logs as of [filtered_date]
-        value.project_logs.forEach((val, i) => {
-          let remarks_date = new Date(val.remarks_date);
-          if (remarks_date <= filter_date) {
-            filtered_project_logs.push(val);
-          }
-        });
-
-        // sort remarks_date
-        filtered_project_logs.sort((a, b) =>
-          new Date(a.remarks_date) < new Date(b.remarks_date) ? 1 : -1
-        );
-        
-        filtered_project_logs.forEach((val, i) => {
-         
-          let remarks_hr = val.remarks_time.split(':')[0];
-          let remarks_date = moment(new Date(val.remarks_date), "YYYY-MM-DD");
-          let remarks_datetime = moment(new Date(val.remarks_date + ' ' + val.remarks_time), "YYYY-MM-DD");
-          let remarks_day = new Date(val.remarks_date).toDateString().substring(0, 3);
-          let remarks_start_time = moment(new Date(val.remarks_date + ' 08:00'), "YYYY-MM-DD");
-          let remarks_end_time = moment(new Date(val.remarks_date + ' 17:00'), "YYYY-MM-DD");
-          let day_diff = filter_date.diff(remarks_date, "day");             
- 
-          // if last remarks time is between noon time then set into 1:00 pm
-          if(remarks_hr == 12)
-          {
-              remarks_datetime = moment(new Date(val.remarks_date + ' 12:00'), "YYYY-MM-DD");
-          }
-          
-          if(i == 0)
-          {
-            if(val.status == 'Ongoing')
-            {
-              if (day_diff == 0) {
-                // exclude sunday
-                if(remarks_day != 'Sun' && this.holidays.includes(val.remarks_date) == false)
-                {
-                  program_mins = program_mins + remarks_datetime.diff(filter_datetime
-                    ,
-                    "minute"
-                  );
-                    // less 1 hour(noon break)
-                    if(hr_now >= 12 && remarks_hr <= 12)
-                    {
-                        program_mins = program_mins - 60;
-                    }
-                }
-
-              }
-              else
-              {
-                if(remarks_day != 'Sun' && this.holidays.includes(val.remarks_date) == false)
-                {
-                  program_mins = program_mins + remarks_end_time.diff(remarks_datetime
-                    ,
-                    "minute"
-                  );
-
-                  if(remarks_hr <= 12)
-                  {
-                    program_mins = program_mins - 60;
-                  }
-                }
-                
-
-                if(day_diff > 1)
-                {
-                    for(let x = 1; day_diff > x; x++)
-                    {     
-                        let remarksdate = new Date(val.remarks_date);
-                        let date = remarksdate.setDate(remarksdate.getDate() + x);
-                        let day = remarksdate.setDate(remarksdate.getDate() + x);
-
-                        // exclude sunday// exclude sunday and holidays
-                        if(day != 'Sun' && this.holidays.includes(date) == false)
-                        {
-                            program_mins = program_mins + 480;
-                        }
-                    }  
-                }
-
-                // exclude sunday and holidays
-                if(filter_day != 'Sun' && this.holidays.includes(this.filter_date) == false)
-                {
-                    program_mins = program_mins + filter_datetime.diff(filter_start_time
-                    ,
-                    "minute"
-                  ); 
-
-                    // less 1 hour(noon break)
-                    if(hr_now >= 12)
-                    {
-                        program_mins = program_mins - 60;
-                    }
-                }
-
-                
-                if(val.turnover == 'Y' || val.status == 'Pending' || val.status == 'Accepted')
-                {
-                    program_mins = 0;
-                }  
-
-              }
-
-            }
-          }
-          else
-          {
-            if(val.status == 'Ongoing')
-            {
-              program_mins = program_mins + val.mins_diff;
-            }
-
-            if(val.status == 'For Validation')
-            {
-              validate_mins = validate_mins + val.mins_diff;
-            }
-          }
-
-        });
-
-        program_mins_remainder = program_mins % 60;
-        validate_mins_remainder = validate_mins % 60;
-        program_hrs = parseInt(program_mins / 60) + (program_mins_remainder / 100);
-        validate_hrs = parseInt(validate_mins / 60) + (validate_mins_remainder / 100);
-        
-        this.projects.forEach((val, i) => {
-          if (val.project_id == value.id) {
-            this.projects[i].program_hrs = program_hrs;
-            this.projects[i].validate_hrs = validate_hrs;
-          }
-        });
-      });
-
-    },
   },
   computed: {
     filteredProjects() {
