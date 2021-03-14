@@ -64,6 +64,14 @@ class ProjectController extends Controller
         $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
         $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
 
+        $holidays = Holiday::all();
+        $holidays = [];
+
+        foreach($holidays as $i => $holiday)
+        {
+            $holidays[] = $holiday->holiday_date;
+        }
+
         $projects = Project::where('projects.status', '!=', 'Cancelled')
                            ->select(DB::raw('*'), DB::raw('id as project_id'))
                            ->get();
@@ -82,7 +90,7 @@ class ProjectController extends Controller
                 if(count($project_logs))
                 {
                     // calculate hours difference per remarks log
-                    $this->calculateHours($project_logs); 
+                    $this->calculateHours($project_logs, $holidays); 
                     
                 }                          
             }
@@ -332,7 +340,7 @@ class ProjectController extends Controller
         return $ref_no;
     }
 
-    public function calculateHours($project_logs)
+    public function calculateHours($project_logs, $holidays)
     {   
 
         $project_id = $project_logs->first()->project_id;
@@ -347,14 +355,6 @@ class ProjectController extends Controller
         if($hr_now == 12)
         {
             $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
-        }
-
-        $holidays = Holiday::all();
-        $holidays_array = [];
-
-        foreach($holidays as $i => $holiday)
-        {
-            $holidays_array[] = $holiday->holiday_date;
         }
 
         foreach($project_logs as $i => $log)
@@ -426,7 +426,7 @@ class ProjectController extends Controller
             if($curr_days_diff == 0)
             {   
                 // exclude sunday
-                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false)
                 {
                     $curr_mins = $curr_remarks_datetime->diffInMinutes($next_remarks_datetime);
                 
@@ -441,7 +441,7 @@ class ProjectController extends Controller
             else
             {   
                 // exclude sunday and holidays
-                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false)
                 {   
                     $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
                     // less 1 hour(noon break)
@@ -460,11 +460,11 @@ class ProjectController extends Controller
                 {
                     for($x = 1; $curr_days_diff > $x; $x++)
                     {   
-                        $date = Carbon::parse($curr_remarks_datetime->addDays($x))->format('Y-m-d');
+                        $date = Carbon::parse($curr_remarks_date)->addDays($x)->format('Y-m-d');
                         $day = Carbon::parse($date)->format('D');
 
                         // exclude sunday// exclude sunday and holidays
-                        if($day != 'Sun' && in_array($date, $holidays_array) == false)
+                        if($day != 'Sun' && in_array($date, $holidays) == false)
                         {
                             $curr_mins = $curr_mins + 480;
                         }
@@ -472,7 +472,7 @@ class ProjectController extends Controller
                 }
                 
                 // exclude sunday and holidays
-                if($next_remarks_day != 'Sun' && in_array($next_remarks_date, $holidays_array) == false)
+                if($next_remarks_day != 'Sun' && in_array($next_remarks_date, $holidays) == false)
                 {
                     $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
 
@@ -517,15 +517,14 @@ class ProjectController extends Controller
 
     public function calculateHrsPerParamDate($project_id, $filter_date)
     {   
+        $holidays = $this->holidays();
+
         $time_now = Carbon::now()->format('H:i');
         $date_now = Carbon::parse($filter_date)->format('Y-m-d');
         $datetime_now = Carbon::parse($filter_date . ' ' . $time_now);
         $hr_now = explode(':', $time_now)[0];
         $start_now = Carbon::parse($date_now . ' 08:00');
         $end_now = Carbon::parse($date_now . ' 17:00');
-
-        $program_sum_mins = 0;
-        $validate_sum_mins = 0;
 
         $curr_mins = 0;
         
@@ -535,8 +534,6 @@ class ProjectController extends Controller
             $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
         }
 
-        
-        
         $log = ProjectLog::where('project_id', '=', $project_id)
                                    ->where('remarks_date', '<=', $filter_date)
                                    ->orderBy('remarks_date', 'desc')
@@ -605,7 +602,7 @@ class ProjectController extends Controller
             if($curr_days_diff == 0)
             {   
                 // exclude sunday
-                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false)
                 {
                     $curr_mins = $curr_remarks_datetime->diffInMinutes($next_remarks_datetime);
                 
@@ -621,7 +618,7 @@ class ProjectController extends Controller
             {   
                 
                 // exclude sunday and holidays
-                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays_array) == false)
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false)
                 {   
                     $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
                     // less 1 hour(noon break)
@@ -636,10 +633,10 @@ class ProjectController extends Controller
                 {   
                     for($x = 1; $curr_days_diff > $x; $x++)
                     {   
-                        $date = Carbon::parse($curr_remarks_datetime->addDays($x))->format('Y-m-d');
+                        $date = Carbon::parse($curr_remarks_date)->addDays($x)->format('Y-m-d');
                         $day = Carbon::parse($date)->format('D');
                         // exclude sunday// exclude sunday and holidays
-                        if($day != 'Sun' && in_array($date, $holidays_array) == false)
+                        if($day != 'Sun' && in_array($date, $holidays) == false)
                         {   
                             
                             $curr_mins = $curr_mins + 480;
@@ -648,7 +645,7 @@ class ProjectController extends Controller
                 }
                 
                 // exclude sunday and holidays
-                if($next_remarks_day != 'Sun' && in_array($next_remarks_date, $holidays_array) == false)
+                if($next_remarks_day != 'Sun' && in_array($next_remarks_date, $holidays) == false)
                 {
                     
                     $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
@@ -715,6 +712,19 @@ class ProjectController extends Controller
         
         return ['program_hrs' => $program_hrs, 'validate_hrs' => $validate_hrs];
 
+    }
+
+    public function holidays()
+    {
+        $holidays = Holiday::all();
+        $holidays = [];
+
+        foreach($holidays as $i => $holiday)
+        {
+            $holidays[] = $holiday->holiday_date;
+        }
+
+        return $holidays;
     }
     
 }

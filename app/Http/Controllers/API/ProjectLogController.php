@@ -60,7 +60,7 @@ class ProjectLogController extends Controller
         return response()->json([
             'project' => $project, 
             'project_logs' => $project_logs,
-            $this->calculateHrsThisMonth($project_id, '2021-02-28'),
+            $this->calculateHrsThisMonth($project_logs, '2021-02-28'),
         ], 200);
 
     }
@@ -517,7 +517,7 @@ class ProjectLogController extends Controller
                 {
                     for($x = 1; $curr_days_diff > $x; $x++)
                     {   
-                        $date = Carbon::parse($curr_remarks_datetime->addDays($x))->format('Y-m-d');
+                        $date = Carbon::parse($curr_remarks_date)->addDays($x)->format('Y-m-d');
                         $day = Carbon::parse($date)->format('D');
 
                         // exclude sunday// exclude sunday and holidays
@@ -560,7 +560,6 @@ class ProjectLogController extends Controller
                                      ->where('status', '=', 'For Validation')
                                      ->sum('mins_diff');
 
-        
         $program_remainder = $ongoing_mins % 60;
         $program_hrs = intval($ongoing_mins / 60) + ($program_remainder / 100);
         
@@ -572,8 +571,12 @@ class ProjectLogController extends Controller
    
     }
 
-    public function calculateHrsThisMonth($project_id, $filter_date)
+    public function calculateHrsThisMonth($project_logs, $filter_date)
     {   
+        $holidays = $this->holidays();
+        $project_id = $project_logs->first()->project_id;
+        $log_rows = count($project_logs);
+
         $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
         $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
         $time_now = Carbon::now()->format('H:i');
@@ -594,20 +597,98 @@ class ProjectLogController extends Controller
             $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
         }
 
-        $last_log = ProjectLog::where('project_id', '=', $project_id)
-                               ->where('remarks_date', '<=', $filter_date)
-                               ->orderBy('remarks_date', 'desc')
-                               ->orderBy('remarks_time', 'desc')
-                               ->orderBy('id', 'desc')
-                               ->first();
+        // logs this month
+        $project_logs_tm = ProjectLog::where('project_id', '=', $project_id)
+                                   ->where('remarks_date', '<=', $filter_date)
+                                   ->where('remarks_date', '>=', $firstOfMonth)
+                                   ->orderBy('remarks_date', 'desc')
+                                   ->orderBy('remarks_time', 'desc')
+                                   ->orderBy('id', 'desc')
+                                   ->get(); 
+        // count logs this month
+        $log_rows_tm = count($project_logs_tm);   
 
-        $first_log = ProjectLog::where('project_id', '=', $project_id)
-                               ->where('remarks_date', '<=', $filter_date)
-                               ->orderBy('remarks_date', 'asc')
-                               ->orderBy('remarks_time', 'asc')
-                               ->orderBy('id', 'asc')
-                               ->first();
+        // if logs has no data
+        if(!$log_rows_tm)
+        {
+            return ['program_hrs' => 0 , 'validate_hrs' => 0];
+        }
+
+        
+
+        $first_log = $project_logs[0];
+        $first_log_tm = $project_logs_tm[0];
+
+        $last_log = $project_logs[$log_rows - 1];
+        $last_log_tm = $project_logs_tm[$log_rows_tm - 1];
+
+        
+        $logs = [
+            0 => $first_log_tm,
+            1 => $last_log_tm
+        ];
+
+        foreach($logs as $i => $log)
+        {
+            if($i == 0)
+            {
+
+            }
+            
+        }
+
+        $program_hrs = 0;
+        $validate_hrs = 0;
+
+        $ongoing_mins =  $project_logs_tm
+                                ->where('status', '=', 'Ongoing')
+                                ->whereNotIn('id', [$first_log_tm->id, $last_log_tm->id])
+                                ->sum('mins_diff');
+
+        return $validation_mins =  $project_logs_tm
+                                ->where('status', '=', 'For Validation')
+                                ->whereNotIn('id', [$first_log_tm->id, $last_log_tm->id])
+                                ->sum('mins_diff');
+
+        if($first_log_tm->status == 'Ongoing')
+        {   
+
+        }
+        else if($first_log_tm->status == 'For Validation')
+        {   
+        
+        }                        
+
+        if($last_log_tm->status == 'Ongoing')
+        {   
+
+        }
+        else if($last_log_tm->status == 'For Validation')
+        {   
+        
+        }
+        
+        $program_remainder = $ongoing_mins % 60;
+        $program_hrs = intval($ongoing_mins / 60) + ($program_remainder / 100);
+        
+        $validation_remainder = $validation_mins % 60;
+        $validate_hrs = intval($validation_mins / 60) + ($validation_remainder / 100);
+        
+        return ['program_hrs' => $program_hrs, 'validate_hrs' => $validate_hrs];
                                   
+    }
+
+    public function holidays()
+    {
+        $holidays = Holiday::all();
+        $holidays_array = [];
+
+        foreach($holidays as $i => $holiday)
+        {
+            $holidays_array[] = $holiday->holiday_date;
+        }
+
+        return $holidays_array;
     }
 
 }

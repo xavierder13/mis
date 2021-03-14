@@ -210,6 +210,9 @@
             }"
             loading-text="Loading... Please wait"
           >
+            <template v-slot:item.index="{ item, index }">
+              {{ index + 1 }}
+            </template>
             <template v-slot:item.status="{ item, index }">
               <v-chip
                 v-if="editedIndex != index"
@@ -301,6 +304,7 @@ export default {
       ],
       search: "",
       headers: [
+        { text: "#", value: "index", sortable: false },
         { text: "Date", value: "remarks_date", sortable: false },
         { text: "Time", value: "remarks_time", sortable: false },
         { text: "Status", value: "status", sortable: false },
