@@ -716,7 +716,7 @@ export default {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
-        
+        console.log(response.data);
         this.projects = response.data.projects;
         this.project_logs = response.data.project_logs;
         this.project_execution_hrs = response.data.project_execution_hrs;

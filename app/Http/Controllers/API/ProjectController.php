@@ -64,15 +64,8 @@ class ProjectController extends Controller
         $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
         $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
 
-        $holidays = Holiday::all();
-        $holidays = [];
-
-        foreach($holidays as $i => $holiday)
-        {
-            $holidays[] = $holiday->holiday_date;
-        }
-
         $projects = Project::where('projects.status', '!=', 'Cancelled')
+                           ->where('projects.id', '=', 12)
                            ->select(DB::raw('*'), DB::raw('id as project_id'))
                            ->get();
 
@@ -83,6 +76,7 @@ class ProjectController extends Controller
         {
             if($project->status != 'Accepted')
             {   
+                
                 $project_logs = ProjectLog::where('project_id', '=', $project->project_id)
                                         ->orderBy('remarks_date', 'Asc')
                                         ->orderBy('remarks_time', 'Asc')
@@ -90,14 +84,15 @@ class ProjectController extends Controller
                 if(count($project_logs))
                 {
                     // calculate hours difference per remarks log
-                    $this->calculateHours($project_logs, $holidays); 
+                    $this->calculateHours($project_logs); 
                     
                 }                          
             }
 
             $project_execution_hrs[] = [
                 'project_id' => $project->project_id,
-                'execution_hrs' => $this->calculateHrsPerParamDate($project->project_id, $filter_date)
+                'execution_hrs' => $this->calculateHrsPerParamDate($project->project_id, $filter_date),
+                'execution_hrs_tm' => $this->calculateFirstLogTM($project->project_id, $filter_date),
             ];
 
         }    
@@ -340,9 +335,9 @@ class ProjectController extends Controller
         return $ref_no;
     }
 
-    public function calculateHours($project_logs, $holidays)
+    public function calculateHours($project_logs)
     {   
-
+        $holidays = $this->holidays();
         $project_id = $project_logs->first()->project_id;
         $datetime_now = Carbon::now();
         $date_now = Carbon::now()->format('Y-m-d');
@@ -495,13 +490,11 @@ class ProjectController extends Controller
 
         }        
 
-        $ongoing_mins =  ProjectLog::where('project_id', '=', $project_id)
-                                   ->where('status', '=', 'Ongoing')
-                                   ->sum('mins_diff');
-
-        $validation_mins = ProjectLog::where('project_id', '=', $project_id)
-                                     ->where('status', '=', 'For Validation')
+        $ongoing_mins = $project_logs->where('status', '=', 'Ongoing')
                                      ->sum('mins_diff');
+
+        $validation_mins = $project_logs->where('status', '=', 'For Validation')
+                                        ->sum('mins_diff');
 
         
         $program_remainder = $ongoing_mins % 60;
@@ -518,7 +511,6 @@ class ProjectController extends Controller
     public function calculateHrsPerParamDate($project_id, $filter_date)
     {   
         $holidays = $this->holidays();
-
         $time_now = Carbon::now()->format('H:i');
         $date_now = Carbon::parse($filter_date)->format('Y-m-d');
         $datetime_now = Carbon::parse($filter_date . ' ' . $time_now);
@@ -534,12 +526,15 @@ class ProjectController extends Controller
             $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
         }
 
-        $log = ProjectLog::where('project_id', '=', $project_id)
-                                   ->where('remarks_date', '<=', $filter_date)
-                                   ->orderBy('remarks_date', 'desc')
-                                   ->orderBy('remarks_time', 'desc')
-                                   ->orderBy('id', 'desc')
-                                   ->first(); 
+        $project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                ->where('remarks_date', '<=', $filter_date)
+                                ->orderBy('remarks_date', 'desc')
+                                ->orderBy('remarks_time', 'desc')
+                                ->orderBy('id', 'desc')
+                                ->get(); 
+
+        $log = $project_logs->first();
+                         
         // if logs has no data
         if(!$log)
         {
@@ -655,9 +650,7 @@ class ProjectController extends Controller
                     {
                         $curr_mins = $curr_mins - 60;
                     }
-                }
-
-                
+                }  
             }
 
             if($log->turnover == 'Y' || $log->status == 'Pending' || $log->status == 'Accepted')
@@ -669,49 +662,301 @@ class ProjectController extends Controller
 
         $program_hrs = 0;
         $validate_hrs = 0;
+        $program_last_log_hrs = 0;
+        $validate_last_log_hrs = 0;
 
-        $ongoing_mins =  ProjectLog::where('project_id', '=', $project_id)
-                                ->where('remarks_date', '<=', $filter_date)
-                                ->where('status', '=', 'Ongoing')
-                                ->sum('mins_diff');
+        $ongoing_last_log_mins = 0;
+        $validation_last_log_mins = 0;
 
-        $validation_mins =  ProjectLog::where('project_id', '=', $project_id)
-                                ->where('remarks_date', '<=', $filter_date)
-                                ->where('status', '=', 'For Validation')
-                                ->sum('mins_diff');
+        $ongoing_mins =  $project_logs->where('status', '=', 'Ongoing')
+                                      ->sum('mins_diff');
+
+        $validation_mins =  $project_logs->where('status', '=', 'For Validation')
+                                         ->sum('mins_diff');
 
         if($log->status == 'Ongoing')
         {   
-            $ongoing_mins =  ProjectLog::where('project_id', '=', $project_id)
-                                ->where('id', '!=', $log->id)
-                                ->where('remarks_date', '<=', $filter_date)
-                                ->where('status', '=', 'Ongoing')
-                                ->sum('mins_diff');
+            $ongoing_mins = $project_logs->where('id', '!=', $log->id)
+                                         ->where('status', '=', 'Ongoing')
+                                         ->sum('mins_diff');
             
             $ongoing_mins = $ongoing_mins + $curr_mins;
+            $ongoing_last_log_mins = $curr_mins;
 
 
         }
         else if($log->status == 'For Validation')
         {   
-            $validation_mins =  ProjectLog::where('project_id', '=', $project_id)
-                                ->where('id', '!=', $log->id)
-                                ->where('remarks_date', '<=', $filter_date)
-                                ->where('status', '=', 'For Validation')
-                                ->sum('mins_diff');
+            $validation_mins =  $project_logs->where('id', '!=', $log->id)
+                                             ->where('status', '=', 'For Validation')
+                                             ->sum('mins_diff');
 
             $validation_mins = $validation_mins + $curr_mins;
+            $validation_last_log_mins = $curr_mins;
         }
+        
+        $program_remainder = $ongoing_mins % 60;
+        $program_hrs = intval($ongoing_mins / 60) + ($program_remainder / 100);
+
+        $program_last_log_remainder = $ongoing_last_log_mins % 60;
+        $program_last_log_hrs = intval($ongoing_last_log_mins / 60) + ($program_last_log_remainder / 100);
+        
+        $validation_remainder = $validation_mins % 60;
+        $validate_hrs = intval($validation_mins / 60) + ($validation_remainder / 100);
+
+        $validation_last_log_remainder = $validation_last_log_mins % 60;
+        $validate_last_log_hrs = intval($validation_last_log_mins / 60) + ($validation_last_log_remainder / 100);
+
+        return [
+            'program_hrs' => $program_hrs, 
+            'validate_hrs' => $validate_hrs,
+            'program_last_log_hrs' => $program_last_log_hrs, 
+            'validate_last_log_hrs' => $validate_last_log_hrs,
+        ];
+
+    }
+
+    public function calculateFirstLogTM($project_id, $filter_date)
+    {   
+        $holidays = $this->holidays();
+
+        $project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                  ->orderBy('remarks_date', 'Asc')
+                                  ->orderBy('remarks_time', 'Asc')
+                                  ->get();
+     
+        $log_rows = count($project_logs);
+
+        $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
+        $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
+        $firstPrevMonth = Carbon::parse($firstOfMonth)->addDays(-1)->firstOfMonth()->format('Y-m-d');
+        $lastPrevMonth = Carbon::parse($firstOfMonth)->addDays(-1)->format('Y-m-d');
+        $time_now = Carbon::now()->format('H:i');
+        $date_now = Carbon::parse($filter_date)->format('Y-m-d');
+        $datetime_now = Carbon::parse($filter_date . ' ' . $time_now);
+        $hr_now = explode(':', $time_now)[0];
+        $start_now = Carbon::parse($date_now . ' 08:00');
+        $end_now = Carbon::parse($date_now . ' 17:00');
+
+        $curr_mins = 0;
+        
+        // if time now is between noon time then set into 1:00 pm
+        if($hr_now == 12)
+        {
+            $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
+        }
+
+        // logs as of previous month
+        $project_logs_pm = ProjectLog::where('project_id', '=', $project_id)
+                                   ->where('remarks_date', '<=', $lastPrevMonth)
+                                   ->orderBy('remarks_date', 'asc')
+                                   ->orderBy('remarks_time', 'asc')
+                                   ->orderBy('id', 'asc')
+                                   ->get();
+
+        // logs this month
+        $project_logs_tm = ProjectLog::where('project_id', '=', $project_id)
+                                   ->where('remarks_date', '<=', $filter_date)
+                                   ->where('remarks_date', '>=', $firstOfMonth)
+                                   ->orderBy('remarks_date', 'asc')
+                                   ->orderBy('remarks_time', 'asc')
+                                   ->orderBy('id', 'asc')
+                                   ->get();
+
+        $log_rows = count($project_logs);
+
+        // count logs previous month
+        $log_rows_pm = count($project_logs_pm); 
+
+        // count logs this month
+        $log_rows_tm = count($project_logs_tm);   
+
+        if(!$log_rows)
+        {
+            return ['program_hrs' => 0, 'validate_hrs' => 0];
+        }
+
+        $first_log = $project_logs[0];
+        $first_log_tm = $project_logs_tm[0];
+
+        
+
+        // get the days difference of first log and first log this month
+        $first_log_days_diff = Carbon::parse($first_log->remarks_date . ' 00:00')->diffInDays(Carbon::parse($first_log_tm->remarks_date . ' 00:00'));
+          
+        $curr_remarks_time = $first_log_tm->remarks_time;
+        $curr_remarks_date = Carbon::parse($first_log_tm->remarks_date)->format('Y-m-d');
+        $next_remarks_date = Carbon::parse($date_now)->format('Y-m-d');
+        $next_remarks_time = Carbon::now()->format('H:i');
+        
+        // if first log and first log of the month
+        if($first_log_days_diff > 0)
+        {
+            $curr_remarks_time = "08:00";
+            $curr_remarks_date = Carbon::parse($firstOfMonth)->format('Y-m-d');
+            $next_remarks_date = Carbon::parse($first_log_tm->remarks_date)->format('Y-m-d');
+            $next_remarks_time = $first_log_tm->remarks_time;
+
+            // if previous months has data
+            if($log_rows_pm)
+            {
+                // last log previous month
+                $last_log_pm = $project_logs_pm[$log_rows_pm - 1];
+
+                if($last_log_pm->turnover == 'Y')
+                {
+                    $curr_remarks_time = $first_log_tm->remarks_time;
+                    $curr_remarks_date = Carbon::parse($first_log_tm->remarks_date)->format('Y-m-d');
+                    $next_remarks_date = Carbon::parse($first_log_tm->remarks_date)->format('Y-m-d');
+                    $next_remarks_time = $first_log_tm->remarks_time;
+                }
+            }
+
+        }
+
+        // if logs this month has no data
+        if(!$log_rows_tm)
+        {
+            $curr_remarks_time = "08:00";
+            $curr_remarks_date = Carbon::parse($firstOfMonth)->format('Y-m-d');
+            $next_remarks_date = Carbon::parse($filter_date)->format('Y-m-d');
+            $next_remarks_time = Carbon::now()->format('H:i');
+        }
+
+        $next_remarks_datetime = Carbon::parse($next_remarks_date . ' ' . $next_remarks_time);
+        $next_remarks_day = Carbon::parse($next_remarks_date)->format('D');
+        $next_remarks_hr = explode(':', $next_remarks_time)[0];
+        $next_start_datetime = Carbon::parse($next_remarks_date . ' 08:00');
+        $next_end_datetime = Carbon::parse($next_remarks_date . ' 17:00');
+
+        $curr_remarks_day = Carbon::parse($curr_remarks_date)->format('D');
+        $curr_remarks_hr = explode(':', $curr_remarks_time)[0];
+        $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' ' . $curr_remarks_time);
+        $curr_start_datetime = Carbon::parse($curr_remarks_date . ' 08:00');
+        $curr_end_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
+        $curr_status = $first_log->status;
+        $curr_days_diff = Carbon::parse($curr_remarks_date . ' 00:00')->diffInDays(Carbon::parse($next_remarks_date . ' 00:00'));
+        
+        // if new remarks time is between noon time then set into 8:00 am
+        if($next_remarks_hr < 8)
+        {
+            $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 08:00');
+        }
+
+        // if new remarks time is between noon time then set into 1:00 pm
+        if($next_remarks_hr == 12)
+        {
+            $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 13:00');
+        }
+        
+        // if last remarks time is 5pm and beyond then set into 5:00 pm
+        if($next_remarks_hr >= 17)
+        {
+            $next_remarks_datetime = Carbon::parse($next_remarks_date . ' 17:00');
+        }
+
+        // if last remarks time is between noon time then set into 1:00 pm
+        if($curr_remarks_hr == 12)
+        {
+            $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 12:00');
+        }
+        
+        // if last remarks time is 5pm and beyond then set into 5:00 pm
+        if($curr_remarks_hr == 12)
+        {
+            $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
+        }
+
+        if($first_log_tm->status == 'Ongoing' || $first_log_tm->status == 'For Validation')
+        {
+            // calculate programming hours for every remarks log
+            if($curr_days_diff == 0)
+            {   
+                // exclude sunday
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false)
+                {
+                    $curr_mins = $curr_remarks_datetime->diffInMinutes($next_remarks_datetime);
+                
+                    // less 1 hour(noon break)
+                    if($next_remarks_hr >= 12 && $curr_remarks_hr <= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
+                }    
+            }
+            else
+            {     
+                // exclude sunday and holidays
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false)
+                {   
+                    $curr_mins = $curr_remarks_datetime->diffInMinutes($curr_end_datetime);
+                    // less 1 hour(noon break)
+                    if($curr_remarks_hr <= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
+                }
+                
+                if($curr_days_diff > 1)
+                {   
+                    for($x = 1; $curr_days_diff > $x; $x++)
+                    {   
+                        $date = Carbon::parse($curr_remarks_date)->addDays($x)->format('Y-m-d');
+                        $day = Carbon::parse($date)->format('D');
+                        // exclude sunday// exclude sunday and holidays
+                        if($day != 'Sun' && in_array($date, $holidays) == false)
+                        {   
+                            $curr_mins = $curr_mins + 480;
+                        }
+                    }  
+                }
+                
+                // exclude sunday and holidays
+                if($next_remarks_day != 'Sun' && in_array($next_remarks_date, $holidays) == false)
+                {
+                    
+                    $curr_mins = $curr_mins + $next_start_datetime->diffInMinutes($next_remarks_datetime); 
+
+                    // less 1 hour(noon break)
+                    if($next_remarks_hr >= 12)
+                    {
+                        $curr_mins = $curr_mins - 60;
+                    }
+                }
+
+            }
+
+            if($first_log_tm->status == 'Pending' || $first_log_tm->status == 'Accepted')
+            {
+                $curr_mins = 0;
+            } 
+
+        }
+
+        $ongoing_mins =  0;
+
+        $validation_mins =  0;
+
+        if($first_log_tm->status == 'Ongoing')
+        {   
+            $ongoing_mins = $ongoing_mins + $curr_mins;
+        }
+        else if($first_log_tm->status == 'For Validation')
+        {   
+            $validation_mins = $validation_mins + $curr_mins;
+        } 
+        
+        $program_hrs = 0;
+        $validate_hrs = 0;
         
         $program_remainder = $ongoing_mins % 60;
         $program_hrs = intval($ongoing_mins / 60) + ($program_remainder / 100);
         
         $validation_remainder = $validation_mins % 60;
         $validate_hrs = intval($validation_mins / 60) + ($validation_remainder / 100);
-
         
         return ['program_hrs' => $program_hrs, 'validate_hrs' => $validate_hrs];
-
+                                  
     }
 
     public function holidays()
