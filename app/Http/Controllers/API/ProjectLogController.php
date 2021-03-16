@@ -473,7 +473,7 @@ class ProjectLogController extends Controller
             if($curr_days_diff == 0)
             {   
                 // exclude sunday
-                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false)
+                if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false && $next_remarks_datetime > $curr_remarks_datetime)
                 {
                     $curr_mins = $curr_remarks_datetime->diffInMinutes($next_remarks_datetime);
                 
@@ -485,7 +485,7 @@ class ProjectLogController extends Controller
                 }
                 
             }
-            else
+            else if($curr_days_diff > 0)
             {   
                 // exclude sunday and holidays
                 if($curr_remarks_day != 'Sun' && in_array($curr_remarks_date, $holidays) == false)

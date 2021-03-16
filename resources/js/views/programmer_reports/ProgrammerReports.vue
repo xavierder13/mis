@@ -736,10 +736,13 @@ export default {
           this.filteredProjects.forEach((val, index) => {
             if(value.project_id == val.project_id)
             {
+              // execution hrs overall
               this.filteredProjects[index].program_hrs = value.execution_hrs.program_hrs;
               this.filteredProjects[index].validate_hrs = value.execution_hrs.validate_hrs;
-              this.filteredProjects[index].program_hrs_tm = value.execution_hrs.program_hrs;
-              this.filteredProjects[index].validate_hrs_tm = value.execution_hrs.validate_hrs;
+
+              // execution hrs this month
+              this.filteredProjects[index].program_hrs_tm = value.execution_hrs_tm.program_hrs;
+              this.filteredProjects[index].validate_hrs_tm = value.execution_hrs_tm.validate_hrs;
             }
           });
         });
