@@ -200,6 +200,13 @@ export default {
       }).then((response) => {
         this.departments = response.data.departments;
         this.loading = false;
+      }, (error) => {
+        // if unauthenticated (401)
+        if(error.response.status)
+        {
+          localStorage.removeItem('access_token');
+          this.$router.push({name: 'login'});
+        }
       });
     },
 

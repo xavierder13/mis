@@ -19,26 +19,30 @@
         </v-breadcrumbs>
         <v-card>
           <v-card-title>
-            {{ project.ref_no ? project.ref_no + " - " + project.report_title : ''}} 
-            
-            <v-chip 
-                v-if="project.status"
-                :color="
-                  project.status == 'For Validation'
-                    ? 'info'
-                    : project.status == 'Ongoing'
-                    ? 'secondary'
-                    : project.status == 'Pending'
-                    ? 'warning'
-                    : project.status == 'Accepted'
-                    ? 'success'
-                    : 'error'
-                "
-                class="ml-4"
-                outlined
-              >
-                {{ project.status }}
-              </v-chip>
+            {{
+              project.ref_no
+                ? project.ref_no + " - " + project.report_title
+                : ""
+            }}
+
+            <v-chip
+              v-if="project.status"
+              :color="
+                project.status == 'For Validation'
+                  ? 'info'
+                  : project.status == 'Ongoing'
+                  ? 'secondary'
+                  : project.status == 'Pending'
+                  ? 'warning'
+                  : project.status == 'Accepted'
+                  ? 'success'
+                  : 'error'
+              "
+              class="ml-4"
+              outlined
+            >
+              {{ project.status }}
+            </v-chip>
             <v-spacer></v-spacer>
 
             <template>
@@ -52,7 +56,8 @@
                   @click="
                     clear() +
                       (dialog = true) +
-                      (editedItem.status = project.status)
+                      (editedItem.status = project.status) +
+                      setStatusSelectItems()
                   "
                   v-if="project.status != 'Accepted'"
                 >
@@ -174,7 +179,11 @@
                         </v-row>
                         <v-row>
                           <v-col cols="4">
-                            <v-switch v-model="switch1" label="Turn Over" @click="turnoverStatus()"></v-switch>
+                            <v-switch
+                              v-model="switch1"
+                              label="Turn Over"
+                              @click="turnoverStatus()"
+                            ></v-switch>
                           </v-col>
                         </v-row>
                       </v-container>
@@ -231,7 +240,10 @@
                 {{ item.status }}
               </v-chip>
             </template>
-            <template v-slot:item.actions="{ item, index }" v-if="project.status != 'Accepted'">
+            <template
+              v-slot:item.actions="{ item, index }"
+              v-if="project.status != 'Accepted'"
+            >
               <v-icon
                 small
                 class="mr-2"
@@ -325,14 +337,14 @@ export default {
       editedItem: {
         status: "",
         remarks_date: new Date().toISOString().substr(0, 10),
-        remarks_time: new Date().toTimeString().substr(0,5),
+        remarks_time: new Date().toTimeString().substr(0, 5),
         remarks: "",
         turnover: "",
       },
       defaultItem: {
         status: "",
         remarks_date: new Date().toISOString().substr(0, 10),
-        remarks_time: new Date().toTimeString().substr(0,5),
+        remarks_time: new Date().toTimeString().substr(0, 5),
         remarks: "",
         turnover: "",
       },
@@ -343,48 +355,52 @@ export default {
         project_log_delete: false,
       },
       loading: true,
-      report_status: [
-        { text: "For Validation", value: "For Validation" },
-        { text: "Ongoing", value: "Ongoing" },
-        { text: "Pending", value: "Pending" },
-        { text: "Accepted", value: "Accepted" },
-        { text: "Cancelled", value: "Cancelled" },
-      ],
+      report_status: [],
       status: [],
       input_remarks_date: false,
       time_modal: false,
+      error_status: null,
     };
   },
 
   methods: {
     getProjectLogs() {
-
       this.loading = true;
 
       let project_id = this.$route.params.project_id;
-      
+
       Axios.get("/api/project_log/index/" + project_id, {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-        console.log(response.data);
-        this.project = response.data.project;
-        this.project_logs = response.data.project_logs;
-        this.loading = false;
-        this.computeProgramHours;
-        this.computeValidateHours;
-      });
+      }).then(
+        (response) => {
+          console.log(response.data);
+          this.project = response.data.project;
+          this.project_logs = response.data.project_logs;
+          this.loading = false;
+          this.computeProgramHours;
+          this.computeValidateHours;
+
+          // this.setStatusSelectItems();
+        },
+        (error) => {
+          // if unauthenticated (401)
+          if (error.response.status) {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
+        }
+      );
     },
     save() {
- 
       this.$v.$touch();
       if (!this.$v.$error) {
         this.overlay = true;
         this.disabled = true;
         if (this.editedIndex > -1) {
           let project_log_id = this.editedItem.id;
-          
+
           Axios.post(
             "/api/project_log/update/" + project_log_id,
             this.editedItem,
@@ -450,6 +466,7 @@ export default {
     },
 
     editProjectLog(item) {
+      this.setStatusSelectItems();
       let remarks_date = "";
       this.dialog = true;
       this.editedIndex = this.project_logs.indexOf(item);
@@ -459,11 +476,9 @@ export default {
         this.editedItem.remarks_date =
           remarks_date[2] + "-" + remarks_date[0] + "-" + remarks_date[1];
       }
-      if(item.turnover == 'Y') {
+      if (item.turnover == "Y") {
         this.switch1 = true;
-      }
-      else
-      {
+      } else {
         this.switch1 = false;
       }
     },
@@ -543,13 +558,7 @@ export default {
     clear() {
       this.$v.$reset();
       this.editedIndex = -1;
-      this.report_status = [
-        { text: "For Validation", value: "For Validation" },
-        { text: "Ongoing", value: "Ongoing" },
-        { text: "Pending", value: "Pending" },
-        { text: "Accepted", value: "Accepted" },
-        { text: "Cancelled", value: "Cancelled" },
-      ];
+      this.setStatusSelectItems();
       this.switch1 = false;
     },
 
@@ -562,12 +571,42 @@ export default {
     turnoverStatus() {
       if (this.switch1) {
         this.editedItem.turnover = "Y";
-      } 
-      else
-      {
+      } else {
         this.editedItem.turnover = "";
       }
+    },
+    redirectToLogin() {
+      // if unauthenticated (401)
+      if (this.error_statusr) {
+        localStorage.removeItem("access_token");
+        this.$router.push({ name: "login" });
+      }
+    },
+    setStatusSelectItems() {
+      let hasOngoingTurnover = false;
+      
+      // if logs has Ongoing and Turnover status
+      this.project_logs.forEach((value, index) => {
+        if (value.status == "Ongoing" && value.status == "Y") {
+          hasOngoingTurnover = true;
+        } 
+      });
 
+      if (hasOngoingTurnover) {
+        this.report_status = [
+          { text: "For Validation", value: "For Validation" },
+          { text: "Ongoing", value: "Ongoing" },
+          { text: "Pending", value: "Pending" },
+          { text: "Accepted", value: "Accepted" },
+          { text: "Cancelled", value: "Cancelled" },
+        ];
+      } else {
+        this.report_status = [
+          { text: "Ongoing", value: "Ongoing" },
+          { text: "Pending", value: "Pending" },
+          { text: "Cancelled", value: "Cancelled" },
+        ];
+      }
     },
   },
   computed: {
@@ -598,7 +637,6 @@ export default {
         errors.push("Remarks is required.");
       return errors;
     },
-        
   },
   mounted() {
     access_token = localStorage.getItem("access_token");

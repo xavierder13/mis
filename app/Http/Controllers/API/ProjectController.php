@@ -281,16 +281,26 @@ class ProjectController extends Controller
         // return $request;
         $project = Project::find($request->get('project_id'));
 
+        $project_logs = ProjectLog::where('project_id', '=', $project->id)
+                                  ->orderBy('remarks_date', 'Asc')
+                                  ->orderBy('remarks_time', 'Asc')
+                                  ->get();
+
         $project->template_percent = $request->get('template_percent');
-        if($request->get('program_date'))
-        {
-            $project->program_date = Carbon::parse($request->get('program_date'))->format('Y-m-d');
+        if(count($project_logs))
+        {   $first_ongoing_log = null;
+            $first_validation_log = null;
+            
+            if($project_logs->where('status', '=', 'Ongoing')->first())
+            {
+                $project->program_date = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+            }
+            if($project_logs->where('status', '=', 'For Validation')->first())
+            {
+                $project->validation_date = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+            }     
         }
         $project->program_percent = $request->get('program_percent');
-        if($request->get('validation_date'))
-        {
-            $project->validation_date = Carbon::parse($request->get('validation_date'))->format('Y-m-d');
-        }
         $project->validation_percent = $request->get('validation_percent');
         $project->save();
         
@@ -412,7 +422,7 @@ class ProjectController extends Controller
             }
             
             // if last remarks time is 5pm and beyond then set into 5:00 pm
-            if($curr_remarks_hr == 12)
+            if($curr_remarks_hr >= 17)
             {
                 $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
             }
@@ -511,7 +521,15 @@ class ProjectController extends Controller
     public function calculateHrsPerParamDate($project_id, $filter_date)
     {   
         $holidays = $this->holidays();
+        $system_date = Carbon::now()->format('Y-m-d');
         $time_now = Carbon::now()->format('H:i');
+
+        // if filter_date is previous date then set time to 5:00 pm
+        if(Carbon::parse($system_date . ' 00:00') > Carbon::parse($filter_date . ' 00:00'))
+        {
+            $time_now = '17:00';
+        }
+
         $date_now = Carbon::parse($filter_date)->format('Y-m-d');
         $datetime_now = Carbon::parse($filter_date . ' ' . $time_now);
         $hr_now = explode(':', $time_now)[0];
@@ -519,7 +537,7 @@ class ProjectController extends Controller
         $end_now = Carbon::parse($date_now . ' 17:00');
 
         $curr_mins = 0;
-        
+
         // if time now is between noon time then set into 1:00 pm
         if($hr_now == 12)
         {
@@ -545,12 +563,11 @@ class ProjectController extends Controller
                 'validate_last_log_hrs' => 0,
                 'ongoing_last_log_mins' => 0,
                 'validation_last_log_mins' => 0,
-                'last_log_id' => 0,
                 'log' => $log,
             ];
         }
 
-        $next_remarks_time = Carbon::now()->format('H:i');
+        $next_remarks_time = $time_now;
         $next_remarks_date = Carbon::parse($date_now)->format('Y-m-d');
         $next_remarks_datetime = Carbon::parse($next_remarks_date . ' ' . $next_remarks_time);
         $next_remarks_day = Carbon::parse($date_now)->format('D');
@@ -593,12 +610,11 @@ class ProjectController extends Controller
         }
         
         // if last remarks time is 5pm and beyond then set into 5:00 pm
-        if($curr_remarks_hr == 12)
+        if($curr_remarks_hr >= 17)
         {
             $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
         }
 
-        
         // if the last remarks log is not turnover
         if(!$log->turnover || $log->status == 'Ongoing' || $log->status == 'For Validation')
         {
@@ -724,6 +740,7 @@ class ProjectController extends Controller
             'ongoing_last_log_mins' => $ongoing_last_log_mins,
             'validation_last_log_mins' => $validation_last_log_mins,
             'log' => $log,
+            $time_now
         ];
 
     }
@@ -747,16 +764,24 @@ class ProjectController extends Controller
 
         $ongoing_last_log_mins = $last_log['ongoing_last_log_mins'];
         $validation_last_log_mins = $last_log['validation_last_log_mins'];
-        $last_log_id = $last_log['log']['id'];
-        $last_log_status = $last_log['log']['status'];
+        $last_log_id = $last_log['log'] ? $last_log['log']['id'] : null;
+        $last_log_status = $last_log['log'] ? $last_log['log']['status'] : null;
      
         $log_rows = count($project_logs);
 
+        $system_date = Carbon::now()->format('Y-m-d');
         $firstOfMonth = Carbon::parse($filter_date)->firstOfMonth()->format('Y-m-d');
         $lastOfMonth = Carbon::parse($filter_date)->lastOfMonth()->format('Y-m-d');
         $firstPrevMonth = Carbon::parse($firstOfMonth)->addDays(-1)->firstOfMonth()->format('Y-m-d');
         $lastPrevMonth = Carbon::parse($firstOfMonth)->addDays(-1)->format('Y-m-d');
         $time_now = Carbon::now()->format('H:i');
+
+        // if filter_date is previous date then set time to 5:00 pm
+        if(Carbon::parse($system_date . ' 00:00') > Carbon::parse($filter_date . ' 00:00'))
+        {
+            $time_now = '17:00';
+        }
+
         $date_now = Carbon::parse($filter_date)->format('Y-m-d');
         $datetime_now = Carbon::parse($filter_date . ' ' . $time_now);
         $hr_now = explode(':', $time_now)[0];
@@ -764,7 +789,7 @@ class ProjectController extends Controller
         $end_now = Carbon::parse($date_now . ' 17:00');
 
         $curr_mins = 0;
-        
+            
         // if time now is between noon time then set into 1:00 pm
         if($hr_now == 12)
         {
@@ -819,7 +844,7 @@ class ProjectController extends Controller
         }
         
         $next_remarks_date = Carbon::parse($date_now)->format('Y-m-d');
-        $next_remarks_time = Carbon::now()->format('H:i');
+        $next_remarks_time = $time_now;
         
         // if first log and first log of the month
         if($first_log_days_diff > 0)
@@ -852,7 +877,7 @@ class ProjectController extends Controller
             $curr_remarks_time = "08:00";
             $curr_remarks_date = Carbon::parse($firstOfMonth)->format('Y-m-d');
             $next_remarks_date = Carbon::parse($filter_date)->format('Y-m-d');
-            $next_remarks_time = Carbon::now()->format('H:i');
+            $next_remarks_time = $time_now;
         }
 
         $next_remarks_datetime = Carbon::parse($next_remarks_date . ' ' . $next_remarks_time);
@@ -996,7 +1021,12 @@ class ProjectController extends Controller
         $validation_remainder = $validation_mins % 60;
         $validate_hrs = intval($validation_mins / 60) + ($validation_remainder / 100);
         
-        return ['program_hrs' => $program_hrs, 'validate_hrs' => $validate_hrs, 'curr_mins' => $curr_mins];
+        return [
+            'program_hrs' => $program_hrs, 
+            'validate_hrs' => $validate_hrs, 
+            'curr_mins' => $curr_mins,
+            $time_now
+        ];
                                   
     }
 

@@ -288,15 +288,16 @@
                       precision: 2,
                       empty: null,
                     }"
-                    v-if="editedIndex == index"
+                    v-if="editedIndex == filteredProjects.indexOf(item)"
                   >
                   </v-text-field-money>
 
                   {{
-                    item.template_percent && editedIndex != index
+                    item.template_percent && editedIndex != filteredProjects.indexOf(item)
                       ? item.template_percent + "%"
                       : ""
                   }}
+                  
                 </template>
                 <!-- <template v-slot:item.program_date="{ item, index }">
                   <v-menu
@@ -341,11 +342,11 @@
                       precision: 2,
                       empty: null,
                     }"
-                    v-if="editedIndex == index"
+                    v-if="editedIndex == filteredProjects.indexOf(item)"
                   >
                   </v-text-field-money>
                   {{
-                    item.program_percent && editedIndex != index
+                    item.program_percent && editedIndex != filteredProjects.indexOf(item)
                       ? item.program_percent + "%"
                       : ""
                   }}
@@ -397,11 +398,11 @@
                       precision: 2,
                       empty: null,
                     }"
-                    v-if="editedIndex == index"
+                    v-if="editedIndex == filteredProjects.indexOf(item)"
                   >
                   </v-text-field-money>
                   {{
-                    item.validation_percent && editedIndex != index
+                    item.validation_percent && editedIndex != filteredProjects.indexOf(item)
                       ? item.validation_percent + "%"
                       : ""
                   }}
@@ -433,7 +434,7 @@
                   </v-chip>
                 </template>
                 <template v-slot:item.actions="{ item, index }">
-                  <v-menu offset-y v-if="editedIndex != index">
+                  <v-menu offset-y v-if="editedIndex != filteredProjects.indexOf(item)">
                     <template v-slot:activator="{ on, attrs }">
                       <v-btn x-small v-bind="attrs" v-on="on">
                         Actions
@@ -492,7 +493,7 @@
                   <v-btn
                     x-small
                     color="primary"
-                    v-if="editedIndex == index"
+                    v-if="editedIndex == filteredProjects.indexOf(item)"
                     @click="updateReportStatus()"
                   >
                     save
@@ -500,7 +501,7 @@
                   <v-btn
                     x-small
                     color="secondary"
-                    v-if="editedIndex == index"
+                    v-if="editedIndex == filteredProjects.indexOf(item)"
                     @click="editedIndex = -1"
                   >
                     cancel
@@ -564,6 +565,7 @@ export default {
       filter_project_by_programmer: "",
       filter_date: new Date().toISOString().substr(0, 10),
       headers: [
+        { text: "Actions", value: "actions", width: "80px", sortable: false },
         {
           text: "Approved/ Filing Date",
           value: "date_approved",
@@ -634,7 +636,6 @@ export default {
           width: "170px",
           sortable: false,
         },
-        { text: "Actions", value: "actions", width: "80px", sortable: false },
       ],
       input_filter_date: false,
       input_program_date: false,
@@ -747,6 +748,13 @@ export default {
           });
         });
 
+      }, (error) => {
+        // if unauthenticated (401)
+        if(error.response.status)
+        {
+          localStorage.removeItem('access_token');
+          this.$router.push({name: 'login'});
+        }
       });
     },
 
@@ -796,6 +804,7 @@ export default {
           (response) => {
             console.log(response.data);
             if (response.data.success) {
+              this.getProject();
               this.showAlert();
               this.close();
             }

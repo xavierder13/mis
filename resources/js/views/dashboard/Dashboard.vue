@@ -397,6 +397,13 @@ export default {
         this.programmers = response.data.programmers;
         this.validators = response.data.validators;
         this.loading = false;
+      }, (error) => {
+        // if unauthenticated (401)
+        if(error.response.status)
+        {
+          localStorage.removeItem('access_token');
+          this.$router.push({name: 'login'});
+        }
       });
     },
 

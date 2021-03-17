@@ -217,6 +217,13 @@ export default {
         this.departments = response.data.departments;
         this.managers = response.data.managers;
         this.loading = false;
+      }, (error) => {
+        // if unauthenticated (401)
+        if(error.response.status)
+        {
+          localStorage.removeItem('access_token');
+          this.$router.push({name: 'login'});
+        }
       });
     },
 

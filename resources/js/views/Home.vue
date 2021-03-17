@@ -124,6 +124,22 @@ export default {
   },
 
   methods: {
+    getUser() {
+      Axios.get("/api/user/index", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+
+      }, (error) => {
+        // if unauthenticated (401)
+        if(error.response.status)
+        {
+          localStorage.removeItem('access_token');
+          this.$router.push({name: 'login'});
+        }
+      });
+    },
     logout() {
       this.overlay = true;
       Axios.get("/api/auth/logout", {
@@ -142,6 +158,12 @@ export default {
         (error) => {
           this.overlay = false;
           console.log(error);
+
+          // if unauthenticated (401)
+          if (error.response.status) {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
         }
       );
     },
@@ -149,6 +171,7 @@ export default {
 
   mounted() {
     access_token = localStorage.getItem("access_token");
+    this.getUser();
   },
 };
 </script>

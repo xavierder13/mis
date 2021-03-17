@@ -219,6 +219,13 @@ export default {
       }).then((response) => {
         this.holidays = response.data.holidays;
         this.loading = false;
+      }, (error) => {
+        // if unauthenticated (401)
+        if(error.response.status)
+        {
+          localStorage.removeItem('access_token');
+          this.$router.push({name: 'login'});
+        }
       });
     },
 

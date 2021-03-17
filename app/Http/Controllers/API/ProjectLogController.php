@@ -114,17 +114,29 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
-        
-        $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
 
-        $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+        if(count($project_logs))
+        {   
+            $first_ongoing_log = null;
+            $first_validation_log = null;
+            if($project_logs->where('status', '=', 'Ongoing')->first())
+            {
+                $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+            }
+            if($project_logs->where('status', '=', 'For Validation')->first())
+            {
+                $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+            }
 
-        Project::where('id', '=', $project_id)
+            Project::where('id', '=', $project_id)
                 ->update([
                     'status' => $status, 
                     'program_date' => $first_ongoing_log,
                     'validation_date' => $first_validation_log,
                 ]);
+        }
+        
+        
 
         // calculate hours difference per remarks log
         $this->calculateHours($project_logs);
@@ -218,15 +230,27 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
 
-        $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+        if(count($project_logs))
+        {   
+            $first_ongoing_log = null;
+            $first_validation_log = null;
+            
+            if($project_logs->where('status', '=', 'Ongoing')->first())
+            {
+                $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+            }
+            if($project_logs->where('status', '=', 'For Validation')->first())
+            {
+                $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+            }
 
-        $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
-
-        Project::where('id', '=', $project_id)
+            Project::where('id', '=', $project_id)
                 ->update([
+                    'status' => $status, 
                     'program_date' => $first_ongoing_log,
                     'validation_date' => $first_validation_log,
                 ]);
+        }
                                   
         // calculate hours difference per remarks log
         $this->calculateHours($project_logs);
@@ -464,7 +488,7 @@ class ProjectLogController extends Controller
             }
             
             // if last remarks time is 5pm and beyond then set into 5:00 pm
-            if($curr_remarks_hr == 12)
+            if($curr_remarks_hr >= 17)
             {
                 $curr_remarks_datetime = Carbon::parse($curr_remarks_date . ' 17:00');
             }
