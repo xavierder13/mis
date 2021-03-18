@@ -118,6 +118,11 @@ Route::group(['prefix' => 'project_log', 'middleware' => ['auth:api']], function
         'as' => 'project_log.project_turnover',
     ]);
 
+    Route::get('/get_latest_log/{id}', [
+        'uses' => 'API\ProjectLogController@get_latest_log',
+        'as' => 'project_log.get_latest_log',
+    ]);
+
 });
 
 // User Routes

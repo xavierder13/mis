@@ -122,6 +122,19 @@ class ProjectController extends Controller
                     ->orderBy('project_id', 'Desc')
                     ->get();
         
+        $project_logs = DB::table('projects')
+                    ->join('project_logs', 'projects.id', '=', 'project_logs.project_id')
+                    ->select(DB::raw('projects.status as project_status, project_logs.*'))
+                    ->where('projects.status', '!=', 'Cancelled')
+                    ->where(function($query) use ($firstOfMonth, $filter_date) {
+                              $query->whereBetween('accepted_date', [$firstOfMonth, $filter_date])
+                                  ->orWhereNull('accepted_date');
+                      })
+                    ->orderBy('project_logs.remarks_date', 'Asc')
+                    ->orderBy('project_logs.remarks_time', 'Asc')
+                    ->orderBy('project_logs.id', 'Asc')
+                    ->get();
+        
         $departments = Department::with('managers')->get();
 
         $programmers = User::where('type', '=', 'Programmer')->get();
@@ -130,11 +143,11 @@ class ProjectController extends Controller
 
         return response()->json([
             'projects' => $projects, 
+            'project_logs' => $project_logs,
             'departments' => $departments,
             'programmers' => $programmers,
             'validators' => $validators,
             'project_execution_hrs' => $project_execution_hrs,
-            $this->calculateHrsThisMonth(12, $filter_date),
         ], 200);
 
     }
@@ -284,6 +297,7 @@ class ProjectController extends Controller
         $project_logs = ProjectLog::where('project_id', '=', $project->id)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
+                                  ->orderBy('id', 'Asc')
                                   ->get();
 
         $project->template_percent = $request->get('template_percent');

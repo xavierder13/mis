@@ -293,11 +293,11 @@
                   </v-text-field-money>
 
                   {{
-                    item.template_percent && editedIndex != filteredProjects.indexOf(item)
+                    item.template_percent &&
+                    editedIndex != filteredProjects.indexOf(item)
                       ? item.template_percent + "%"
                       : ""
                   }}
-                  
                 </template>
                 <!-- <template v-slot:item.program_date="{ item, index }">
                   <v-menu
@@ -346,7 +346,8 @@
                   >
                   </v-text-field-money>
                   {{
-                    item.program_percent && editedIndex != filteredProjects.indexOf(item)
+                    item.program_percent &&
+                    editedIndex != filteredProjects.indexOf(item)
                       ? item.program_percent + "%"
                       : ""
                   }}
@@ -402,7 +403,8 @@
                   >
                   </v-text-field-money>
                   {{
-                    item.validation_percent && editedIndex != filteredProjects.indexOf(item)
+                    item.validation_percent &&
+                    editedIndex != filteredProjects.indexOf(item)
                       ? item.validation_percent + "%"
                       : ""
                   }}
@@ -434,7 +436,10 @@
                   </v-chip>
                 </template>
                 <template v-slot:item.actions="{ item, index }">
-                  <v-menu offset-y v-if="editedIndex != filteredProjects.indexOf(item)">
+                  <v-menu
+                    offset-y
+                    v-if="editedIndex != filteredProjects.indexOf(item)"
+                  >
                     <template v-slot:activator="{ on, attrs }">
                       <v-btn x-small v-bind="attrs" v-on="on">
                         Actions
@@ -456,17 +461,13 @@
                         </v-list-item-title>
                       </v-list-item>
                       <v-divider class="ma-0"></v-divider>
-                      <v-list-item>
+                      <v-list-item v-if="item.status != 'Accepted'">
                         <v-list-item-title>
                           <v-btn
                             x-small
                             width="100px"
                             color="primary"
-                            @click="
-                              (editedItem = item) +
-                                (dialog = true) +
-                                (status = item.status)
-                            "
+                            @click="createRemarks(item)"
                           >
                             <v-icon small class="mr-2"> mdi-plus </v-icon>
                             Remarks
@@ -646,6 +647,7 @@ export default {
       dialog: false,
       projects: [],
       project_logs: [],
+      logs_per_project: [],
       project_execution_hrs: [],
       departments: [],
       programmers: [],
@@ -716,46 +718,50 @@ export default {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-        console.log(response.data);
-        this.projects = response.data.projects;
-        this.project_logs = response.data.project_logs;
-        this.project_execution_hrs = response.data.project_execution_hrs;
-        this.departments = response.data.departments;
-        this.programmers = response.data.programmers;
-        this.validators = response.data.validators;
-        this.holidays = response.data.holidays;
-        this.loading = false;
+      }).then(
+        (response) => {
+          console.log(response.data);
+          this.projects = response.data.projects;
+          this.project_logs = response.data.project_logs;
+          this.project_execution_hrs = response.data.project_execution_hrs;
+          this.departments = response.data.departments;
+          this.programmers = response.data.programmers;
+          this.validators = response.data.validators;
+          this.holidays = response.data.holidays;
+          this.loading = false;
 
-        if (this.user_type == "Admin") {
-          this.filter_project_by_programmer = this.programmers[0].id;
-        } else {
-          this.filter_project_by_programmer = parseInt(this.user_id);
-        }
+          if (this.user_type == "Admin") {
+            this.filter_project_by_programmer = this.programmers[0].id;
+          } else {
+            this.filter_project_by_programmer = parseInt(this.user_id);
+          }
 
-        this.project_execution_hrs.forEach((value, index) => {
-          this.filteredProjects.forEach((val, index) => {
-            if(value.project_id == val.project_id)
-            {
-              // execution hrs overall
-              this.filteredProjects[index].program_hrs = value.execution_hrs.program_hrs;
-              this.filteredProjects[index].validate_hrs = value.execution_hrs.validate_hrs;
+          this.project_execution_hrs.forEach((value, index) => {
+            this.filteredProjects.forEach((val, index) => {
+              if (value.project_id == val.project_id) {
+                // execution hrs overall
+                this.filteredProjects[index].program_hrs =
+                  value.execution_hrs.program_hrs;
+                this.filteredProjects[index].validate_hrs =
+                  value.execution_hrs.validate_hrs;
 
-              // execution hrs this month
-              this.filteredProjects[index].program_hrs_tm = value.execution_hrs_tm.program_hrs;
-              this.filteredProjects[index].validate_hrs_tm = value.execution_hrs_tm.validate_hrs;
-            }
+                // execution hrs this month
+                this.filteredProjects[index].program_hrs_tm =
+                  value.execution_hrs_tm.program_hrs;
+                this.filteredProjects[index].validate_hrs_tm =
+                  value.execution_hrs_tm.validate_hrs;
+              }
+            });
           });
-        });
-
-      }, (error) => {
-        // if unauthenticated (401)
-        if(error.response.status)
-        {
-          localStorage.removeItem('access_token');
-          this.$router.push({name: 'login'});
+        },
+        (error) => {
+          // if unauthenticated (401)
+          if (error.response.status == '401') {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
         }
-      });
+      );
     },
 
     editProject(item) {
@@ -783,40 +789,58 @@ export default {
     },
     addRemarks() {
       this.$v.$touch();
-
+      let project_id = this.editedItem.project_id;
       if (!this.$v.$error) {
-        this.overlay = true;
-        this.disabled = true;
 
-        const data = {
-          project_id: this.editedItem.project_id,
-          remarks_date: this.remarks_date,
-          remarks_time: this.remarks_time,
-          remarks: this.remarks,
-          status: this.status,
-        };
-
-        Axios.post("/api/project_log/project_turnover", data, {
+        Axios.get('/api/project_log/get_latest_log/'+ project_id, {
           headers: {
             Authorization: "Bearer " + access_token,
-          },
+          }
         }).then(
           (response) => {
-            console.log(response.data);
-            if (response.data.success) {
-              this.getProject();
-              this.showAlert();
-              this.close();
+            // console.log(response.data);
+            let latest_log = response.data.latest_log;
+
+            if(latest_log.turnover)
+            {
+              this.showConfirmAlert(this.status);
             }
-            this.overlay = false;
-            this.disabled = false;
-          },
-          (error) => {
-            console.log(error);
-            this.overlay = false;
-            this.disabled = false;
           }
         );
+
+        
+        // this.overlay = true;
+        // this.disabled = true;
+
+        // const data = {
+        //   project_id: project_id,
+        //   remarks_date: this.remarks_date,
+        //   remarks_time: this.remarks_time,
+        //   remarks: this.remarks,
+        //   status: this.status,
+        // };
+
+        // Axios.post("/api/project_log/project_turnover", data, {
+        //   headers: {
+        //     Authorization: "Bearer " + access_token,
+        //   },
+        // }).then(
+        //   (response) => {
+        //     console.log(response.data);
+        //     if (response.data.success) {
+        //       this.getProject();
+        //       this.showAlert();
+        //       this.close();
+        //     }
+        //     this.overlay = false;
+        //     this.disabled = false;
+        //   },
+        //   (error) => {
+        //     console.log(error);
+        //     this.overlay = false;
+        //     this.disabled = false;
+        //   }
+        // );
       }
     },
     viewProjectLogs(item) {
@@ -851,13 +875,6 @@ export default {
       this.editedIndex = -1;
       this.program_date = "";
       this.validation_date = "";
-      this.report_status = [
-        { text: "For Validation", value: "For Validation" },
-        { text: "Ongoing", value: "Ongoing" },
-        { text: "Pending", value: "Pending" },
-        { text: "Accepted", value: "Accepted" },
-        { text: "Cancelled", value: "Cancelled" },
-      ];
       (this.remarks_date = new Date().toISOString().substr(0, 10)),
         (this.remarks_time = new Date().toTimeString().substr(0, 5)),
         (this.remarks = "");
@@ -896,8 +913,98 @@ export default {
     },
     calculateHoursByDate() {
       this.getProject();
-    }
-    
+    },
+    createRemarks(item) {
+      this.editedItem = item;
+      this.dialog = true;
+      this.status = item.status;
+      this.getLogsPerProject(item);
+      this.setStatusSelectItems(item); 
+    },
+    getLogsPerProject(item) {
+      this.logs_per_project = [];
+      this.project_logs.forEach((value, index) => {
+        if (item.project_id == value.project_id) {
+            this.logs_per_project.push(value);
+        }
+      });
+    },
+    setStatusSelectItems(item) {
+      let hasOngoingTurnover = false;
+      let last_log_status = "";
+      // if logs has Ongoing and Turnover status
+
+      this.logs_per_project.forEach((val, i) => {
+        if (val.status == "Ongoing" && val.turnover == "Y") {
+          hasOngoingTurnover = true;
+        }
+
+        // get the last index of status except "Pending"
+        if (
+          (val.status == "Ongoing" && val.turnover) ||
+          (val.status == "For Validation" && val.turnover)
+        ) {
+          last_log_status = val.status;
+        }
+      });
+
+      if (hasOngoingTurnover) {
+        if (item.status == "Pending") {
+          if (last_log_status == "Ongoing") {
+            this.report_status = [
+              { text: "For Validation", value: "For Validation" },
+              { text: "Pending", value: "Pending" },
+              { text: "Accepted", value: "Accepted" },
+              { text: "Cancelled", value: "Cancelled" },
+            ];
+          } else if (last_log_status == "For Validation") {
+            this.report_status = [
+              { text: "Ongoing", value: "Ongoing" },
+              { text: "Pending", value: "Pending" },
+              { text: "Accepted", value: "Accepted" },
+              { text: "Cancelled", value: "Cancelled" },
+            ];
+          }
+        } else {
+          this.report_status = [
+            { text: "For Validation", value: "For Validation" },
+            { text: "Ongoing", value: "Ongoing" },
+            { text: "Pending", value: "Pending" },
+            { text: "Accepted", value: "Accepted" },
+            { text: "Cancelled", value: "Cancelled" },
+          ];
+        }
+      } else {
+        this.report_status = [
+          { text: "Ongoing", value: "Ongoing" },
+          { text: "Pending", value: "Pending" },
+          { text: "Cancelled", value: "Cancelled" },
+        ];
+      }
+    },
+    showConfirmAlert(status) {
+      this.$swal({
+        title: "Are you sure?",
+        text: "You don't have starting date and time '"+ status +"' log",
+        icon: "info",
+        showCancelButton: true,
+        confirmButtonColor: "primary",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Primary",
+      }).then((result) => {
+
+        if (result.value) {
+
+          this.$swal({
+            position: "center",
+            icon: "success",
+            title: "Record has been deleted",
+            showConfirmButton: false,
+            timer: 2500,
+          });
+        }
+      });
+    },
   },
   computed: {
     filteredProjects() {

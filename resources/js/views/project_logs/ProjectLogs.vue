@@ -386,7 +386,7 @@ export default {
         },
         (error) => {
           // if unauthenticated (401)
-          if (error.response.status) {
+          if (error.response.status == '401') {
             localStorage.removeItem("access_token");
             this.$router.push({ name: "login" });
           }
@@ -584,22 +584,61 @@ export default {
     },
     setStatusSelectItems() {
       let hasOngoingTurnover = false;
-      
+      let logs_num_rows = this.project_logs.length;
+      let last_log_status = "";
       // if logs has Ongoing and Turnover status
       this.project_logs.forEach((value, index) => {
-        if (value.status == "Ongoing" && value.status == "Y") {
+        if (value.status == "Ongoing" && value.turnover == "Y") {
           hasOngoingTurnover = true;
         } 
+        
+        // get the last index of status except "Pending"
+        if((value.status == "Ongoing" && value.turnover) || (value.status == "For Validation" && value.turnover))
+        {
+          last_log_status = value.status;
+        }
       });
 
       if (hasOngoingTurnover) {
-        this.report_status = [
-          { text: "For Validation", value: "For Validation" },
-          { text: "Ongoing", value: "Ongoing" },
-          { text: "Pending", value: "Pending" },
-          { text: "Accepted", value: "Accepted" },
-          { text: "Cancelled", value: "Cancelled" },
-        ];
+        if(this.project.status == 'Ongoing')
+        {
+          this.report_status = [
+            { text: "Ongoing", value: "Ongoing" },
+            { text: "Pending", value: "Pending" },
+            { text: "Accepted", value: "Accepted" },
+            { text: "Cancelled", value: "Cancelled" },
+          ];
+        }
+        else if(this.project.status == 'For Validation')
+        {
+          this.report_status = [
+            { text: "For Validation", value: "For Validation" },
+            { text: "Pending", value: "Pending" },
+            { text: "Accepted", value: "Accepted" },
+            { text: "Cancelled", value: "Cancelled" },
+          ];
+        }
+        else if(this.project.status == 'Pending')
+        {
+          if(last_log_status == 'Ongoing')
+          {
+            this.report_status = [
+              { text: "For Validation", value: "For Validation" },
+              { text: "Pending", value: "Pending" },
+              { text: "Accepted", value: "Accepted" },
+              { text: "Cancelled", value: "Cancelled" },
+            ];
+          }
+          else if(last_log_status == 'For Validation')
+          {
+            this.report_status = [
+              { text: "Ongoing", value: "Ongoing" },
+              { text: "Pending", value: "Pending" },
+              { text: "Accepted", value: "Accepted" },
+              { text: "Cancelled", value: "Cancelled" },
+            ];
+          }
+        }        
       } else {
         this.report_status = [
           { text: "Ongoing", value: "Ongoing" },
@@ -607,6 +646,7 @@ export default {
           { text: "Cancelled", value: "Cancelled" },
         ];
       }
+
     },
   },
   computed: {

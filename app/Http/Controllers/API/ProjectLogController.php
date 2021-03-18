@@ -176,46 +176,10 @@ class ProjectLogController extends Controller
 
         $project_id = $request->get('project_id');
 
-        $project_logs = ProjectLog::where('project_id', '=', $project_id)
-                                  ->orderBy('remarks_date', 'Asc')
-                                  ->orderBy('remarks_time', 'Asc')
-                                  ->first();
+        
 
         // project status
-        $status = Project::find($project_id)->status;
-        
-        // if latest log was updated
-        if($project_logs->id == $project_log_id)
-        {   
-            if($project_logs->status == 'Ongoing')
-            {
-                if($request->get('turnover'))
-                {   
-                    $status = 'For Validation';  
-                }
-                else
-                {
-                    $status = 'Ongoing';
-                }  
-            }
-
-            if($project_logs->status == 'For Validation')
-            {
-                if($request->get('turnover'))
-                { 
-                    $status = 'Ongoing';  
-                }
-                else
-                {
-                    $status = 'For Validation';
-                }       
-            }
-
-            // update report status if latest log was updated
-            Project::where('id', '=', $project_id)
-                    ->update(['status' => $status]);
-            
-        }   
+        $status = Project::find($project_id)->status;          
 
         $project_log = ProjectLog::find($project_log_id);
         $project_log->remarks_date = Carbon::parse($request->get('remarks_date'))->format('Y-m-d');
@@ -224,6 +188,37 @@ class ProjectLogController extends Controller
         $project_log->status = $request->get('status');
         $project_log->turnover = $request->get('turnover');
         $project_log->save();
+        
+        // last log
+        $last_log = ProjectLog::where('project_id', '=', $project_id)
+                                  ->orderBy('remarks_date', 'Desc')
+                                  ->orderBy('remarks_time', 'Desc')
+                                  ->orderBy('id', 'Desc')
+                                  ->first();
+        // last log turnover
+        $last_log_turnover = ProjectLog::where('project_id', '=', $project_id)
+                                  ->where('turnover', '=', 'Y')
+                                  ->orderBy('remarks_date', 'Desc')
+                                  ->orderBy('remarks_time', 'Desc')
+                                  ->orderBy('id', 'Desc')
+                                  ->first();
+                                  
+        if($last_log->status == 'For Validation' || $last_log->status == 'Ongoing')
+        {
+            if($last_log_turnover->status == 'For Validation')
+            {
+                $status = 'Ongoing';
+            }
+            elseif($last_log_turnover->status == 'Ongoing')
+            {
+                $status = 'For Validation';
+            }
+        }
+        
+        // update report status if latest log was updated
+         Project::where('id', '=', $project_id)
+         ->update(['status' => $status]);
+
 
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
                                   ->orderBy('remarks_date', 'Asc')
@@ -285,11 +280,13 @@ class ProjectLogController extends Controller
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
+                                  ->orderBy('id', 'Asc')
                                   ->get();
 
         $last_project_logs = ProjectLog::where('project_id', '=', $project_id)
                                   ->orderBy('remarks_date', 'Desc')
                                   ->orderBy('remarks_time', 'Desc')
+                                  ->orderBy('id', 'Desc')
                                   ->first();
 
         if(count($project_logs) > 0)
@@ -393,6 +390,7 @@ class ProjectLogController extends Controller
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
+                                  ->orderBy('id', 'Asc')
                                   ->get();
 
         if(count($project_logs) > 0)
@@ -409,6 +407,23 @@ class ProjectLogController extends Controller
             'project_log' => $project_log, 
             'status' => $status,
         ], 200);   
+    }
+
+    public function get_latest_log($project_id)
+    {
+        $project_log = ProjectLog::where('project_id', '=', $project_id)
+                                  ->orderBy('remarks_date', 'Desc')
+                                  ->orderBy('remarks_time', 'Desc')
+                                  ->orderBy('id', 'Desc')
+                                  ->first();
+                                  
+        //if record is empty then display error page
+        if(empty($project_log->id))
+        {
+            return abort(404, 'Not Found');
+        }
+
+        return response()->json(['latest_log' => $project_log], 200);
     }
 
     public function calculateHours($project_logs)
