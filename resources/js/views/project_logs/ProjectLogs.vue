@@ -80,6 +80,7 @@
                               item-text="text"
                               item-value="value"
                               :readonly="editedIndex > -1 ? true : false"
+                              @change="statusOnChange()"
                             ></v-select>
                           </v-col>
                         </v-row>
@@ -116,8 +117,8 @@
                               ></v-date-picker>
                             </v-menu>
                           </v-col>
-                          <v-col cols="6">
-                            <v-dialog
+                          <v-col cols="2">
+                            <!-- <v-dialog
                               ref="dialog"
                               v-model="time_modal"
                               :return-value.sync="editedItem.remarks_time"
@@ -162,7 +163,50 @@
                                   OK
                                 </v-btn>
                               </v-time-picker>
-                            </v-dialog>
+                            </v-dialog> -->
+                            <!-- <v-text-field-simplemask
+                              v-model="editedItem.remarks_time"
+                              label="Time"
+                              v-bind:properties="{
+                                prefix: '',
+                                suffix: '',
+                                readonly: false,
+                                disabled: false,
+                                outlined: false,
+                                clearable: true,
+                                placeholder: '',
+                                keyup: validateTime(),
+                                error: timeHasError,
+                                messages: remarks_timeErrors,
+                              }"
+                              v-bind:options="{
+                                inputMask: '##:##',
+                                outputMask: '##:##',
+                                empty: null,
+                                applyAfter: false,
+                                alphanumeric: false,
+                                lowerCase: false,
+                              }"
+                              v-bind:focus="focus"
+                              v-on:focus="focus = false"
+                              @blur="$v.editedItem.remarks_time.$touch()"
+                            /> -->
+                            <v-autocomplete
+                              v-model="editedItem.hour"
+                              :items="hour"
+                              label="Hour"
+                              @blur="$v.editedItem.hour.$touch()"
+                              :hint="'24 Hr Format'"
+                              persistent-hint
+                            ></v-autocomplete>
+                          </v-col>
+                          <v-col cols="2">
+                            <v-autocomplete
+                              v-model="editedItem.minute"
+                              :items="minute"
+                              label="Minute"
+                              @blur="$v.editedItem.minute.$touch()"
+                            ></v-autocomplete>
                           </v-col>
                         </v-row>
                         <v-row>
@@ -183,6 +227,7 @@
                               v-model="switch1"
                               label="Turn Over"
                               @click="turnoverStatus()"
+                              :disabled="disabledSwitch"
                             ></v-switch>
                           </v-col>
                         </v-row>
@@ -289,12 +334,18 @@ export default {
     editedItem: {
       status: { required },
       remarks_date: { required },
-      remarks_time: { required },
+      // remarks_time: { required },
+      hour: { required },
+      minute: { required },
       remarks: { required },
     },
   },
   data() {
     return {
+      hour: [],
+      minute: [],
+      focus: false,
+      disabledSwitch: false,
       switch1: false,
       absolute: true,
       overlay: false,
@@ -337,14 +388,18 @@ export default {
       editedItem: {
         status: "",
         remarks_date: new Date().toISOString().substr(0, 10),
-        remarks_time: new Date().toTimeString().substr(0, 5),
+        remarks_time: "",
+        hour: String(new Date().toTimeString().substr(0, 5).split(':')[0]),
+        minute: String(new Date().toTimeString().substr(0, 5).split(':')[1]),
         remarks: "",
         turnover: "",
       },
       defaultItem: {
         status: "",
         remarks_date: new Date().toISOString().substr(0, 10),
-        remarks_time: new Date().toTimeString().substr(0, 5),
+        remarks_time: "",
+        hour: String(new Date().toTimeString().substr(0, 5).split(':')[0]),
+        minute: String(new Date().toTimeString().substr(0, 5).split(':')[1]),
         remarks: "",
         turnover: "",
       },
@@ -360,6 +415,7 @@ export default {
       input_remarks_date: false,
       time_modal: false,
       error_status: null,
+      timeHasError: false,
     };
   },
 
@@ -386,7 +442,7 @@ export default {
         },
         (error) => {
           // if unauthenticated (401)
-          if (error.response.status == '401') {
+          if (error.response.status == "401") {
             localStorage.removeItem("access_token");
             this.$router.push({ name: "login" });
           }
@@ -480,6 +536,12 @@ export default {
         this.switch1 = true;
       } else {
         this.switch1 = false;
+      }
+
+      if (item.status == "Ongoing" || item.status == "For Validation") {
+        this.disabledSwitch = false;
+      } else {
+        this.disabledSwitch = true;
       }
     },
 
@@ -590,47 +652,41 @@ export default {
       this.project_logs.forEach((value, index) => {
         if (value.status == "Ongoing" && value.turnover == "Y") {
           hasOngoingTurnover = true;
-        } 
-        
+        }
+
         // get the last index of status except "Pending"
-        if((value.status == "Ongoing" && value.turnover) || (value.status == "For Validation" && value.turnover))
-        {
+        if (
+          (value.status == "Ongoing" && value.turnover) ||
+          (value.status == "For Validation" && value.turnover)
+        ) {
           last_log_status = value.status;
         }
       });
 
       if (hasOngoingTurnover) {
-        if(this.project.status == 'Ongoing')
-        {
+        if (this.project.status == "Ongoing") {
           this.report_status = [
             { text: "Ongoing", value: "Ongoing" },
             { text: "Pending", value: "Pending" },
             { text: "Accepted", value: "Accepted" },
             { text: "Cancelled", value: "Cancelled" },
           ];
-        }
-        else if(this.project.status == 'For Validation')
-        {
+        } else if (this.project.status == "For Validation") {
           this.report_status = [
             { text: "For Validation", value: "For Validation" },
             { text: "Pending", value: "Pending" },
             { text: "Accepted", value: "Accepted" },
             { text: "Cancelled", value: "Cancelled" },
           ];
-        }
-        else if(this.project.status == 'Pending')
-        {
-          if(last_log_status == 'Ongoing')
-          {
+        } else if (this.project.status == "Pending") {
+          if (last_log_status == "Ongoing") {
             this.report_status = [
               { text: "For Validation", value: "For Validation" },
               { text: "Pending", value: "Pending" },
               { text: "Accepted", value: "Accepted" },
               { text: "Cancelled", value: "Cancelled" },
             ];
-          }
-          else if(last_log_status == 'For Validation')
-          {
+          } else if (last_log_status == "For Validation") {
             this.report_status = [
               { text: "Ongoing", value: "Ongoing" },
               { text: "Pending", value: "Pending" },
@@ -638,7 +694,7 @@ export default {
               { text: "Cancelled", value: "Cancelled" },
             ];
           }
-        }        
+        }
       } else {
         this.report_status = [
           { text: "Ongoing", value: "Ongoing" },
@@ -646,8 +702,19 @@ export default {
           { text: "Cancelled", value: "Cancelled" },
         ];
       }
-
     },
+    statusOnChange() {
+      this.switch1 = false;
+
+      let status = this.editedItem.status;
+
+      if (status == "Ongoing" || status == "For Validation") {
+        this.disabledSwitch = false;
+      } else {
+        this.disabledSwitch = true;
+      }
+    },
+  
   },
   computed: {
     formTitle() {
@@ -666,8 +733,34 @@ export default {
     remarks_timeErrors() {
       const errors = [];
       if (!this.$v.editedItem.remarks_time.$dirty) return errors;
-      !this.$v.editedItem.remarks_time.required &&
-        errors.push("Remarks Time is required.");
+      !this.$v.editedItem.remarks_time.required && errors.push("Required.");
+
+      if (this.timeHasError) {
+        errors.push("Invalid");
+      }
+
+      return errors;
+    },
+    hourErrors() {
+      const errors = [];
+      if (!this.$v.editedItem.hour.$dirty) return errors;
+      !this.$v.editedItem.hour.required && errors.push("Required.");
+
+      if (this.timeHasError) {
+        errors.push("Invalid");
+      }
+
+      return errors;
+    },
+    minuteErrors() {
+      const errors = [];
+      if (!this.$v.editedItem.minute.$dirty) return errors;
+      !this.$v.editedItem.minute.required && errors.push("Required.");
+
+      if (this.timeHasError) {
+        errors.push("Invalid");
+      }
+
       return errors;
     },
     remarksErrors() {
@@ -681,6 +774,16 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProjectLogs();
+
+    for (let hour = 1; hour <= 24; hour++) {
+      let hr = hour < 10 ? '0'+hour : hour;
+      this.hour.push(String(hr));
+    }
+
+    for (let minute = 1; minute <= 60; minute++) {
+      let min = minute < 10 ? '0'+minute : minute;
+      this.minute.push(String(min));
+    }
   },
 };
 </script>

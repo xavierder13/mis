@@ -348,7 +348,7 @@ class ProjectLogController extends Controller
         $project_logs = ProjectLog::where('project_id', '=', $project_id)->get();
         $status = $request->get('status');
         $remarks = "";
-
+        
         if($project->status == 'For Validation')
         {
             $remarks = "Return to Programmer";

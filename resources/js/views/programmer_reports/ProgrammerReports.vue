@@ -756,7 +756,7 @@ export default {
         },
         (error) => {
           // if unauthenticated (401)
-          if (error.response.status == '401') {
+          if (error.response.status == "401") {
             localStorage.removeItem("access_token");
             this.$router.push({ name: "login" });
           }
@@ -791,57 +791,55 @@ export default {
       this.$v.$touch();
       let project_id = this.editedItem.project_id;
       if (!this.$v.$error) {
-
-        Axios.get('/api/project_log/get_latest_log/'+ project_id, {
+        Axios.get("/api/project_log/get_latest_log/" + project_id, {
           headers: {
             Authorization: "Bearer " + access_token,
-          }
-        }).then(
-          (response) => {
-            // console.log(response.data);
-            let latest_log = response.data.latest_log;
-
-            if(latest_log.turnover)
-            {
-              this.showConfirmAlert(this.status);
-            }
-          }
-        );
-
+          },
+        }).then((response) => {
+          // console.log(response.data);
+          let latest_log = response.data.latest_log;
         
-        // this.overlay = true;
-        // this.disabled = true;
-
-        // const data = {
-        //   project_id: project_id,
-        //   remarks_date: this.remarks_date,
-        //   remarks_time: this.remarks_time,
-        //   remarks: this.remarks,
-        //   status: this.status,
-        // };
-
-        // Axios.post("/api/project_log/project_turnover", data, {
-        //   headers: {
-        //     Authorization: "Bearer " + access_token,
-        //   },
-        // }).then(
-        //   (response) => {
-        //     console.log(response.data);
-        //     if (response.data.success) {
-        //       this.getProject();
-        //       this.showAlert();
-        //       this.close();
-        //     }
-        //     this.overlay = false;
-        //     this.disabled = false;
-        //   },
-        //   (error) => {
-        //     console.log(error);
-        //     this.overlay = false;
-        //     this.disabled = false;
-        //   }
-        // );
+          // if last remarks has turnover status then show warning message
+          if (latest_log.turnover && this.status != this.editedItem.status) {
+            this.showConfirmAlert(this.status);
+          } else {
+            this.storeRemarks();
+          }
+        });
       }
+    },
+    storeRemarks() {
+      let project_id = this.editedItem.project_id;
+      this.overlay = true;
+      this.disabled = true;
+      const data = {
+        project_id: project_id,
+        remarks_date: this.remarks_date,
+        remarks_time: this.remarks_time,
+        remarks: this.remarks,
+        status: this.status,
+      };
+      Axios.post("/api/project_log/project_turnover", data, {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then(
+        (response) => {
+          console.log(response.data);
+          if (response.data.success) {
+            this.getProject();
+            this.showAlert();
+            this.close();
+          }
+          this.overlay = false;
+          this.disabled = false;
+        },
+        (error) => {
+          console.log(error);
+          this.overlay = false;
+          this.disabled = false;
+        }
+      );
     },
     viewProjectLogs(item) {
       this.$router.push({
@@ -919,13 +917,13 @@ export default {
       this.dialog = true;
       this.status = item.status;
       this.getLogsPerProject(item);
-      this.setStatusSelectItems(item); 
+      this.setStatusSelectItems(item);
     },
     getLogsPerProject(item) {
       this.logs_per_project = [];
       this.project_logs.forEach((value, index) => {
         if (item.project_id == value.project_id) {
-            this.logs_per_project.push(value);
+          this.logs_per_project.push(value);
         }
       });
     },
@@ -985,23 +983,15 @@ export default {
     showConfirmAlert(status) {
       this.$swal({
         title: "Are you sure?",
-        text: "You don't have starting date and time '"+ status +"' log",
+        text: "You don't have starting date and time '" + status + "' log",
         icon: "info",
         showCancelButton: true,
         confirmButtonColor: "primary",
         cancelButtonColor: "#6c757d",
-        confirmButtonText: "Primary",
+        confirmButtonText: "Turnover Project",
       }).then((result) => {
-
         if (result.value) {
-
-          this.$swal({
-            position: "center",
-            icon: "success",
-            title: "Record has been deleted",
-            showConfirmButton: false,
-            timer: 2500,
-          });
+          this.storeRemarks();
         }
       });
     },
