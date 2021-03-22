@@ -133,7 +133,7 @@ export default {
 
       }, (error) => {
         // if unauthenticated (401)
-        if(error.response.status)
+        if(error.response.status == '401')
         {
           localStorage.removeItem('access_token');
           this.$router.push({name: 'login'});

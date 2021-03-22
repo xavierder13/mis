@@ -208,7 +208,7 @@
                               @blur="$v.editedItem.minute.$touch()"
                             ></v-autocomplete>
                           </v-col>
-                        </v-row>
+                        </v-row>                       
                         <v-row>
                           <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-textarea

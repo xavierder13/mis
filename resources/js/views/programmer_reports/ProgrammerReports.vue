@@ -30,7 +30,10 @@
             ></v-select>
 
             {{ user_type == "Programmer" ? "My Projects" : "" }}
-
+            <v-divider vertical class="ml-2"></v-divider>
+            <v-btn color="secondary" class="ml-2" @click="printPreview()" :disabled="printDisabled">
+              <v-icon> mdi-printer </v-icon>
+            </v-btn>
             <v-spacer></v-spacer>
             <v-text-field
               v-model="search"
@@ -272,7 +275,21 @@
                       <v-icon v-if="isOpen">mdi-chevron-up</v-icon>
                       <v-icon v-else>mdi-chevron-down</v-icon>
                     </v-btn>
-                    <strong>{{ items[0].status.toUpperCase() }}</strong>
+                    <v-chip
+                      :color="
+                        items[0].status == 'For Validation'
+                          ? 'info'
+                          : items[0].status == 'Ongoing'
+                          ? 'secondary'
+                          : items[0].status == 'Pending'
+                          ? 'warning'
+                          : items[0].status == 'Accepted'
+                          ? 'success'
+                          : ''
+                      "
+                    >
+                      <strong>{{ items[0].status.toUpperCase() }}</strong>
+                    </v-chip>
                   </td>
                 </template>
                 <template v-slot:item.template_percent="{ item, index }">
@@ -707,6 +724,7 @@ export default {
       user: localStorage.getItem("user"),
       user_type: localStorage.getItem("user_type"),
       user_id: localStorage.getItem("user_id"),
+      printDisabled: true,
     };
   },
 
@@ -721,6 +739,7 @@ export default {
       }).then(
         (response) => {
           console.log(response.data);
+          this.printDisabled = false;
           this.projects = response.data.projects;
           this.project_logs = response.data.project_logs;
           this.project_execution_hrs = response.data.project_execution_hrs;
@@ -798,7 +817,7 @@ export default {
         }).then((response) => {
           // console.log(response.data);
           let latest_log = response.data.latest_log;
-        
+
           // if last remarks has turnover status then show warning message
           if (latest_log.turnover && this.status != this.editedItem.status) {
             this.showConfirmAlert(this.status);
@@ -994,6 +1013,16 @@ export default {
           this.storeRemarks();
         }
       });
+    },
+    printPreview() {
+      window.open(
+        location.origin +
+          "/reports_preview?programmer_id=" +
+          this.filter_project_by_programmer +
+          "&filter_date=" +
+          this.filter_date,
+        "_blank"
+      );
     },
   },
   computed: {

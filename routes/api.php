@@ -258,8 +258,5 @@ Route::group(['prefix' => 'holiday', 'middleware' => ['auth:api']], function(){
         'uses' => 'API\HolidayController@delete',
         'as' => 'holiday.delete',
     ]);
-
-
-
-
 });
+

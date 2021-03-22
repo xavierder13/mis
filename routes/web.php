@@ -19,5 +19,7 @@ Route::get('/', function () {
     return view('layouts.app');
 });
 
+Route::get('/reports_preview', 'ReportsPreviewController@preview');
+
 
 
