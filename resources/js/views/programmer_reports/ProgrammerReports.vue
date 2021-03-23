@@ -30,10 +30,31 @@
             ></v-select>
 
             {{ user_type == "Programmer" ? "My Projects" : "" }}
+
             <v-divider vertical class="ml-2"></v-divider>
-            <v-btn color="secondary" class="ml-2" @click="printPreview()" :disabled="printDisabled">
-              <v-icon> mdi-printer </v-icon>
+            <v-btn
+              class="ml-2"
+              :disabled="printDisabled"
+              color="primary"
+              @click="printPreview()"
+            >
+              <v-icon class="pa-0 ma-0"> mdi-printer </v-icon>
             </v-btn>
+
+            <v-divider vertical class="ml-2"></v-divider>
+
+            <export-excel
+              class="btn btn-default"
+              :data="filteredProjects"
+              :fields="json_fields"
+              worksheet="My Worksheet"
+              name="filename.xls"
+            >
+              <v-btn :disabled="printDisabled" color="success">
+                <v-icon> mdi-file-excel </v-icon>
+              </v-btn>
+            </export-excel>
+
             <v-spacer></v-spacer>
             <v-text-field
               v-model="search"
@@ -241,6 +262,84 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
+                <v-dialog v-model="dialog2" max-width="700px">
+                  <v-card>
+                    <v-card-title>
+                      <span class="headline">Update Report Percentage</span>
+                    </v-card-title>
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-col>
+                            <v-text-field-money
+                              v-model="editedItem.template_percent"
+                              v-bind:properties="{
+                                name: 'template_percent',
+                                suffix: '%',
+                                placeholder: '0.00',
+                              }"
+                              v-bind:options="{
+                                length: 4,
+                                precision: 2,
+                                empty: null,
+                              }"
+                              v-bind:label="'Template'"
+                            >
+                            </v-text-field-money>
+                          </v-col>
+                          <v-col>
+                            <v-text-field-money
+                              v-model="editedItem.program_percent"
+                              v-bind:properties="{
+                                name: 'program_percent',
+                                suffix: '%',
+                                placeholder: '0.00',
+                              }"
+                              v-bind:options="{
+                                length: 4,
+                                precision: 2,
+                                empty: null,
+                              }"
+                              v-bind:label="'Programming'"
+                            >
+                            </v-text-field-money>
+                          </v-col>
+                          <v-col>
+                            <v-text-field-money
+                              v-model="editedItem.validation_percent"
+                              v-bind:properties="{
+                                name: 'validation_percent',
+                                suffix: '%',
+                                placeholder: '0.00',
+                              }"
+                              v-bind:options="{
+                                length: 4,
+                                precision: 2,
+                                empty: null,
+                              }"
+                              v-bind:label="'Validation'"
+                            >
+                            </v-text-field-money>
+                          </v-col>
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                      <v-btn color="#E0E0E0" @click="close" class="mb-4">
+                        Cancel
+                      </v-btn>
+                      <v-btn
+                        color="primary"
+                        class="mb-4 mr-4"
+                        :disabled="disabled"
+                        @click="updateReportPercentage()"
+                      >
+                        Save
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
               </v-toolbar>
             </template>
           </v-card-title>
@@ -256,10 +355,11 @@
                   'items-per-page-options': [30, 40, 50, -1],
                 }"
                 item-key="project_id"
-                group-by="status"
+                group-by="report_grp"
                 class="elevation-1"
                 :expanded.sync="expanded"
                 loading-text="Loading... Please wait"
+                fixed-header
               >
                 <template
                   v-slot:group.header="{ items, headers, toggle, isOpen }"
@@ -292,7 +392,7 @@
                     </v-chip>
                   </td>
                 </template>
-                <template v-slot:item.template_percent="{ item, index }">
+                <!-- <template v-slot:item.template_percent="{ item, index }">
                   <v-text-field-money
                     v-model="editedItem.template_percent"
                     v-bind:properties="{
@@ -315,7 +415,7 @@
                       ? item.template_percent + "%"
                       : ""
                   }}
-                </template>
+                </template> -->
                 <!-- <template v-slot:item.program_date="{ item, index }">
                   <v-menu
                     v-model="input_program_date"
@@ -346,7 +446,7 @@
                   </v-menu>
                   {{ editedIndex != index ? item.program_date : "" }}
                 </template> -->
-                <template v-slot:item.program_percent="{ item, index }">
+                <!-- <template v-slot:item.program_percent="{ item, index }">
                   <v-text-field-money
                     v-model="editedItem.program_percent"
                     v-bind:properties="{
@@ -368,7 +468,7 @@
                       ? item.program_percent + "%"
                       : ""
                   }}
-                </template>
+                </template> -->
                 <!-- <template v-slot:item.validation_date="{ item, index }">
                   <v-menu
                     v-model="input_validation_date"
@@ -403,7 +503,7 @@
                       : ""
                   }}
                 </template> -->
-                <template v-slot:item.validation_percent="{ item, index }">
+                <!-- <template v-slot:item.validation_percent="{ item, index }">
                   <v-text-field-money
                     v-model="editedItem.validation_percent"
                     v-bind:properties="{
@@ -425,7 +525,7 @@
                       ? item.validation_percent + "%"
                       : ""
                   }}
-                </template>
+                </template> -->
                 <template v-slot:item.status="{ item, index }">
                   <!-- <v-select
                     v-model="editedItem.status"
@@ -508,11 +608,11 @@
                     </v-list>
                   </v-menu>
 
-                  <v-btn
+                  <!-- <v-btn
                     x-small
                     color="primary"
                     v-if="editedIndex == filteredProjects.indexOf(item)"
-                    @click="updateReportStatus()"
+                    @click="updateReportPercentage()"
                   >
                     save
                   </v-btn>
@@ -523,7 +623,7 @@
                     @click="editedIndex = -1"
                   >
                     cancel
-                  </v-btn>
+                  </v-btn> -->
                 </template>
               </v-data-table>
             </div>
@@ -564,6 +664,59 @@ export default {
   },
   data() {
     return {
+      json_fields: {
+        "Approved/ Filing Date": "date_approved",
+        "Date Accepted": "accepted_date",
+        "Ref No.": "ref_no",
+        "Report Title": "report_title",
+        "Ideal Prog Hrs.": "ideal_prog_hrs",
+        "Ideal Valid Hrs.": "ideal_valid_hrs",
+        Department: "department",
+        Manager: "manager",
+        "Date Received": "date_received",
+        "Template %": "template_percent",
+        "Program Date": "program_date",
+        "Program %": "program_percent",
+        "Validation Date": "validation_date",
+        "Validation %": "validation_percent",
+        Validator: "validator",
+        "Report Type": "type",
+        "Validation hrs.": "validate_hrs",
+        "Program hrs.": "program_hrs",
+        "Validation hrs. (This Month)": "validate_hrs_tm",
+        "Program hrs.  (This Month)": "program_hrs_tm",
+        "Report Status": "status",
+      },
+      json_data: [
+        {
+          name: "Tony Peña",
+          city: "New York",
+          country: "United States",
+          birthdate: "1978-03-15",
+          phone: {
+            mobile: "1-541-754-3010",
+            landline: "(541) 754-3010",
+          },
+        },
+        {
+          name: "Thessaloniki",
+          city: "Athens",
+          country: "Greece",
+          birthdate: "1987-11-23",
+          phone: {
+            mobile: "+1 855 275 5071",
+            landline: "(2741) 2621-244",
+          },
+        },
+      ],
+      json_meta: [
+        [
+          {
+            key: "charset",
+            value: "utf-8",
+          },
+        ],
+      ],
       expanded: [],
       absolute: true,
       overlay: false,
@@ -583,6 +736,13 @@ export default {
       filter_project_by_programmer: "",
       filter_date: new Date().toISOString().substr(0, 10),
       headers: [
+        {
+          text: "Report Group",
+          value: "report_grp",
+          width: "80px",
+          sortable: false,
+        },
+
         { text: "Actions", value: "actions", width: "80px", sortable: false },
         {
           text: "Approved/ Filing Date",
@@ -598,7 +758,8 @@ export default {
         },
         { text: "Ref No.", value: "ref_no", sortable: false },
         { text: "Report Title", value: "report_title", sortable: false },
-        { text: "Ideal", value: "ideal", sortable: false },
+        { text: "Ideal Prog Hrs.", value: "ideal_prog_hrs", sortable: false },
+        { text: "Ideal Valid Hrs.", value: "ideal_valid_hrs", sortable: false },
         { text: "Department", value: "department", sortable: false },
         { text: "Manager", value: "manager", sortable: false },
         { text: "Date Received", value: "date_received", sortable: false },
@@ -662,6 +823,7 @@ export default {
       validation_date: "",
       disabled: false,
       dialog: false,
+      dialog2: false,
       projects: [],
       project_logs: [],
       logs_per_project: [],
@@ -784,6 +946,7 @@ export default {
     },
 
     editProject(item) {
+      this.dialog2 = true;
       let program_date = "";
       let validation_date = "";
 
@@ -897,7 +1060,7 @@ export default {
         (this.remarks = "");
     },
 
-    updateReportStatus() {
+    updateReportPercentage() {
       this.overlay = true;
       Axios.post("/api/project/update_status", this.editedItem, {
         headers: {

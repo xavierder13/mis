@@ -192,14 +192,39 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col cols="6" class="mt-1 mb-0 pt-0 pb-0">
-                            <v-text-field
-                              name="ideal"
-                              v-model="editedItem.ideal"
-                              label="Ideal"
-                            ></v-text-field>
+                          <v-col cols="4" class="mt-1 mb-0 pt-0 pb-0">
+                            <v-text-field-money
+                              v-model="editedItem.ideal_prog_hrs"
+                              v-bind:properties="{
+                                name: 'ideal_prog_hrs',
+                                placeholder: '0.00',
+                              }"
+                              v-bind:options="{
+                                length: 8,
+                                precision: 2,
+                                empty: null,
+                              }"
+                              v-bind:label="'Ideal Programming Hrs.'"
+                            >
+                            </v-text-field-money>
                           </v-col>
-                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                          <v-col cols="4" class="mt-1 mb-0 pt-0 pb-0">
+                            <v-text-field-money
+                              v-model="editedItem.ideal_valid_hrs"
+                              v-bind:properties="{
+                                name: 'ideal_valid_hrs',
+                                placeholder: '0.00',
+                              }"
+                              v-bind:options="{
+                                length: 8,
+                                precision: 2,
+                                empty: null,
+                              }"
+                              v-bind:label="'Ideal Validation Hrs.'"
+                            >
+                            </v-text-field-money>
+                          </v-col>
+                          <v-col cols="4" class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field-money
                               class="mt-2"
                               v-model="editedItem.template_percent"
@@ -320,7 +345,8 @@ export default {
         { text: "Date Received", value: "date_received" },
         { text: "Date Approved", value: "date_approved" },
         { text: "User Type", value: "type" },
-        { text: "Ideal", value: "ideal" },
+        { text: "Ideal Prog Hrs.", value: "ideal_prog_hrs" },
+        { text: "Ideal Valid Hrs.", value: "ideal_valid_hrs" },
         { text: "Template %", value: "template_percent" },
         { text: "Actions", value: "actions", width: "80px", sortable: false },
       ],
@@ -352,7 +378,8 @@ export default {
         date_received: "",
         date_approved: "",
         type: "",
-        ideal: "",
+        ideal_prog_hrs: "",
+        ideal_valid_hrs: "",
         template_percent: "",
       },
       defaultItem: {
@@ -368,7 +395,8 @@ export default {
         date_received: "",
         date_approved: "",
         type: "",
-        ideal: "",
+        ideal_prog_hrs: "",
+        ideal_valid_hrs: "",
         template_percent: "",
       },
       permissions: {
@@ -391,20 +419,22 @@ export default {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-        this.projects = response.data.projects;
-        this.departments = response.data.departments;
-        this.programmers = response.data.programmers;
-        this.validators = response.data.validators;
-        this.loading = false;
-      }, (error) => {
-        // if unauthenticated (401)
-        if(error.response.status == '401')
-        {
-          localStorage.removeItem('access_token');
-          this.$router.push({name: 'login'});
+      }).then(
+        (response) => {
+          this.projects = response.data.projects;
+          this.departments = response.data.departments;
+          this.programmers = response.data.programmers;
+          this.validators = response.data.validators;
+          this.loading = false;
+        },
+        (error) => {
+          // if unauthenticated (401)
+          if (error.response.status == "401") {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
         }
-      });
+      );
     },
 
     editProject(item) {

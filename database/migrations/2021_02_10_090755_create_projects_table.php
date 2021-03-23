@@ -23,7 +23,16 @@ class CreateProjectsTable extends Migration
             $table->date('date_approve')->nullable();
             $table->string('type');
             $table->integer('department_id');
-            $table->string('ideal')->nullable();
+            $table->decimal('ideal_prog_hrs', 8, 2)->nullable();
+            $table->decimal('ideal_valid_hrs', 8, 2)->nullable();
+            $table->decimal('template_percent', 8, 2)->nullable();
+            $table->decimal('program_percent', 8, 2)->nullable();
+            $table->decimal('validation_percent', 8, 2)->nullable();
+            $table->date('program_date')->nullable();
+            $table->date('validation_date')->nullable();
+            $table->decimal('program_hrs', 8, 2)->nullable();
+            $table->decimal('validate_hrs', 8, 2)->nullable();
+            $table->date('accepted_date')->nullable();
             $table->string('status');
             $table->timestamps();
         });

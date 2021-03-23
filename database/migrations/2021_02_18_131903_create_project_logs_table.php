@@ -18,6 +18,10 @@ class CreateProjectLogsTable extends Migration
             $table->integer('project_id');
             $table->date('remarks_date');
             $table->time('remarks_time');
+            $table->string('status');
+            $table->string('remarks');
+            $table->integer('mins_diff')->nullable();
+            $table->string('turnover')->nullable();
             $table->timestamps();
         });
     }

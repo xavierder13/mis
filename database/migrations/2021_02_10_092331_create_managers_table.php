@@ -17,6 +17,7 @@ class CreateManagersTable extends Migration
             $table->id();
             $table->string('name');
             $table->integer('department_id');
+            $table->string('active');
             $table->timestamps();
         });
     }

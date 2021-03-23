@@ -7,8 +7,9 @@ import router from './router';
 import VueSweetalert2 from 'vue-sweetalert2';
 import DatetimePicker from 'vuetify-datetime-picker'
 import 'sweetalert2/dist/sweetalert2.min.css';
+import excel from 'vue-excel-export';
 
-
+Vue.use(excel);
 Vue.use(VuetifyMask);
 Vue.use(VueSweetalert2);
 Vue.use(Vuetify);

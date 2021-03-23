@@ -63,14 +63,14 @@ class ReportsPreviewController extends Controller
                              DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
                              DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
-                             DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
-                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
-                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
-                             DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
-                             DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
-                             DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
-                             'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
-                             'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
+                             DB::raw("DATE_FORMAT(projects.created_at, '%m.%d.%y') as date_logged"),
+                             DB::raw("DATE_FORMAT(projects.date_receive, '%m.%d.%y') as date_received"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m.%d.%y') as date_approved"),
+                             DB::raw("DATE_FORMAT(projects.program_date, '%m.%d.%y') as program_date"),
+                             DB::raw("DATE_FORMAT(projects.validation_date, '%m.%d.%y') as validation_date"),
+                             DB::raw("DATE_FORMAT(projects.accepted_date, '%m.%d.%y') as accepted_date"),
+                             'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
+                             'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs', DB::raw('programmers.name as programmer'))
                     ->where('projects.status', '!=', 'Cancelled')
                     ->where('projects.programmer_id', '=', $programmer_id)
                     // ->where('projects.ref_no', '=', '4')
@@ -80,8 +80,14 @@ class ReportsPreviewController extends Controller
                     })
                     ->orderBy('project_id', 'Desc')
                     ->get();
+            $programmer = count($projects) ? $projects->first()->programmer : '';
     
-        return view('reports_preview', compact('projects', 'project_execution_hrs'));
+        return view('reports_preview', compact(
+            'projects', 
+            'project_execution_hrs',
+            'filter_date',
+            'programmer')
+        );
 
     }
     public function calculateHours($project_logs)

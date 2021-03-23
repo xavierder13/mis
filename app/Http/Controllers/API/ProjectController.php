@@ -36,9 +36,9 @@ class ProjectController extends Controller
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
-                             'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
+                             'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
-                    ->where('projects.status', '!=', 'Cancelled')
+                    // ->where('projects.status', '!=', 'Cancelled')
                     ->orderBy('project_id', 'Desc')
                     ->get();
         
@@ -101,7 +101,12 @@ class ProjectController extends Controller
                     ->join('managers', 'departments.id', '=', 'managers.department_id')
                     ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
                     ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
-                    ->select(DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
+                    ->select(DB::raw('CASE WHEN projects.status = "For Validation" THEN "01" 
+                                           WHEN projects.status = "Ongoing" THEN "02"
+                                           WHEN projects.status = "Pending" THEN "03"
+                                           WHEN projects.status = "Accepted" THEN "04"
+                                      END as report_grp'),
+                    DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
                              DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
                              DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
@@ -111,7 +116,7 @@ class ProjectController extends Controller
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
-                             'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
+                             'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
                     // ->where('projects.ref_no', '=', '4')
@@ -119,6 +124,7 @@ class ProjectController extends Controller
                         $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
                               ->orWhereNull('projects.accepted_date');
                     })
+                    ->orderBy('report_grp', 'Desc')
                     ->orderBy('project_id', 'Desc')
                     ->get();
         
@@ -202,7 +208,8 @@ class ProjectController extends Controller
         {
             $project->date_approve = Carbon::parse($request->get('date_approved'))->format('Y-m-d');
         }
-        $project->ideal = $request->get('ideal');
+        $project->ideal_prog_hrs = $request->get('ideal_prog_hrs');
+        $project->ideal_valid_hrs = $request->get('ideal_valid_hrs');
         $project->template_percent = $request->get('template_percent');
         $project->type = $request->get('type');
         $project->status = "Pending";
@@ -225,7 +232,7 @@ class ProjectController extends Controller
                              DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
                              DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
                              DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
-                             'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
+                             'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent',
                              'projects.program_date', 'projects.validation_date')
                     ->where('projects.id', '=', $project->id)
@@ -280,7 +287,8 @@ class ProjectController extends Controller
         {
             $project->date_approve = Carbon::parse($request->get('date_approved'))->format('Y-m-d');
         }
-        $project->ideal = $request->get('ideal');
+        $project->ideal_prog_hrs = $request->get('ideal_prog_hrs');
+        $project->ideal_valid_hrs = $request->get('ideal_valid_hrs');
         $project->template_percent = $request->get('template_percent');
         $project->type = $request->get('type');
         $project->save();
