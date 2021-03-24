@@ -47,16 +47,16 @@ class AuthController extends Controller
         
         $accessToken = Auth::user()->createToken('authToken')->accessToken;
         
-        // $user_roles = Auth::user()->roles->pluck('name')->all();
+        $user_roles = Auth::user()->roles->pluck('name')->all();
 
-        // $user_permissions = Auth::user()->getAllPermissions()->pluck('name');
+        $user_permissions = Auth::user()->getAllPermissions()->pluck('name');
 
         return response()->json([
             'user' => Auth::user(), 
             'access_token' => $accessToken,
             'token_type' => 'Bearer',
-            // 'user_permissions' => $user_permissions,
-            // 'user_roles' => $user_roles,
+            'user_permissions' => $user_permissions,
+            'user_roles' => $user_roles,
         ], 200);
 
         // $accessToken->expires_at = Carbon::now()->addWeeks(1);

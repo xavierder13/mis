@@ -32,14 +32,15 @@
             {{ user_type == "Programmer" ? "My Projects" : "" }}
 
             <v-divider vertical class="ml-2"></v-divider>
-            <v-btn
+
+            <v-icon
               class="ml-2"
               :disabled="printDisabled"
               color="primary"
               @click="printPreview()"
             >
-              <v-icon class="pa-0 ma-0"> mdi-printer </v-icon>
-            </v-btn>
+              mdi-printer
+            </v-icon>
 
             <v-divider vertical class="ml-2"></v-divider>
 
@@ -49,10 +50,11 @@
               :fields="json_fields"
               worksheet="My Worksheet"
               name="filename.xls"
+              
             >
-              <v-btn :disabled="printDisabled" color="success">
-                <v-icon> mdi-file-excel </v-icon>
-              </v-btn>
+              <v-icon :disabled="printDisabled" color="success">
+                mdi-file-excel
+              </v-icon>
             </export-excel>
 
             <v-spacer></v-spacer>
@@ -107,7 +109,7 @@
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
                     </v-card-title>
-
+                    <v-divider></v-divider>
                     <v-card-text>
                       <v-container>
                         <v-row>
@@ -267,6 +269,7 @@
                     <v-card-title>
                       <span class="headline">Update Report Percentage</span>
                     </v-card-title>
+                    <v-divider></v-divider>
                     <v-card-text>
                       <v-container>
                         <v-row>

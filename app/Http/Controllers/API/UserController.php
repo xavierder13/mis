@@ -10,13 +10,15 @@ use Carbon\Carbon;
 use DB;
 use Hash;
 use Auth;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class UserController extends Controller
 {
     public function index()
     {
-        // $users = User::with('roles')->get();
-        $users = User::all();
+        $users = User::with('roles')->with('roles.permissions')->get();
+        // $users = User::all();
 
         return response()->json(['users' => $users], 200);
     }
@@ -88,7 +90,7 @@ class UserController extends Controller
 
     public function update(Request $request, $user_id)
     {   
-        
+        // return $request;
 
         $rules = [
             'name.required' => 'Please enter name',
@@ -128,18 +130,19 @@ class UserController extends Controller
         $user->active = $request->get('active');
         $user->save();
         
-        // DB::table('model_has_roles')->where('model_id',$user_id)->delete();
+        DB::table('model_has_roles')->where('model_id',$user_id)->delete();
         
-        // $user->assignRole($request->get('roles'));
+        $user->assignRole($request->get('roles'));
         
-        // $user_roles = Auth::user()->roles->pluck('name')->all();
+        $user_roles = $user->roles->pluck('name')->all();
 
-        // $user_permissions = Auth::user()->getAllPermissions()->pluck('name');
+        $user_permissions = $user->getAllPermissions()->pluck('name');
 
         return response()->json([
             'success' => 'Record has been updated', 
-            // 'user_roles' => $user_roles, 
-            // 'user_permissions' => $user_permissions
+            'user_roles' => $user_roles, 
+            'user_permissions' => $user_permissions,
+            'user' => User::with('roles')->where('id', '=', $user_id)->first()
         ], 200);
     }
 
@@ -171,7 +174,8 @@ class UserController extends Controller
 
         return response()->json([
             'user_roles' => $user_roles, 
-            'user_permissions' => $user_permissions
+            'user_permissions' => $user_permissions,
         ], 200);
     }
+    
 }

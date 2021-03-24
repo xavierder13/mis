@@ -159,7 +159,6 @@ Route::group(['prefix' => 'user', 'middleware' => ['auth:api']], function(){
 
 });
 
-
 // Department Routes
 Route::group(['prefix' => 'department', 'middleware' => ['auth:api']], function(){
     Route::get('/index', [
@@ -258,5 +257,71 @@ Route::group(['prefix' => 'holiday', 'middleware' => ['auth:api']], function(){
         'uses' => 'API\HolidayController@delete',
         'as' => 'holiday.delete',
     ]);
+});
+
+//Permissions
+Route::group(['prefix' => 'permission', 'middleware' => ['auth:api']], function(){
+    Route::get('/index', [
+        'uses' => 'API\PermissionController@index',
+        'as' => 'permission.index',
+    ]);
+    Route::get('/create', [
+        'uses' => 'API\PermissionController@create',
+        'as' => 'permission.create',
+    ]);
+    Route::post('/store', [
+        'uses' => 'API\PermissionController@store',
+        'as' => 'permission.store',
+    ]);
+    Route::get('/permissions', [
+        'uses' => 'API\PermissionController@getpermissionrecord',
+        'as' => 'getpermissionrecord',
+    ]);
+    Route::post('/edit', [
+        'uses' => 'API\PermissionController@edit',
+        'as' => 'permission.edit',
+    ]);
+    Route::post('/update/{id}', [
+        'uses' => 'API\PermissionController@update',
+        'as' => 'permission.update',
+    ]);
+    Route::post('/delete', [
+        'uses' => 'API\PermissionController@delete',
+        'as' => 'permission.delete',
+    ]);
+
+});
+
+//Roles
+Route::group(['prefix' => 'role', 'middleware' => ['auth:api']], function(){
+    Route::get('/index', [
+        'uses' => 'API\RoleController@index',
+        'as' => 'role.index',
+    ]);
+    Route::get('/create', [
+        'uses' => 'API\RoleController@create',
+        'as' => 'role.create',
+    ]);
+    Route::post('/store', [
+        'uses' => 'API\RoleController@store',
+        'as' => 'role.store',
+    ]);
+    Route::get('/roles', [
+        'uses' => 'API\RoleController@getrolerecord',
+        'as' => 'getrolerecord',
+    ]);
+    Route::post('/edit', [
+        'uses' => 'API\RoleController@edit',
+        'as' => 'role.edit',
+    ]);
+    Route::post('/update/{id}', [
+        'uses' => 'API\RoleController@update',
+        'as' => 'role.update',
+    ]);
+    Route::post('/delete', [
+        'uses' => 'API\RoleController@delete',
+        'as' => 'role.delete',
+    ]);
+
 });
 

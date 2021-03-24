@@ -10,6 +10,8 @@ import DepartmentIndex from './views/department/DepartmentIndex.vue';
 import ManagerIndex from './views/manager/ManagerIndex.vue';
 import RefNoSetting from './views/ref_no_setting/RefNoSetting.vue';
 import Holiday from './views/holiday/Holiday.vue';
+import Permission from './views/permission/PermissionIndex.vue';
+import Role from './views/role/RoleIndex.vue';
 import PageNotFound from './404/PageNotFound.vue';
 
 Vue.use(Router);
@@ -59,6 +61,16 @@ const routes = [
         path: '/holiday/index',
         name: 'holiday.index',
         component: Holiday,
+      },
+      {
+        path: '/permission/index',
+        name: 'permission.index',
+        component: Permission,
+      },
+      {
+        path: '/role/index',
+        name: 'role.index',
+        component: Role,
       },
     ],
     beforeEnter(to, from, next) {

@@ -46,7 +46,7 @@
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
                     </v-card-title>
-
+                    <v-divider></v-divider>
                     <v-card-text>
                       <v-container>
                         <v-row>
@@ -75,7 +75,7 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col cclass="mt-0 mb-0 pt-0 pb-0">
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="password"
                               v-model="password"
@@ -116,7 +116,7 @@
                               :items="types"
                               item-value="value"
                               item-text="text"
-                              label="Report Type"
+                              label="User Type"
                               required
                               :error-messages="typeErrors"
                               @change="$v.editedItem.type.$touch()"
@@ -124,10 +124,10 @@
                             ></v-autocomplete>
                           </v-col>
                         </v-row>
-                        <!-- <v-row>
-                          <v-col>
+                        <v-row>
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-combobox
-                              v-model="role"
+                              v-model="editedItem.roles"
                               :items="roles"
                               item-text="name"
                               item-value="id"
@@ -136,7 +136,7 @@
                               chips
                             ></v-combobox>
                           </v-col>
-                        </v-row> -->
+                        </v-row>
                         <v-row>
                           <v-col cols="2" class="mt-0 mb-0 pt-0 pb-0">
                             <v-switch
@@ -164,6 +164,49 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
+                <v-dialog v-model="dialogPermission" max-width="700px">
+                  <v-card>
+                    <v-card-title>
+                      <span class="headline">Roles</span> 
+                      <v-spacer></v-spacer>
+                      <v-icon @click="dialogPermission = false"
+                        >mdi-close</v-icon
+                      >
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
+                            <v-expansion-panels>
+                              <v-expansion-panel
+                                v-for="(role, i) in roles_permissions"
+                                :key="i"
+                              >
+                                <v-expansion-panel-header>
+                                  {{ role.name }}
+                                </v-expansion-panel-header>
+                                <v-expansion-panel-content>
+                                  <v-chip
+                                    color="secondary"
+                                    v-for="(permission, i) in role.permissions"
+                                    :key="i"
+                                    class="ma-1"
+                                  >
+                                    {{ permission.name }}
+                                  </v-chip>
+                                </v-expansion-panel-content>
+                              </v-expansion-panel>
+                            </v-expansion-panels>
+                          </v-col>
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
               </v-toolbar>
             </template>
           </v-card-title>
@@ -174,6 +217,27 @@
             :loading="loading"
             loading-text="Loading... Please wait"
           >
+            <template v-slot:item.roles="{ item }">
+              <span v-for="(role, key) in item.roles">
+                <v-chip small color="secondary" v-if="key == 0">
+                  {{ role.name }}
+                </v-chip>
+
+                <v-chip
+                  small
+                  v-if="key == 0 && item.roles.length > 1"
+                  @click="viewRoles(item.roles)"
+                >
+                  {{ "+" }}
+                  {{
+                    key == 0 && item.roles.length > 1
+                      ? item.roles.length - 1
+                      : role.name
+                  }}
+                  {{ "others" }}
+                </v-chip>
+              </span>
+            </template>
             <template v-slot:item.actions="{ item }">
               <v-icon small class="mr-2" color="green" @click="editUser(item)">
                 mdi-pencil
@@ -237,13 +301,17 @@ export default {
         { text: "Active", value: "active" },
         { text: "User Type", value: "type" },
         { text: "Last Login", value: "last_login" },
+        { text: "Roles", value: "roles" },
         { text: "Actions", value: "actions", sortable: false },
       ],
       switch1: true,
       disabled: false,
       emailReadonly: false,
       dialog: false,
+      dialogPermission: false,
       users: [],
+      roles: [],
+      roles_permissions: [],
       types: [
         { text: "Programmer", value: "Programmer" },
         { text: "Validator", value: "Validator" },
@@ -253,7 +321,6 @@ export default {
         name: "",
         email: "",
         type: "",
-        role: "",
         roles: [],
         active: "Y",
       },
@@ -263,7 +330,6 @@ export default {
         password: "",
         confirm_password: "",
         type: "",
-        role: "",
         roles: [],
         active: "Y",
       },
@@ -287,16 +353,28 @@ export default {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-        this.users = response.data.users;
-        this.loading = false;
-      }, (error) => {
-        // if unauthenticated (401)
-        if(error.response.status == '401')
-        {
-          localStorage.removeItem('access_token');
-          this.$router.push({name: 'login'});
+      }).then(
+        (response) => {
+          this.users = response.data.users;
+          this.loading = false;
+        },
+        (error) => {
+          // if unauthenticated (401)
+          if (error.response.status == "401") {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
         }
+      );
+    },
+
+    getRole() {
+      Axios.get("/api/role/index", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        this.roles = response.data.roles;
       });
     },
 
@@ -380,12 +458,21 @@ export default {
       if (!this.$v.$error) {
         this.disabled = true;
         this.overlay = true;
+        let roles = [];
 
         if (this.editedIndex > -1) {
           if (this.passwordHasChanged) {
             this.editedItem.password = this.password;
             this.editedItem.confirm_password = this.confirm_password;
           }
+
+          if (this.editedItem.roles.length) {
+            this.editedItem.roles.forEach((value, index) => {
+              roles.push(value.name);
+            });
+          }
+
+          this.editedItem.roles = roles;
 
           const data = this.editedItem;
           const user_id = this.editedItem.id;
@@ -396,9 +483,8 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
               if (response.data.success) {
-                Object.assign(this.users[this.editedIndex], this.editedItem);
+                Object.assign(this.users[this.editedIndex], response.data.user);
                 this.showAlert();
                 this.close();
               }
@@ -468,6 +554,10 @@ export default {
         this.passwordHasChanged = false;
       }
     },
+    viewRoles(roles) {
+      this.dialogPermission = true;
+      this.roles_permissions = roles;
+    },
   },
   computed: {
     formTitle() {
@@ -533,6 +623,7 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getUser();
+    this.getRole();
   },
 };
 </script>

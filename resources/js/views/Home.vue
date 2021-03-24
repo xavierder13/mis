@@ -84,6 +84,16 @@
               <v-list-item-title>Holiday</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
+          <v-list-item link to="/role/index">
+            <v-list-item-content>
+              <v-list-item-title>Role</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+          <v-list-item link to="/permission/index">
+            <v-list-item-content>
+              <v-list-item-title>Permission</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
         </v-list-group>
       </v-list>
     </v-navigation-drawer>
@@ -102,7 +112,8 @@
 
 <script>
 let access_token;
-
+let user_permissions;
+let user_roles;
 import Axios from "axios";
 
 export default {
@@ -120,6 +131,36 @@ export default {
       user: localStorage.getItem("user"),
       user_type: localStorage.getItem("user_type"),
       user_id: localStorage.getItem("user_id"),
+      permissions: {
+        project_create: false,
+        project_edit: false,
+        project_delete: false,
+        project_log_create: false,
+        project_log_edit: false,
+        project_log_delete: false,
+        user_create: false,
+        user_edit: false,
+        user_delete: false,
+        department_create: false,
+        department_edit: false,
+        department_delete: false,
+        manager_create: false,
+        manager_edit: false,
+        manager_delete: false,
+        holiday_create: false,
+        holiday_edit: false,
+        holiday_delete: false,
+        role_create: false,
+        role_edit: false,
+        role_delete: false,
+        permission_create: false,
+        permission_edit: false,
+        permission_delete: false,
+        ref_no_setting: false,
+      },
+      roles: {
+        administrator: false,
+      },
     };
   },
 
@@ -129,16 +170,18 @@ export default {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-
-      }, (error) => {
-        // if unauthenticated (401)
-        if(error.response.status == '401')
-        {
-          localStorage.removeItem('access_token');
-          this.$router.push({name: 'login'});
+      }).then(
+        (response) => {
+          // console.log(response.data);
+        },
+        (error) => {
+          // if unauthenticated (401)
+          if (error.response.status == "401") {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
         }
-      });
+      );
     },
     logout() {
       this.overlay = true;
@@ -160,18 +203,96 @@ export default {
           console.log(error);
 
           // if unauthenticated (401)
-          if (error.response.status == '401') {
+          if (error.response.status == "401") {
             localStorage.removeItem("access_token");
             this.$router.push({ name: "login" });
           }
         }
       );
     },
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.project_create = this.hasPermission(["project-create"]);
+      this.roles.administrator = this.hasRole(["Administrator"]);
+      console.log(this.permissions.project_create);
+    },
+
+    hasRole(roles) {
+      user_roles = JSON.parse(localStorage.getItem("user_roles"));
+      let hasRole = false;
+      roles.forEach((value, index) => {
+        if (user_roles.includes(value)) {
+          hasRole = true;
+        }
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        
+        if (user_permissions.includes(value)) {
+          hasPermission = true;
+          // console.log(user_permissions.includes(value));
+        }
+      });
+
+      return hasPermission;
+    },
+    pusher() {
+      Pusher.logToConsole = true;
+
+      let pusher = new Pusher("774f9a22d535560d6c08", {
+        cluster: "ap1",
+        encrypted: true,
+      });
+
+      //Subscribe to the channel we specified in our Adonis Application
+      let channel = pusher.subscribe("happypatient-event");
+
+      channel.bind("App\\Events\\EventNotification", (data) => {
+        //PUSHER - refresh fetch/refresh roles and permissions
+        if (
+          data.action == "role-create" ||
+          data.action == "role-edit" ||
+          data.action == "role-delete" ||
+          data.action == "user-delete"
+        ) {
+          this.userRolesPermissions();
+        }
+      });
+    },
   },
 
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getUser();
+    this.getRolesPermissions();
   },
 };
 </script>
