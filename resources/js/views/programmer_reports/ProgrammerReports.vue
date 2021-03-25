@@ -31,18 +31,19 @@
 
             {{ user_type == "Programmer" ? "My Projects" : "" }}
 
-            <v-divider vertical class="ml-2"></v-divider>
+            <v-divider vertical class="ml-2" v-if="permissions.print_preview"></v-divider>
 
             <v-icon
               class="ml-2"
               :disabled="printDisabled"
               color="primary"
               @click="printPreview()"
+              v-if="permissions.print_preview"
             >
               mdi-printer
             </v-icon>
 
-            <v-divider vertical class="ml-2"></v-divider>
+            <v-divider vertical class="ml-2" v-if="permissions.export_project"></v-divider>
 
             <export-excel
               class="btn btn-default"
@@ -50,9 +51,9 @@
               :fields="json_fields"
               worksheet="My Worksheet"
               name="filename.xls"
-              
+               v-if="permissions.export_project"
             >
-              <v-icon :disabled="printDisabled" color="success">
+              <v-icon :disabled="printDisabled" color="success" v-if="permissions.export_project">
                 mdi-file-excel
               </v-icon>
             </export-excel>
@@ -555,7 +556,7 @@
                     {{ item.status }}
                   </v-chip>
                 </template>
-                <template v-slot:item.actions="{ item, index }">
+                <template v-slot:item.actions="{ item, index }" v-if="permissions.project_edit || permissions.project_log_list || permissions.project_log_create">
                   <v-menu
                     offset-y
                     v-if="editedIndex != filteredProjects.indexOf(item)"
@@ -567,7 +568,7 @@
                       </v-btn>
                     </template>
                     <v-list>
-                      <v-list-item>
+                      <v-list-item v-if="permissions.project_edit">
                         <v-list-item-title>
                           <v-btn
                             x-small
@@ -580,8 +581,8 @@
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
-                      <v-divider class="ma-0"></v-divider>
-                      <v-list-item v-if="item.status != 'Accepted'">
+                      <v-divider class="ma-0" v-if="permissions.project_log_create"></v-divider>
+                      <v-list-item v-if="item.status != 'Accepted' && permissions.project_log_create">
                         <v-list-item-title>
                           <v-btn
                             x-small
@@ -594,8 +595,8 @@
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
-                      <v-divider class="ma-0"></v-divider>
-                      <v-list-item>
+                      <v-divider class="ma-0" v-if="permissions.project_log_list"></v-divider>
+                      <v-list-item v-if="permissions.project_log_list">
                         <v-list-item-title>
                           <v-btn
                             x-small
@@ -645,6 +646,7 @@ import Axios from "axios";
 import moment from "moment";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
+import Home from '../Home.vue';  
 
 let now_date = moment(new Date().toISOString().substring(0, 10), "YYYY-MM-DD");
 let now_datetime = moment(new Date(), "YYYY-MM-DD");
@@ -658,6 +660,11 @@ let now_noon_time = new Date(
 );
 
 export default {
+
+  components: {
+    Home
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -674,15 +681,15 @@ export default {
         "Report Title": "report_title",
         "Ideal Prog Hrs.": "ideal_prog_hrs",
         "Ideal Valid Hrs.": "ideal_valid_hrs",
-        Department: "department",
-        Manager: "manager",
+        "Department": "department",
+        "Manager": "manager",
         "Date Received": "date_received",
         "Template %": "template_percent",
         "Program Date": "program_date",
         "Program %": "program_percent",
         "Validation Date": "validation_date",
         "Validation %": "validation_percent",
-        Validator: "validator",
+        "Validator": "validator",
         "Report Type": "type",
         "Validation hrs.": "validate_hrs",
         "Program hrs.": "program_hrs",
@@ -690,28 +697,6 @@ export default {
         "Program hrs.  (This Month)": "program_hrs_tm",
         "Report Status": "status",
       },
-      json_data: [
-        {
-          name: "Tony Peña",
-          city: "New York",
-          country: "United States",
-          birthdate: "1978-03-15",
-          phone: {
-            mobile: "1-541-754-3010",
-            landline: "(541) 754-3010",
-          },
-        },
-        {
-          name: "Thessaloniki",
-          city: "Athens",
-          country: "Greece",
-          birthdate: "1987-11-23",
-          phone: {
-            mobile: "+1 855 275 5071",
-            landline: "(2741) 2621-244",
-          },
-        },
-      ],
       json_meta: [
         [
           {
@@ -858,12 +843,7 @@ export default {
         validation_date: "",
         validation_percent: "",
       },
-      permissions: {
-        project_list: false,
-        project_create: false,
-        project_edit: false,
-        project_delete: false,
-      },
+      permissions: Home.data().permissions,
       loading: true,
       searchReportStatus: [
         { text: "All", value: "" },
@@ -903,7 +883,7 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          // console.log(response.data);
           this.printDisabled = false;
           this.projects = response.data.projects;
           this.project_logs = response.data.project_logs;
@@ -1045,6 +1025,7 @@ export default {
 
     close() {
       this.dialog = false;
+      this.dialog2 = false;
       this.clear();
       this.$nextTick(() => {
         this.editedItem = Object.assign({}, this.defaultItem);
@@ -1080,6 +1061,7 @@ export default {
             );
             this.showAlert();
             this.clear();
+            this.dialog2 = false;
           }
         },
         (error) => {
@@ -1190,6 +1172,49 @@ export default {
         "_blank"
       );
     },
+
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.programmer_projects = Home.methods.hasPermission(['programmer-projects']);
+      this.permissions.print_preview = Home.methods.hasPermission(['print-preview']);
+      this.permissions.export_project = Home.methods.hasPermission(['export-project']);
+      this.permissions.project_log_list = Home.methods.hasPermission(['project-log-list']);
+      this.permissions.project_log_create = Home.methods.hasPermission(['project-log-create']);
+      this.permissions.project_edit = Home.methods.hasPermission(['project-edit']);
+      
+      // hide column actions if user has no permission
+      if(!this.permissions.project_log_list && !this.permissions.project_log_create && !this.permissions.project_edit)
+      {
+        this.headers[1].align = ' d-none';
+      } 
+
+      // if user is not authorize
+      if (!this.permissions.programmer_projects) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+      
+    },
+    
   },
   computed: {
     filteredProjects() {
@@ -1295,6 +1320,8 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProject();
+    this.userRolesPermissions();
+      
   },
 };
 </script>

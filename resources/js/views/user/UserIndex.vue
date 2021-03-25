@@ -27,6 +27,7 @@
               label="Search"
               single-line
               hide-details
+              v-if="permissions.user_list"
             ></v-text-field>
             <template>
               <v-toolbar flat>
@@ -37,6 +38,7 @@
                   dark
                   class="mb-2"
                   @click="clear() + (dialog = true)"
+                  v-if="permissions.user_create"
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
@@ -216,6 +218,7 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
+            v-if="permissions.user_list"
           >
             <template v-slot:item.roles="{ item }">
               <span v-for="(role, key) in item.roles">
@@ -239,10 +242,10 @@
               </span>
             </template>
             <template v-slot:item.actions="{ item }">
-              <v-icon small class="mr-2" color="green" @click="editUser(item)">
+              <v-icon small class="mr-2" color="green" @click="editUser(item)" v-if="permissions.user_edit">
                 mdi-pencil
               </v-icon>
-              <v-icon small color="red" @click="showConfirmAlert(item)">
+              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="permissions.user_delete">
                 mdi-delete
               </v-icon>
             </template>
@@ -266,8 +269,14 @@ import {
   minLength,
   sameAs,
 } from "vuelidate/lib/validators";
+import Home from '../Home.vue';  
 
 export default {
+
+  components: {
+    Home
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -312,6 +321,7 @@ export default {
       users: [],
       roles: [],
       roles_permissions: [],
+      permissions: Home.data().permissions,
       types: [
         { text: "Programmer", value: "Programmer" },
         { text: "Validator", value: "Validator" },
@@ -558,6 +568,52 @@ export default {
       this.dialogPermission = true;
       this.roles_permissions = roles;
     },
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.user_list = Home.methods.hasPermission([
+        "user-list",
+      ]);
+      this.permissions.user_create = Home.methods.hasPermission([
+        "user-create",
+      ]);
+      this.permissions.user_edit = Home.methods.hasPermission([
+        "user-edit",
+      ]);
+      this.permissions.user_delete = Home.methods.hasPermission([
+        "user-delete",
+      ]);
+
+      // hide column actions if user has no permission
+      if (!this.permissions.user_edit && !this.permissions.user_delete) {
+        this.headers[6].align = " d-none";
+      }
+
+      // if user is not authorize
+      if (!this.permissions.user_list && !this.permissions.user_create) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+      
+    },
   },
   computed: {
     formTitle() {
@@ -624,6 +680,7 @@ export default {
     access_token = localStorage.getItem("access_token");
     this.getUser();
     this.getRole();
+    this.userRolesPermissions();
   },
 };
 </script>

@@ -27,6 +27,7 @@
               label="Search"
               single-line
               hide-details
+              v-if="permissions.department_list"
             ></v-text-field>
             <template>
               <v-toolbar flat>
@@ -38,6 +39,7 @@
                   dark
                   class="mb-2"
                   @click="clear() + (dialog = true)"
+                  v-if="permissions.department_create"
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
@@ -107,6 +109,7 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
+            v-if="permissions.department_list"
           >
             <template v-slot:item.actions="{ item }">
               <v-icon
@@ -114,10 +117,11 @@
                 class="mr-2"
                 color="green"
                 @click="editDepartment(item)"
+                v-if="permissions.department_edit"
               >
                 mdi-pencil
               </v-icon>
-              <v-icon small color="red" @click="showConfirmAlert(item)">
+              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="permissions.department_delete">
                 mdi-delete
               </v-icon>
             </template>
@@ -135,8 +139,14 @@ let user_roles;
 import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
+import Home from '../Home.vue';  
 
 export default {
+
+  components: {
+    Home
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -178,12 +188,7 @@ export default {
           disabled: true,
         },
       ],
-      permissions: {
-        department_list: false,
-        department_create: false,
-        department_edit: false,
-        department_delete: false,
-      },
+      permissions: Home.data().permissions,
       loading: true,
       departmentIsTaken: false,
       departmentError: "",
@@ -369,6 +374,52 @@ export default {
       this.departmentError = "";
       this.departmentIsTaken = false;
     },
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.department_list = Home.methods.hasPermission([
+        "department-list",
+      ]);
+      this.permissions.department_create = Home.methods.hasPermission([
+        "department-create",
+      ]);
+      this.permissions.department_edit = Home.methods.hasPermission([
+        "department-edit",
+      ]);
+      this.permissions.department_delete = Home.methods.hasPermission([
+        "department-delete",
+      ]);
+
+      // hide column actions if user has no permission
+      if (!this.permissions.department_edit && !this.permissions.department_delete) {
+        this.headers[2].align = " d-none";
+      }
+
+      // if user is not authorize
+      if (!this.permissions.department_list && !this.permissions.department_create) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+      
+    },
   },
   computed: {
     formTitle() {
@@ -395,6 +446,7 @@ export default {
     access_token = localStorage.getItem("access_token");
 
     this.getDepartment();
+    this.userRolesPermissions();
   },
 };
 </script>

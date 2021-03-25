@@ -369,36 +369,6 @@ export default {
       };
     },
 
-    pusher() {
-      Pusher.logToConsole = true;
-
-      let pusher = new Pusher("774f9a22d535560d6c08", {
-        cluster: "ap1",
-        encrypted: true,
-      });
-
-      //Subscribe to the channel we specified in our Adonis Application
-      let channel = pusher.subscribe("happypatient-event");
-
-      channel.bind("App\\Events\\EventNotification", (data) => {
-        //PUSHER - refresh data when table services has changes
-        if (
-          data.action == "create-role" ||
-          data.action == "edit-role" ||
-          data.action == "delete-role"
-        ) {
-          this.getRole();
-        }
-
-        if (
-          data.action == "create-permission" ||
-          data.action == "edit-permission" ||
-          data.action == "delete-permission"
-        ) {
-          this.getPermission();
-        }
-      });
-    },
   },
   computed: {
     formTitle() {
@@ -416,7 +386,6 @@ export default {
     this.getPermission();
     this.getRole();
     this.getRolesPermissions();
-    this.pusher();
   },
 };
 </script>

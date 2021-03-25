@@ -13,9 +13,20 @@
         <v-card>
           <v-card-title>
             Programmer Projects
-            <v-divider vertical class="ml-3"></v-divider>
+            <v-divider
+              vertical
+              class="ml-3"
+              v-if="permissions.import_project"
+            ></v-divider>
 
-            <v-icon color="primary" class="ml-2" @click="importExcel()"> mdi-import </v-icon>
+            <v-icon
+              color="primary"
+              class="ml-2"
+              @click="importExcel()"
+              v-if="permissions.import_project"
+            >
+              mdi-import
+            </v-icon>
 
             <v-spacer></v-spacer>
             <v-text-field
@@ -24,6 +35,7 @@
               label="Search"
               single-line
               hide-details
+              v-if="permissions.project_list"
             ></v-text-field>
             <template>
               <v-toolbar flat>
@@ -34,6 +46,7 @@
                   dark
                   class="mb-2"
                   @click="clear() + (dialog = true) + getRefNumber()"
+                  v-if="permissions.project_create"
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
@@ -270,7 +283,7 @@
               </v-toolbar>
             </template>
           </v-card-title>
-          <div style="width: 100%; overflow-x: scroll">
+          <div style="width: 100%; overflow-x: scroll" v-if="permissions.project_list">
             <div style="width: 2000px">
               <v-data-table
                 :headers="headers"
@@ -293,7 +306,7 @@
                     class="mr-2"
                     color="green"
                     @click="editProject(item)"
-                    v-if="user_type == 'Admin' || user_id == item.programmer_id"
+                    v-if="permissions.project_edit"
                   >
                     mdi-pencil
                   </v-icon>
@@ -301,7 +314,7 @@
                     small
                     color="red"
                     @click="showConfirmAlert(item)"
-                    v-if="user_type == 'Admin' || user_id == item.programmer_id"
+                     v-if="permissions.project_delete"
                   >
                     mdi-delete
                   </v-icon>
@@ -322,8 +335,13 @@ let user_roles;
 import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
+import Home from "../Home.vue";
 
 export default {
+  components: {
+    Home,
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -651,9 +669,56 @@ export default {
         }
       }
     },
-    importExcel() {
+    importExcel() {},
 
-    }
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.project_list = Home.methods.hasPermission([
+        "project-list",
+      ]);
+      this.permissions.project_create = Home.methods.hasPermission([
+        "project-create",
+      ]);
+      this.permissions.project_edit = Home.methods.hasPermission([
+        "project-edit",
+      ]);
+      this.permissions.project_delete = Home.methods.hasPermission([
+        "project-delete",
+      ]);
+      this.permissions.import_project = Home.methods.hasPermission([
+        "import-project",
+      ]);
+
+      // hide column actions if user has no permission
+      if (!this.permissions.project_edit && !this.permissions.project_delete) {
+        this.headers[12].align = " d-none";
+      }
+
+      // if user is not authorize
+      if (!this.permissions.project_list && !this.permissions.project_create) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+    },
   },
   computed: {
     formTitle() {
@@ -698,6 +763,7 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProject();
+    this.userRolesPermissions();
   },
 };
 </script>
