@@ -316,6 +316,8 @@ import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import moment from "moment";
+import Home from '../Home.vue';  
+
 let now_date = moment(new Date().toISOString().substring(0, 10), "YYYY-MM-DD");
 let now_datetime = moment(new Date(), "YYYY-MM-DD");
 let now_datetime_start = moment(
@@ -328,6 +330,11 @@ let now_noon_time = new Date(
 );
 
 export default {
+
+  components: {
+    Home
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -403,12 +410,7 @@ export default {
         remarks: "",
         turnover: "",
       },
-      permissions: {
-        project_log_list: false,
-        project_log_create: false,
-        project_log_edit: false,
-        project_log_delete: false,
-      },
+      permissions: Home.data().permissions,
       loading: true,
       report_status: [],
       status: [],
@@ -714,6 +716,52 @@ export default {
         this.disabledSwitch = true;
       }
     },
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.project_log_list = Home.methods.hasPermission([
+        "project-log-list",
+      ]);
+      this.permissions.project_log_create = Home.methods.hasPermission([
+        "project-log-create",
+      ]);
+      this.permissions.project_log_edit = Home.methods.hasPermission([
+        "project-log-edit",
+      ]);
+      this.permissions.project_log_delete = Home.methods.hasPermission([
+        "project-log-delete",
+      ]);
+
+      // hide column actions if user has no permission
+      if (!this.permissions.project_log_edit && !this.permissions.project_log_delete) {
+        this.headers[7].align = " d-none";
+      }
+
+      // if user is not authorize
+      if (!this.permissions.project_log_list && !this.permissions.project_log_create) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+      
+    },
   
   },
   computed: {
@@ -774,6 +822,7 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProjectLogs();
+    this.userRolesPermissions();
 
     for (let hour = 1; hour <= 24; hour++) {
       let hr = hour < 10 ? '0'+hour : hour;
@@ -784,6 +833,8 @@ export default {
       let min = minute < 10 ? '0'+minute : minute;
       this.minute.push(String(min));
     }
+
+
   },
 };
 </script>

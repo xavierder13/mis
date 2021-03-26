@@ -19,24 +19,22 @@
               label="Search"
               single-line
               hide-details
+              v-if="user_permissions.role_list"
             ></v-text-field>
             <template>
               <v-toolbar flat>
                 <v-spacer></v-spacer>
+                <v-btn
+                  color="primary"
+                  fab
+                  dark
+                  class="mb-2"
+                  @click="clear() + (dialog = true)"
+                  v-if="user_permissions.role_create"
+                >
+                  <v-icon>mdi-plus</v-icon>
+                </v-btn>
                 <v-dialog v-model="dialog" max-width="1200px">
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn
-                      color="primary"
-                      fab
-                      dark
-                      class="mb-2"
-                      v-bind="attrs"
-                      v-on="on"
-                      @click="clear()"
-                    >
-                      <v-icon>mdi-plus</v-icon>
-                    </v-btn>
-                  </template>
                   <v-card>
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
@@ -97,12 +95,13 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
+            v-if="user_permissions.role_list"
           >
             <template v-slot:item.actions="{ item }">
-              <v-icon small class="mr-2" color="green" @click="editRole(item)">
+              <v-icon small class="mr-2" color="green" @click="editRole(item)" v-if="user_permissions.role_edit">
                 mdi-pencil
               </v-icon>
-              <v-icon small color="red" @click="showConfirmAlert(item)">
+              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="user_permissions.role_delete && item.name != 'Administrator'">
                 mdi-delete
               </v-icon>
             </template>
@@ -120,8 +119,13 @@ let user_roles;
 import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
+import Home from "../Home.vue";
 
 export default {
+  components: {
+    Home,
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -140,6 +144,10 @@ export default {
       dialog: false,
       permission: [],
       permissions: [],
+      user_permissions: Home.data().permissions,
+      use_roles: {
+        administrator: false,
+      },
       roles: [],
       editedIndex: -1,
       editedRole: {
@@ -355,20 +363,59 @@ export default {
       this.permission = [];
     },
 
-    getRolesPermissions() {
-      user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
-      user_roles = JSON.parse(localStorage.getItem("user_roles"));
-      this.Auth = {
-        is: function is(role) {
-          return user_roles.includes(roles, role);
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
         },
-
-        can: function can(permission) {
-          return user_permissions.includes(permission);
-        },
-      };
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
     },
 
+    getRolesPermissions() {
+      this.user_permissions.role_list = Home.methods.hasPermission([
+        "role-list",
+      ]);
+      this.user_permissions.role_create = Home.methods.hasPermission([
+        "role-create",
+      ]);
+      this.user_permissions.role_edit = Home.methods.hasPermission([
+        "role-edit",
+      ]);
+      this.user_permissions.role_delete = Home.methods.hasPermission([
+        "role-delete",
+      ]);
+
+      this.roles.administrator = Home.methods.hasRole(["Administrator"]);
+
+      // hide column actions if user has no permission
+      if (
+        !this.user_permissions.role_edit &&
+        !this.user_permissions.role_delete
+      ) {
+        this.headers[1].align = " d-none";
+      }
+
+      // if user is not authorize
+      if (
+        !this.user_permissions.role_list &&
+        !this.user_permissions.role_create
+      ) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+    },
   },
   computed: {
     formTitle() {
@@ -385,7 +432,7 @@ export default {
     access_token = localStorage.getItem("access_token");
     this.getPermission();
     this.getRole();
-    this.getRolesPermissions();
+    this.userRolesPermissions();
   },
 };
 </script>

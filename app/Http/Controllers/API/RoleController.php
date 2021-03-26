@@ -17,7 +17,7 @@ class RoleController extends Controller
     {   
         // $user_permissions =  Auth::user()->with('roles', 'roles.permissions')->get();
         // return view('pages.diagnosis.create', compact('patient_service', 'ps_item_id', 'file_no', 'user_permissions'));
-        $roles = Role::all();
+        $roles = Role::orderBy('id', 'Desc')->get();
         $permissions = Permission::all();
         return response()->json(['roles' => $roles], 200);
     }

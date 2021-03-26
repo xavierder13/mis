@@ -27,6 +27,7 @@
               label="Search"
               single-line
               hide-details
+              v-if="permissions.holiday_list"
             ></v-text-field>
             <template>
               <v-toolbar flat>
@@ -38,6 +39,7 @@
                   dark
                   class="mb-2"
                   @click="clear() + (dialog = true)"
+                  v-if="permissions.holiday_create"
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
@@ -125,6 +127,7 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
+            v-if="permissions.holiday_list"
           >
             <template v-slot:item.actions="{ item }">
               <v-icon
@@ -132,10 +135,11 @@
                 class="mr-2"
                 color="green"
                 @click="editHoliday(item)"
+                v-if="permissions.holiday_edit"
               >
                 mdi-pencil
               </v-icon>
-              <v-icon small color="red" @click="showConfirmAlert(item)">
+              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="permissions.holiday_delete">
                 mdi-delete
               </v-icon>
             </template>
@@ -153,8 +157,14 @@ let user_roles;
 import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
+import Home from '../Home.vue';  
 
 export default {
+
+  components: {
+    Home
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -199,12 +209,7 @@ export default {
           disabled: true,
         },
       ],
-      permissions: {
-        holiday_list: false,
-        holiday_create: false,
-        holiday_edit: false,
-        holiday_delete: false,
-      },
+      permissions: Home.data().permissions,
       loading: true,
     };
   },
@@ -390,6 +395,52 @@ export default {
       const [year, month, day] = date.split("-");
       return `${month}/${day}/${year}`;
     },
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.holiday_list = Home.methods.hasPermission([
+        "holiday-list",
+      ]);
+      this.permissions.holiday_create = Home.methods.hasPermission([
+        "holiday-create",
+      ]);
+      this.permissions.holiday_edit = Home.methods.hasPermission([
+        "holiday-edit",
+      ]);
+      this.permissions.holiday_delete = Home.methods.hasPermission([
+        "holiday-delete",
+      ]);
+
+      // hide column actions if user has no permission
+      if (!this.permissions.holiday_edit && !this.permissions.holiday_delete) {
+        this.headers[2].align = " d-none";
+      }
+
+      // if user is not authorize
+      if (!this.permissions.holiday_list && !this.permissions.holiday_create) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+      
+    },
   },
   computed: {
     formTitle() {
@@ -418,6 +469,7 @@ export default {
     access_token = localStorage.getItem("access_token");
 
     this.getHoliday();
+    this.userRolesPermissions();
   },
 };
 </script>

@@ -30,7 +30,7 @@ class ProjectLogController extends Controller
                              DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
-                             'projects.type', 'projects.ideal', 'projects.template_percent', 'projects.status',
+                             'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent')
                     ->where('projects.status', '!=', 'Cancelled')
                     ->where('projects.id', '=', $project_id)

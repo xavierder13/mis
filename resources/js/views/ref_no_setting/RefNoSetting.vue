@@ -70,8 +70,14 @@ let user_roles;
 import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
+import Home from '../Home.vue';  
 
 export default {
+
+  components: {
+    Home
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -94,9 +100,7 @@ export default {
           disabled: true,
         },
       ],
-      permissions: {
-        ref_no_setting: false,
-      },
+      permissions: Home.data().permissions,
       start: "",
       active: false,
       settings: [],
@@ -186,6 +190,36 @@ export default {
       this.active = "N";
       this.switch1 = false;
     },
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.ref_no_setting = Home.methods.hasPermission(['ref-no-setting']);
+      
+      // if user is not authorize
+      if (!this.permissions.ref_no_setting) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+      
+    },
   },
   computed: {
     startErrors() {
@@ -207,6 +241,7 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getSettings();
+    this.userRolesPermissions();
   },
 };
 </script>

@@ -19,7 +19,7 @@
         </v-breadcrumbs>
         <v-card>
           <v-card-title>
-            Services Record
+            Manager Lists
             <v-spacer></v-spacer>
             <v-text-field
               v-model="search"
@@ -27,6 +27,7 @@
               label="Search"
               single-line
               hide-details
+              v-if="permissions.manager_list"
             ></v-text-field>
             <template>
               <v-toolbar flat>
@@ -38,6 +39,7 @@
                   dark
                   class="mb-2"
                   @click="clear() + (dialog = true)"
+                  v-if="permissions.manager_create"
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
@@ -118,6 +120,7 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
+            v-if="permissions.manager_list"
           >
             <template v-slot:item.actions="{ item }">
               <v-icon
@@ -125,10 +128,11 @@
                 class="mr-2"
                 color="green"
                 @click="editManager(item)"
+                v-if="permissions.manager_edit"
               >
                 mdi-pencil
               </v-icon>
-              <v-icon small color="red" @click="showConfirmAlert(item)">
+              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="permissions.manager_delete">
                 mdi-delete
               </v-icon>
             </template>
@@ -146,8 +150,14 @@ let user_roles;
 import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
+import Home from '../Home.vue';  
 
 export default {
+
+  components: {
+    Home
+  },
+
   mixins: [validationMixin],
 
   validations: {
@@ -196,12 +206,7 @@ export default {
           disabled: true,
         },
       ],
-      permissions: {
-        manager_list: false,
-        manager_create: false,
-        manager_edit: false,
-        manager_delete: false,
-      },
+      permissions: Home.data().permissions,
       loading: true,
     };
   },
@@ -390,6 +395,52 @@ export default {
         }
       }
     },
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions", {
+        headers: {
+          Authorization: "Bearer " + access_token,
+        },
+      }).then((response) => {
+        // console.log(response.data);
+        localStorage.removeItem("user_permissions");
+        localStorage.removeItem("user_roles");
+        localStorage.setItem(
+          "user_permissions",
+          JSON.stringify(response.data.user_permissions)
+        );
+        localStorage.setItem(
+          "user_roles",
+          JSON.stringify(response.data.user_roles)
+        );
+        this.getRolesPermissions();
+      });
+    },
+
+    getRolesPermissions() {
+      this.permissions.manager_list = Home.methods.hasPermission([
+        "manager-list",
+      ]);
+      this.permissions.manager_create = Home.methods.hasPermission([
+        "manager-create",
+      ]);
+      this.permissions.manager_edit = Home.methods.hasPermission([
+        "manager-edit",
+      ]);
+      this.permissions.manager_delete = Home.methods.hasPermission([
+        "manager-delete",
+      ]);
+
+      // hide column actions if user has no permission
+      if (!this.permissions.manager_edit && !this.permissions.manager_delete) {
+        this.headers[3].align = " d-none";
+      }
+
+      // if user is not authorize
+      if (!this.permissions.manager_list && !this.permissions.manager_create) {
+        this.$router.push("/unauthorize").catch(() => {});
+      }
+      
+    },
   },
   computed: {
     formTitle() {
@@ -422,6 +473,7 @@ export default {
     access_token = localStorage.getItem("access_token");
 
     this.getManager();
+    this.userRolesPermissions();
   },
 };
 </script>

@@ -47,7 +47,7 @@ const routes = [
         beforeEnter(to, from, next)
         { 
           let user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
-          if(user_permissions.includes('programmer-reports'))
+          if(user_permissions.includes('programmer-projects'))
           {
             next();
           }

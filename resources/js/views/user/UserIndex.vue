@@ -19,7 +19,7 @@
         </v-breadcrumbs>
         <v-card>
           <v-card-title>
-            User List
+            User Lists
             <v-spacer></v-spacer>
             <v-text-field
               v-model="search"
