@@ -214,7 +214,7 @@ const routes = [
     name: 'login',
     component: Login,
     beforeEnter(to, from, next) {
-
+      console.log(localStorage.getItem('access_token'));
       if (localStorage.getItem('access_token')) {
         next('/');
       }

@@ -8,6 +8,7 @@ import VueSweetalert2 from 'vue-sweetalert2';
 import DatetimePicker from 'vuetify-datetime-picker'
 import 'sweetalert2/dist/sweetalert2.min.css';
 import excel from 'vue-excel-export';
+import Echo from 'laravel-echo';
 
 Vue.use(excel);
 Vue.use(VuetifyMask);
@@ -15,6 +16,17 @@ Vue.use(VueSweetalert2);
 Vue.use(Vuetify);
 Vue.use(Vuelidate);
 Vue.use(DatetimePicker);
+
+// window.Pusher = require('pusher-js');
+
+// window.Echo = new Echo({
+//     broadcaster: 'pusher',
+//     key: process.env.MIX_PUSHER_APP_KEY,
+//     wsHost: window.location.hostname,
+//     wsPort: 6001,
+//     forceTLS: false,
+//     disableStats: true,
+// });
 
 
 const app = new Vue({

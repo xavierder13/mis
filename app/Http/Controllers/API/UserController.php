@@ -12,11 +12,14 @@ use Hash;
 use Auth;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use App\Events\WebsocketEvent;
+use Illuminate\Support\Facades\Artisan;
 
 class UserController extends Controller
 {
     public function index()
-    {
+    {   
+        event(new WebsocketEvent('some data'));
         $users = User::with('roles')->with('roles.permissions')->get();
         // $users = User::all();
 

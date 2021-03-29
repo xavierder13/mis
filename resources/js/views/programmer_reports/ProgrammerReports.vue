@@ -31,7 +31,11 @@
 
             {{ user_type == "Programmer" ? "My Projects" : "" }}
 
-            <v-divider vertical class="ml-2" v-if="permissions.print_preview"></v-divider>
+            <v-divider
+              vertical
+              class="ml-2"
+              v-if="permissions.print_preview"
+            ></v-divider>
 
             <v-icon
               class="ml-2"
@@ -43,7 +47,11 @@
               mdi-printer
             </v-icon>
 
-            <v-divider vertical class="ml-2" v-if="permissions.export_project"></v-divider>
+            <v-divider
+              vertical
+              class="ml-2"
+              v-if="permissions.export_project"
+            ></v-divider>
 
             <export-excel
               class="btn btn-default"
@@ -51,9 +59,13 @@
               :fields="json_fields"
               worksheet="My Worksheet"
               name="filename.xls"
-               v-if="permissions.export_project"
+              v-if="permissions.export_project"
             >
-              <v-icon :disabled="printDisabled" color="success" v-if="permissions.export_project">
+              <v-icon
+                :disabled="printDisabled"
+                color="success"
+                v-if="permissions.export_project"
+              >
                 mdi-file-excel
               </v-icon>
             </export-excel>
@@ -556,7 +568,14 @@
                     {{ item.status }}
                   </v-chip>
                 </template>
-                <template v-slot:item.actions="{ item, index }" v-if="permissions.project_edit || permissions.project_log_list || permissions.project_log_create">
+                <template
+                  v-slot:item.actions="{ item, index }"
+                  v-if="
+                    permissions.project_edit ||
+                    permissions.project_log_list ||
+                    permissions.project_log_create
+                  "
+                >
                   <v-menu
                     offset-y
                     v-if="editedIndex != filteredProjects.indexOf(item)"
@@ -581,8 +600,16 @@
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
-                      <v-divider class="ma-0" v-if="permissions.project_log_create"></v-divider>
-                      <v-list-item v-if="item.status != 'Accepted' && permissions.project_log_create">
+                      <v-divider
+                        class="ma-0"
+                        v-if="permissions.project_log_create"
+                      ></v-divider>
+                      <v-list-item
+                        v-if="
+                          item.status != 'Accepted' &&
+                          permissions.project_log_create
+                        "
+                      >
                         <v-list-item-title>
                           <v-btn
                             x-small
@@ -595,7 +622,10 @@
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
-                      <v-divider class="ma-0" v-if="permissions.project_log_list"></v-divider>
+                      <v-divider
+                        class="ma-0"
+                        v-if="permissions.project_log_list"
+                      ></v-divider>
                       <v-list-item v-if="permissions.project_log_list">
                         <v-list-item-title>
                           <v-btn
@@ -646,7 +676,7 @@ import Axios from "axios";
 import moment from "moment";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
-import Home from '../Home.vue';  
+import Home from "../Home.vue";
 
 let now_date = moment(new Date().toISOString().substring(0, 10), "YYYY-MM-DD");
 let now_datetime = moment(new Date(), "YYYY-MM-DD");
@@ -660,9 +690,8 @@ let now_noon_time = new Date(
 );
 
 export default {
-
   components: {
-    Home
+    Home,
   },
 
   mixins: [validationMixin],
@@ -681,15 +710,15 @@ export default {
         "Report Title": "report_title",
         "Ideal Prog Hrs.": "ideal_prog_hrs",
         "Ideal Valid Hrs.": "ideal_valid_hrs",
-        "Department": "department",
-        "Manager": "manager",
+        Department: "department",
+        Manager: "manager",
         "Date Received": "date_received",
         "Template %": "template_percent",
         "Program Date": "program_date",
         "Program %": "program_percent",
         "Validation Date": "validation_date",
         "Validation %": "validation_percent",
-        "Validator": "validator",
+        Validator: "validator",
         "Report Type": "type",
         "Validation hrs.": "validate_hrs",
         "Program hrs.": "program_hrs",
@@ -1195,26 +1224,44 @@ export default {
     },
 
     getRolesPermissions() {
-      this.permissions.programmer_projects = Home.methods.hasPermission(['programmer-projects']);
-      this.permissions.print_preview = Home.methods.hasPermission(['print-preview']);
-      this.permissions.export_project = Home.methods.hasPermission(['export-project']);
-      this.permissions.project_log_list = Home.methods.hasPermission(['project-log-list']);
-      this.permissions.project_log_create = Home.methods.hasPermission(['project-log-create']);
-      this.permissions.project_edit = Home.methods.hasPermission(['project-edit']);
-      
+      this.permissions.programmer_projects = Home.methods.hasPermission([
+        "programmer-projects",
+      ]);
+      this.permissions.print_preview = Home.methods.hasPermission([
+        "print-preview",
+      ]);
+      this.permissions.export_project = Home.methods.hasPermission([
+        "export-project",
+      ]);
+      this.permissions.project_log_list = Home.methods.hasPermission([
+        "project-log-list",
+      ]);
+      this.permissions.project_log_create = Home.methods.hasPermission([
+        "project-log-create",
+      ]);
+      this.permissions.project_edit = Home.methods.hasPermission([
+        "project-edit",
+      ]);
+
       // hide column actions if user has no permission
-      if(!this.permissions.project_log_list && !this.permissions.project_log_create && !this.permissions.project_edit)
-      {
-        this.headers[1].align = ' d-none';
-      } 
+      if (
+        !this.permissions.project_log_list &&
+        !this.permissions.project_log_create &&
+        !this.permissions.project_edit
+      ) {
+        this.headers[1].align = " d-none";
+      }
 
       // if user is not authorize
       if (!this.permissions.programmer_projects) {
         this.$router.push("/unauthorize").catch(() => {});
       }
-      
     },
-    
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        // console.log(e);
+      });
+    },
   },
   computed: {
     filteredProjects() {
@@ -1316,12 +1363,13 @@ export default {
       !this.$v.remarks.required && errors.push("Remarks is required.");
       return errors;
     },
+    
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProject();
     this.userRolesPermissions();
-      
+    this.websocket();
   },
 };
 </script>

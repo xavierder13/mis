@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Events\WebsocketEvent;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 // Auth::routes();
 
 Route::get('/', function () {
+    // event(new WebsocketEvent('some data'));
     return view('layouts.app');
 });
 

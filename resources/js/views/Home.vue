@@ -332,12 +332,28 @@ export default {
       return hasPermission;
     },
 
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        console.log(e);
+      });
+    },
+
   },
+  sockets: {
+        connect: function () {
+            console.log('socket connected')
+        },
+        customEmit: function (data) {
+            console.log('this method was fired by the socket server. eg: io.emit("customEmit", data)')
+        }
+    },
 
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getUser();
     this.userRolesPermissions();
+    // this.websocket();
+    
   },
 };
 </script>
