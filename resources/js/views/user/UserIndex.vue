@@ -169,7 +169,7 @@
                 <v-dialog v-model="dialogPermission" max-width="700px">
                   <v-card>
                     <v-card-title>
-                      <span class="headline">Roles</span> 
+                      <span class="headline">Roles</span>
                       <v-spacer></v-spacer>
                       <v-icon @click="dialogPermission = false"
                         >mdi-close</v-icon
@@ -242,10 +242,21 @@
               </span>
             </template>
             <template v-slot:item.actions="{ item }">
-              <v-icon small class="mr-2" color="green" @click="editUser(item)" v-if="permissions.user_edit">
+              <v-icon
+                small
+                class="mr-2"
+                color="green"
+                @click="editUser(item)"
+                v-if="permissions.user_edit"
+              >
                 mdi-pencil
               </v-icon>
-              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="permissions.user_delete">
+              <v-icon
+                small
+                color="red"
+                @click="showConfirmAlert(item)"
+                v-if="permissions.user_delete && item.email != 'admin@mis.ac'"
+              >
                 mdi-delete
               </v-icon>
             </template>
@@ -269,12 +280,11 @@ import {
   minLength,
   sameAs,
 } from "vuelidate/lib/validators";
-import Home from '../Home.vue';  
+import Home from "../Home.vue";
 
 export default {
-
   components: {
-    Home
+    Home,
   },
 
   mixins: [validationMixin],
@@ -448,7 +458,18 @@ export default {
           const index = this.users.indexOf(item);
 
           //Call delete User function
-          this.deleteProject(user_id);
+          this.deleteUser(user_id);
+
+          //Remove item from array services
+          this.users.splice(index, 1);
+
+          this.$swal({
+            position: "center",
+            icon: "success",
+            title: "Record has been deleted",
+            showConfirmButton: false,
+            timer: 2500,
+          });
         }
       });
     },
@@ -519,7 +540,7 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
+              // console.log(response.data);
               if (response.data.success) {
                 this.showAlert();
                 this.close();
@@ -590,15 +611,11 @@ export default {
     },
 
     getRolesPermissions() {
-      this.permissions.user_list = Home.methods.hasPermission([
-        "user-list",
-      ]);
+      this.permissions.user_list = Home.methods.hasPermission(["user-list"]);
       this.permissions.user_create = Home.methods.hasPermission([
         "user-create",
       ]);
-      this.permissions.user_edit = Home.methods.hasPermission([
-        "user-edit",
-      ]);
+      this.permissions.user_edit = Home.methods.hasPermission(["user-edit"]);
       this.permissions.user_delete = Home.methods.hasPermission([
         "user-delete",
       ]);
@@ -607,12 +624,35 @@ export default {
       if (!this.permissions.user_edit && !this.permissions.user_delete) {
         this.headers[6].align = " d-none";
       }
+      else
+      {
+        this.headers[6].align = "";
+      }
 
       // if user is not authorize
       if (!this.permissions.user_list && !this.permissions.user_create) {
         this.$router.push("/unauthorize").catch(() => {});
       }
       
+    },
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        let action = e.data.action;
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+          this.userRolesPermissions();
+        }
+
+        if(action == 'user-create' || action == 'user-edit' || action == 'user-delete' || action == 'login')
+        {
+          this.getUser();
+        }
+
+      });
     },
   },
   computed: {
@@ -681,6 +721,7 @@ export default {
     this.getUser();
     this.getRole();
     this.userRolesPermissions();
+    this.websocket();
   },
 };
 </script>

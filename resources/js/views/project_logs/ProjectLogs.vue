@@ -755,6 +755,10 @@ export default {
       if (!this.permissions.project_log_edit && !this.permissions.project_log_delete) {
         this.headers[7].align = " d-none";
       }
+      else
+      {
+        this.headers[7].align = "";
+      }
 
       // if user is not authorize
       if (!this.permissions.project_log_list && !this.permissions.project_log_create) {

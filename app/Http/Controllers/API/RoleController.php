@@ -10,6 +10,7 @@ use Validator;
 use DB;
 use Auth;
 use App\User;
+use App\Events\WebsocketEvent;
 
 class RoleController extends Controller
 {
@@ -112,12 +113,11 @@ class RoleController extends Controller
 
         $role->syncPermissions($request->get('permission'));
 
-        //PUSHER - send data/message if role is updated
-        // event(new EventNotification('edit-role', 'roles'));
-
         $user_roles = Auth::user()->roles->pluck('name')->all();
 
         $user_permissions = Auth::user()->getAllPermissions()->pluck('name');
+
+        event(new WebsocketEvent(['action' => 'role-edit']));
 
         return response()->json([
             'success' => 'Record has been updated', 

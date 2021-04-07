@@ -83,6 +83,7 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
+            v-if="user_permissions.permission_list"
           >
             <template v-slot:item.actions="{ item }">
               <v-icon
@@ -371,6 +372,10 @@ export default {
       ) {
         this.headers[1].align = " d-none";
       }
+      else
+      {
+        this.headers[1].align = "";
+      }
 
       // if user is not authorize
       if (
@@ -379,6 +384,27 @@ export default {
       ) {
         this.$router.push("/unauthorize").catch(() => {});
       }
+    },
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        let action = e.data.action;
+  
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+
+          this.userRolesPermissions();
+        }
+
+        if(action == 'permission-create' || action == 'permission-edit' || action == 'permission-delete')
+        {
+          this.getPermission();
+        }
+
+      });
     },
   },
   computed: {
@@ -397,6 +423,7 @@ export default {
     access_token = localStorage.getItem("access_token");
     this.getPermission();
     this.userRolesPermissions();
+    this.websocket();
   },
 };
 </script>

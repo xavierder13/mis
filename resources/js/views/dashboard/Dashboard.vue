@@ -37,6 +37,7 @@
               hide-details
               v-if="permissions.project_list"
             ></v-text-field>
+  
             <template>
               <v-toolbar flat>
                 <v-spacer></v-spacer>
@@ -421,12 +422,7 @@ export default {
         ideal_valid_hrs: "",
         template_percent: "",
       },
-      permissions: {
-        project_list: false,
-        project_create: false,
-        project_edit: false,
-        project_delete: false,
-      },
+      permissions: Home.data().permissions,
       loading: true,
       user: localStorage.getItem("user"),
       user_type: localStorage.getItem("user_type"),
@@ -713,11 +709,37 @@ export default {
       if (!this.permissions.project_edit && !this.permissions.project_delete) {
         this.headers[12].align = " d-none";
       }
+      else
+      {
+        this.headers[12].align = "";
+      }
 
       // if user is not authorize
       if (!this.permissions.project_list && !this.permissions.project_create) {
         this.$router.push("/unauthorize").catch(() => {});
       }
+
+    },
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        let action = e.data.action;
+  
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+
+          this.userRolesPermissions();
+        }
+
+        if(action == 'project-create' || action == 'project-edit' || action == 'project-delete')
+        {
+          this.getProject();
+        }
+
+      });
     },
   },
   computed: {
@@ -764,6 +786,7 @@ export default {
     access_token = localStorage.getItem("access_token");
     this.getProject();
     this.userRolesPermissions();
+    this.websocket();
   },
 };
 </script>

@@ -19,7 +19,7 @@ class UserController extends Controller
 {
     public function index()
     {   
-        event(new WebsocketEvent('some data'));
+
         $users = User::with('roles')->with('roles.permissions')->get();
         // $users = User::all();
 
@@ -63,7 +63,9 @@ class UserController extends Controller
         $user->active = $request->get('active');
         $user->save();
 
-        // $user->assignRole($request->get('roles'));
+        $user->assignRole($request->get('roles'));
+
+        event(new WebsocketEvent(['action' => 'user-create']));
 
         return response()->json(['success' => 'Record has successfully added', 'user' => $user], 200);
     }
@@ -140,6 +142,8 @@ class UserController extends Controller
         $user_roles = $user->roles->pluck('name')->all();
 
         $user_permissions = $user->getAllPermissions()->pluck('name');
+        
+        event(new WebsocketEvent(['action' => 'user-edit']));
 
         return response()->json([
             'success' => 'Record has been updated', 
@@ -165,6 +169,8 @@ class UserController extends Controller
         }
 
         $user->delete();
+
+        event(new WebsocketEvent(['action' => 'user-delete']));
 
         return response()->json(['success' => 'Record has been deleted'], 200);
     }

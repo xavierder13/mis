@@ -239,6 +239,8 @@ class ProjectController extends Controller
                     ->where('projects.id', '=', $project->id)
                     ->first();
 
+        event(new WebsocketEvent(['action' => 'project-create']));
+
         return response()->json(['success' => 'Record has successfully added', 'project' => $project], 200);
     }
 
@@ -294,6 +296,7 @@ class ProjectController extends Controller
         $project->type = $request->get('type');
         $project->save();
 
+        event(new WebsocketEvent(['action' => 'project-edit']));
 
         return response()->json(['success' => 'Record has been updated', 'project' => $project], 200);
     }
@@ -326,6 +329,8 @@ class ProjectController extends Controller
         $project->program_percent = $request->get('program_percent');
         $project->validation_percent = $request->get('validation_percent');
         $project->save();
+
+        event(new WebsocketEvent(['action' => 'project-edit']));
         
         return response()->json(['success' => 'Record has been updated', 'project' => $project], 200);
 
@@ -342,6 +347,8 @@ class ProjectController extends Controller
         }
 
         $project->delete();
+
+        event(new WebsocketEvent(['action' => 'project-delete']));
 
         return response()->json(['success' => 'Record has been deleted'], 200);
     }

@@ -434,12 +434,37 @@ export default {
       if (!this.permissions.manager_edit && !this.permissions.manager_delete) {
         this.headers[3].align = " d-none";
       }
+      else
+      {
+        this.headers[3].align = "";
+      }
 
       // if user is not authorize
       if (!this.permissions.manager_list && !this.permissions.manager_create) {
         this.$router.push("/unauthorize").catch(() => {});
       }
       
+    },
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        let action = e.data.action;
+  
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+
+          this.userRolesPermissions();
+        }
+
+        if(action == 'manager-create' || action == 'manager-edit' || action == 'manager-delete')
+        {
+          this.getManager();
+        }
+
+      });
     },
   },
   computed: {
@@ -474,6 +499,7 @@ export default {
 
     this.getManager();
     this.userRolesPermissions();
+    this.websocket();
   },
 };
 </script>

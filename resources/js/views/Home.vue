@@ -31,33 +31,53 @@
       <v-divider></v-divider>
 
       <v-list>
-        <v-list-item link :to="{ name: 'dashboard' }" v-if="permissions.project_list || permissions.project_create">
+        <v-list-item
+          link
+          :to="{ name: 'dashboard' }"
+          v-if="permissions.project_list || permissions.project_create"
+        >
           <v-list-item-icon>
             <v-icon>mdi-view-dashboard</v-icon>
           </v-list-item-icon>
           <v-list-item-title>Dashboard</v-list-item-title>
         </v-list-item>
-        <v-list-item link :to="{ name: 'programmer.reports' }" v-if="permissions.programmer_projects">
+        <v-list-item
+          link
+          :to="{ name: 'programmer.reports' }"
+          v-if="permissions.programmer_projects"
+        >
           <v-list-item-icon>
             <v-icon>mdi-file-document</v-icon>
           </v-list-item-icon>
           <v-list-item-title>My Projects</v-list-item-title>
         </v-list-item>
-        <v-list-item link :to="{ name: 'user.index' }" v-if="permissions.user_list || permissions.user_create">
+        <v-list-item
+          link
+          :to="{ name: 'user.index' }"
+          v-if="permissions.user_list || permissions.user_create"
+        >
           <v-list-item-icon>
             <v-icon>mdi-account-arrow-right-outline</v-icon>
           </v-list-item-icon>
           <v-list-item-title>User</v-list-item-title>
         </v-list-item>
 
-        <v-list-group no-action v-if="
-          permissions.department_list || permissions.department_create || 
-          permissions.manager_list || permissions.manager_create ||
-          permissions.holiday_list || permissions.holiday_create ||
-          permissions.role_list || permissions.role_create ||
-          permissions.permission_list || permissions.permission_create ||
-          permissions.ref_no_setting
-        ">
+        <v-list-group
+          no-action
+          v-if="
+            permissions.department_list ||
+            permissions.department_create ||
+            permissions.manager_list ||
+            permissions.manager_create ||
+            permissions.holiday_list ||
+            permissions.holiday_create ||
+            permissions.role_list ||
+            permissions.role_create ||
+            permissions.permission_list ||
+            permissions.permission_create ||
+            permissions.ref_no_setting
+          "
+        >
           <!-- List Group Icon-->
           <v-icon slot="prependIcon">mdi-cog</v-icon>
           <!-- List Group Title -->
@@ -67,32 +87,56 @@
             </v-list-item-content>
           </template>
           <!-- List Group Items -->
-          <v-list-item link to="/department/index" v-if="permissions.department_list || permissions.department_create">
+          <v-list-item
+            link
+            to="/department/index"
+            v-if="permissions.department_list || permissions.department_create"
+          >
             <v-list-item-content>
               <v-list-item-title>Department</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item link to="/manager/index" v-if="permissions.manager_list || permissions.manager_create">
+          <v-list-item
+            link
+            to="/manager/index"
+            v-if="permissions.manager_list || permissions.manager_create"
+          >
             <v-list-item-content>
               <v-list-item-title>Manager</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item link to="/ref_no_setting/index" v-if="permissions.ref_no_setting">
+          <v-list-item
+            link
+            to="/ref_no_setting/index"
+            v-if="permissions.ref_no_setting"
+          >
             <v-list-item-content>
               <v-list-item-title>Ref No. Settings</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item link to="/holiday/index" v-if="permissions.holiday_list || permissions.holiday_create">
+          <v-list-item
+            link
+            to="/holiday/index"
+            v-if="permissions.holiday_list || permissions.holiday_create"
+          >
             <v-list-item-content>
               <v-list-item-title>Holiday</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item link to="/role/index" v-if="permissions.role_list || permissions.role_create">
+          <v-list-item
+            link
+            to="/role/index"
+            v-if="permissions.role_list || permissions.role_create"
+          >
             <v-list-item-content>
               <v-list-item-title>Role</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item link to="/permission/index" v-if="permissions.permission_list || permissions.permission_create">
+          <v-list-item
+            link
+            to="/permission/index"
+            v-if="permissions.permission_list || permissions.permission_create"
+          >
             <v-list-item-content>
               <v-list-item-title>Permission</v-list-item-title>
             </v-list-item-content>
@@ -251,7 +295,9 @@ export default {
       this.permissions.project_create = this.hasPermission(["project-create"]);
       this.permissions.project_edit = this.hasPermission(["project-edit"]);
       this.permissions.project_delete = this.hasPermission(["project-delete"]);
-      this.permissions.programmer_projects = this.hasPermission(["programmer-projects"]);
+      this.permissions.programmer_projects = this.hasPermission([
+        "programmer-projects",
+      ]);
       this.permissions.project_log_list = this.hasPermission([
         "project-log-list",
       ]);
@@ -268,7 +314,9 @@ export default {
       this.permissions.user_create = this.hasPermission(["user-create"]);
       this.permissions.user_edit = this.hasPermission(["user-edit"]);
       this.permissions.user_delete = this.hasPermission(["user-delete"]);
-      this.permissions.department_list = this.hasPermission(["department-list"]);
+      this.permissions.department_list = this.hasPermission([
+        "department-list",
+      ]);
       this.permissions.department_create = this.hasPermission([
         "department-create",
       ]);
@@ -286,7 +334,9 @@ export default {
       this.permissions.holiday_create = this.hasPermission(["holiday-create"]);
       this.permissions.holiday_edit = this.hasPermission(["holiday-edit"]);
       this.permissions.holiday_delete = this.hasPermission(["holiday-delete"]);
-      this.permissions.permission_list = this.hasPermission(["permission-list"]);
+      this.permissions.permission_list = this.hasPermission([
+        "permission-list",
+      ]);
       this.permissions.permission_create = this.hasPermission([
         "permission-create",
       ]);
@@ -334,26 +384,25 @@ export default {
 
     websocket() {
       window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        console.log(e);
+        let action = e.data.action;
+    
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+          this.userRolesPermissions();
+        }
       });
     },
-
   },
-  sockets: {
-        connect: function () {
-            console.log('socket connected')
-        },
-        customEmit: function (data) {
-            console.log('this method was fired by the socket server. eg: io.emit("customEmit", data)')
-        }
-    },
 
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getUser();
     this.userRolesPermissions();
-    // this.websocket();
-    
+    this.websocket();
   },
 };
 </script>

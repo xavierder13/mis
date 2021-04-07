@@ -121,9 +121,11 @@
               >
                 mdi-pencil
               </v-icon>
+
               <v-icon small color="red" @click="showConfirmAlert(item)" v-if="permissions.department_delete">
                 mdi-delete
               </v-icon>
+         
             </template>
           </v-data-table>
         </v-card>
@@ -413,12 +415,37 @@ export default {
       if (!this.permissions.department_edit && !this.permissions.department_delete) {
         this.headers[2].align = " d-none";
       }
+      else
+      {
+        this.headers[2].align = "";
+      }
 
       // if user is not authorize
       if (!this.permissions.department_list && !this.permissions.department_create) {
         this.$router.push("/unauthorize").catch(() => {});
       }
       
+    },
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        let action = e.data.action;
+  
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+
+          this.userRolesPermissions();
+        }
+
+        if(action == 'department-create' || action == 'department-edit' || action == 'department-delete')
+        {
+          this.getDepartment();
+        }
+
+      });
     },
   },
   computed: {
@@ -447,6 +474,7 @@ export default {
 
     this.getDepartment();
     this.userRolesPermissions();
+    this.websocket();
   },
 };
 </script>

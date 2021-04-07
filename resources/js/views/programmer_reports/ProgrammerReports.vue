@@ -1251,17 +1251,21 @@ export default {
       ) {
         this.headers[1].align = " d-none";
       }
+      else
+      {
+        this.headers[1].align = "";
+      }
 
       // if user is not authorize
       if (!this.permissions.programmer_projects) {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },
-    websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        // console.log(e);
-      });
-    },
+    // websocket() {
+    //   window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+    //     // console.log(e);
+    //   });
+    // },
   },
   computed: {
     filteredProjects() {
@@ -1369,7 +1373,7 @@ export default {
     access_token = localStorage.getItem("access_token");
     this.getProject();
     this.userRolesPermissions();
-    this.websocket();
+    // this.websocket();
   },
 };
 </script>

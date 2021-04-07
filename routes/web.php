@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Events\WebsocketEvent;
+use Symfony\Component\Console\Output\StreamOutput;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -18,6 +19,14 @@ use App\Events\WebsocketEvent;
 Route::get('/', function () {
     // event(new WebsocketEvent('some data'));
     return view('layouts.app');
+});
+
+Route::get('run_serve', function () {
+    $artisan = Artisan::call('serve --host="192.168.1.48" --port=1515');
+});
+
+Route::get('run_websocket_serve', function () {
+    Artisan::call('websockets:serve');
 });
 
 Route::get('/reports_preview', 'ReportsPreviewController@preview');

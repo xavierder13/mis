@@ -434,12 +434,37 @@ export default {
       if (!this.permissions.holiday_edit && !this.permissions.holiday_delete) {
         this.headers[2].align = " d-none";
       }
+      else
+      {
+        this.headers[2].align = "";
+      }
 
       // if user is not authorize
       if (!this.permissions.holiday_list && !this.permissions.holiday_create) {
         this.$router.push("/unauthorize").catch(() => {});
       }
       
+    },
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        let action = e.data.action;
+  
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+
+          this.userRolesPermissions();
+        }
+
+        if(action == 'holiday-create' || action == 'holiday-edit' || action == 'holiday-delete')
+        {
+          this.getHoliday();
+        }
+
+      });
     },
   },
   computed: {
@@ -470,6 +495,7 @@ export default {
 
     this.getHoliday();
     this.userRolesPermissions();
+    this.websocket();
   },
 };
 </script>

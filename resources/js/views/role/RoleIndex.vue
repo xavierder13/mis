@@ -407,6 +407,10 @@ export default {
       ) {
         this.headers[1].align = " d-none";
       }
+      else
+      {
+        this.headers[1].align = "";
+      }
 
       // if user is not authorize
       if (
@@ -415,6 +419,19 @@ export default {
       ) {
         this.$router.push("/unauthorize").catch(() => {});
       }
+    },
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        let action = e.data.action;
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+          this.userRolesPermissions();
+        }
+      });
     },
   },
   computed: {
@@ -433,6 +450,7 @@ export default {
     this.getPermission();
     this.getRole();
     this.userRolesPermissions();
+    this.websocket();
   },
 };
 </script>

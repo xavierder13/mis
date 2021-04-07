@@ -8,6 +8,7 @@ use Validator;
 use Hash;
 use Auth;
 use Carbon\Carbon;
+use App\Events\WebsocketEvent;
 
 class AuthController extends Controller
 {
@@ -50,6 +51,8 @@ class AuthController extends Controller
         $user_roles = Auth::user()->roles->pluck('name')->all();
 
         $user_permissions = Auth::user()->getAllPermissions()->pluck('name');
+
+        event(new WebsocketEvent(['action' => 'login']));
 
         return response()->json([
             'user' => Auth::user(), 
