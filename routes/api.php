@@ -84,6 +84,20 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
         'as' => 'get_ref_no',
     ]);
 
+    Route::get('/export_project', [
+        'uses' => 'API\ProjectController@export_project',
+        'as' => 'export_project',
+    ]);
+
+    Route::post('/import_project', [
+        'uses' => 'API\ProjectController@import_project',
+        'as' => 'import_project',
+    ]);
+
+    Route::get('export_project', 'DemoController@export')->name('export');
+    Route::get('importExportView', 'DemoController@importExportView');
+    Route::post('import', 'DemoController@import')->name('import');
+
 });
 
 // Projects Logs Routes

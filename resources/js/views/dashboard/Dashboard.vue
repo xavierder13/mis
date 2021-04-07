@@ -37,7 +37,7 @@
               hide-details
               v-if="permissions.project_list"
             ></v-text-field>
-  
+
             <template>
               <v-toolbar flat>
                 <v-spacer></v-spacer>
@@ -281,10 +281,62 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
+                <v-dialog v-model="dialog_import" max-width="500px">
+                  <v-card>
+                    <v-card-title>
+                      <span class="headline">Import Projects</span>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
+                            <v-file-input
+                              v-model="file"
+                              show-size
+                              label="File input"
+                              prepend-icon="mdi-paperclip"
+                              required
+                              :error-messages="fileErrors"
+                              @change="$v.file.$touch()"
+                              @blur="$v.file.$touch()"
+                            >
+                              <template v-slot:selection="{ text }">
+                                <v-chip small label color="primary">
+                                  {{ text }}
+                                </v-chip>
+                              </template>
+                            </v-file-input>
+                          </v-col>
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                      <v-btn
+                        color="#E0E0E0"
+                        @click="dialog_import = false"
+                        class="mb-4"
+                      >
+                        Cancel
+                      </v-btn>
+                      <v-btn
+                        color="primary"
+                        class="mb-4 mr-4"
+                        @click="uploadFile()"
+                      >
+                        Upload
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
               </v-toolbar>
             </template>
           </v-card-title>
-          <div style="width: 100%; overflow-x: scroll" v-if="permissions.project_list">
+          <div
+            style="width: 100%; overflow-x: scroll"
+            v-if="permissions.project_list"
+          >
             <div style="width: 2000px">
               <v-data-table
                 :headers="headers"
@@ -315,7 +367,7 @@
                     small
                     color="red"
                     @click="showConfirmAlert(item)"
-                     v-if="permissions.project_delete"
+                    v-if="permissions.project_delete"
                   >
                     mdi-delete
                   </v-icon>
@@ -352,6 +404,7 @@ export default {
       programmer_id: { required },
       type: { required },
     },
+    file: { required },
   },
   data() {
     return {
@@ -367,7 +420,7 @@ export default {
         { text: "Date Logged", value: "date_logged" },
         { text: "Date Received", value: "date_received" },
         { text: "Date Approved", value: "date_approved" },
-        { text: "User Type", value: "type" },
+        { text: "Report Type", value: "type" },
         { text: "Ideal Prog Hrs.", value: "ideal_prog_hrs" },
         { text: "Ideal Valid Hrs.", value: "ideal_valid_hrs" },
         { text: "Template %", value: "template_percent" },
@@ -379,6 +432,8 @@ export default {
       date_approved: "",
       disabled: false,
       dialog: false,
+      dialog_import: false,
+      file: [],
       projects: [],
       departments: [],
       programmers: [],
@@ -665,7 +720,33 @@ export default {
         }
       }
     },
-    importExcel() {},
+
+    importExcel() {
+      this.dialog_import = true;
+      this.file = [];
+      this.$v.$reset();
+    },
+
+    uploadFile() {
+    
+      let formData = new FormData();
+
+      formData.append("file", this.file);
+
+      Axios.post("api/project/import_project", formData, {
+        headers: {
+          Authorization: "Bearer " + access_token,
+          'Content-Type': 'multipart/form-data'
+        },
+      }).then(
+        (response) => {
+          console.log(response.data);
+        },
+        (error) => {
+          console.log(error);
+        }
+      );
+    },
 
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {
@@ -708,9 +789,7 @@ export default {
       // hide column actions if user has no permission
       if (!this.permissions.project_edit && !this.permissions.project_delete) {
         this.headers[12].align = " d-none";
-      }
-      else
-      {
+      } else {
         this.headers[12].align = "";
       }
 
@@ -718,27 +797,28 @@ export default {
       if (!this.permissions.project_list && !this.permissions.project_create) {
         this.$router.push("/unauthorize").catch(() => {});
       }
-
     },
     websocket() {
       window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
         let action = e.data.action;
-  
+
         if (
           action == "user-edit" ||
           action == "role-edit" ||
           action == "role-delete" ||
           action == "permission-delete"
         ) {
-
           this.userRolesPermissions();
         }
 
-        if(action == 'project-create' || action == 'project-edit' || action == 'project-delete')
-        {
+        if (
+          action == "project-create" ||
+          action == "project-edit" ||
+          action == "project-delete" ||
+          action == "import-project"
+        ) {
           this.getProject();
         }
-
       });
     },
   },
@@ -779,6 +859,12 @@ export default {
       const errors = [];
       if (!this.$v.editedItem.type.$dirty) return errors;
       !this.$v.editedItem.type.required && errors.push("Type is required.");
+      return errors;
+    },
+    fileErrors() {
+      const errors = [];
+      if (!this.$v.file.$dirty) return errors;
+      !this.$v.file.required && errors.push("File is required.");
       return errors;
     },
   },

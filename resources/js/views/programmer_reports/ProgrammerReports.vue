@@ -700,6 +700,7 @@ export default {
     remarks_date: { required },
     remarks_time: { required },
     remarks: { required },
+    file:{ required },
   },
   data() {
     return {
@@ -1261,11 +1262,25 @@ export default {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },
-    // websocket() {
-    //   window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-    //     // console.log(e);
-    //   });
-    // },
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        let action = e.data.action;
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+          this.userRolesPermissions();
+        }
+
+        if(action == 'project-create' || action == 'project-edit' || action == 'project-delete' || action == 'import-project')
+        {
+          this.getProject();
+        }
+
+      });
+    },
   },
   computed: {
     filteredProjects() {
@@ -1367,13 +1382,20 @@ export default {
       !this.$v.remarks.required && errors.push("Remarks is required.");
       return errors;
     },
+
+    fileErrors() {
+      const errors = [];
+      if (!this.$v.file.$dirty) return errors;
+      !this.$v.file.required && errors.push("File is required.");
+      return errors;
+    },
     
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProject();
     this.userRolesPermissions();
-    // this.websocket();
+    this.websocket();
   },
 };
 </script>

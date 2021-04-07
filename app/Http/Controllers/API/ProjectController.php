@@ -15,6 +15,8 @@ use App\RefNoSetting;
 use App\Holiday;
 use Carbon\Carbon;
 use App\Events\WebsocketEvent;
+use Excel;
+use App\Imports\ProjectsImport;
 
 class ProjectController extends Controller
 {   
@@ -1071,6 +1073,35 @@ class ProjectController extends Controller
         }
 
         return $holidays;
+    }
+
+    public function import_project(Request $request) 
+    {   
+        $validator = Validator::make([$request->all()], 
+        ['file'  => 'required']);  
+        
+        if($validator->fails())
+        {
+            return response()->json($validator->errors(), 200);
+        }
+
+        if ($request->file('file')) {
+
+            $path = $request->file('file')->getRealPath();
+
+            // Excel::import(new ProjectsImport,$path);
+            $array = Excel::toArray(new ProjectsImport, $request->file('file'));
+            return $array[0][0];
+            // return $collection = Excel::toCollection(new ProjectsImport, $request->file('file'));
+
+            return response()->json(['success' => 'Record has successfully imported', $request->get('file')], 200);
+        }
+        else
+        {
+
+        }
+
+        
     }
     
 }
