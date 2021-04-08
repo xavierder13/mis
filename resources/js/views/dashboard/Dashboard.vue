@@ -728,24 +728,42 @@ export default {
     },
 
     uploadFile() {
-    
-      let formData = new FormData();
+      this.$v.$touch();
 
-      formData.append("file", this.file);
+      if(!this.$v.file.$error)
+      {
+        let formData = new FormData();
 
-      Axios.post("api/project/import_project", formData, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-          'Content-Type': 'multipart/form-data'
-        },
-      }).then(
-        (response) => {
-          console.log(response.data);
-        },
-        (error) => {
-          console.log(error);
-        }
-      );
+        formData.append("file", this.file);
+        // console.log(this.file);
+        Axios.post("api/project/import_project", formData, {
+          headers: {
+            Authorization: "Bearer " + access_token,
+            'Content-Type': 'multipart/form-data'
+          },
+        }).then(
+          (response) => {
+            console.log(response.data);
+            if(response.data.success)
+            {
+              this.$swal({
+                position: "center",
+                icon: "success",
+                title: "Record has been imported",
+                showConfirmButton: false,
+                timer: 2500,
+              });
+              this.$v.$reset();
+              this.dialog_import = false;
+              this.file = [];
+            }
+          },
+          (error) => {
+            console.log(error);
+          }
+        );
+      }
+      
     },
 
     userRolesPermissions() {

@@ -1077,30 +1077,143 @@ class ProjectController extends Controller
 
     public function import_project(Request $request) 
     {   
-        $validator = Validator::make([$request->all()], 
-        ['file'  => 'required']);  
-        
-        if($validator->fails())
-        {
-            return response()->json($validator->errors(), 200);
-        }
 
-        if ($request->file('file')) {
+        try {
+            $file_extension = '';
 
-            $path = $request->file('file')->getRealPath();
+            if($request->file('file'))
+            {
+                $file_extension = $request->file('file')->getClientOriginalExtension();
+            }
 
-            // Excel::import(new ProjectsImport,$path);
-            $array = Excel::toArray(new ProjectsImport, $request->file('file'));
-            return $array[0][0];
-            // return $collection = Excel::toCollection(new ProjectsImport, $request->file('file'));
+            $validator = Validator::make([
+                'file'      => $request->file('file'),
+                'extension' => strtolower($file_extension),
+            ],
+            [
+                'file'          => 'required',
+                'extension'      => 'required|in:doc,csv,xlsx,xls,docx,ppt,odt,ods,odp',
+            ]);  
+            
+            if($validator->fails())
+            {
+                return response()->json($validator->errors(), 200);
+            }
+    
+            if ($request->file('file')) {
+    
+                $path = $request->file('file')->getRealPath();
+                
+                // $array = Excel::toArray(new ProjectsImport, $request->file('file'));
+                $collection = Excel::toCollection(new ProjectsImport, $request->file('file'))[0];
+                $ctr_collection = count($collection);
+                $columns = [
+                    'ref_no', 
+                    'report_title', 
+                    'programmer_id', 
+                    'validator_id', 
+                    'date_receive', 
+                    'date_approve', 
+                    'type', 
+                    'department_id', 
+                    'ideal_prog_hrs', 
+                    'ideal_valid_hrs', 
+                    'status', 
+                    'template_percent', 
+                    'program_percent', 
+                    'validation_percent', 
+                    'program_date', 
+                    'validation_date', 
+                    'program_hrs', 
+                    'validate_hrs', 
+                    'accepted_date'
+                ]; 
+                $collection_errors = [];
+                $fields = [];    
+                $response = response()->json(['error' => 'Invalid Column'], 200);
 
-            return response()->json(['success' => 'Record has successfully imported', $request->get('file')], 200);
-        }
-        else
-        {
+                if($ctr_collection > 1)
+                {   
+                    for($x=0; $ctr_collection > $x; $x++)
+                    {   
+                        for($y=0; count($collection[$x]) > $y; $y++)
+                        {
+                            if($x == 0)
+                            {
+                               if($collection[$x][$y] != $columns[$y])
+                               {
+                                // return response()->json(['error' => 'Invalid '. $collection[$x][$y]], 200);
+                                $collection_errors[] =  'Invalid '. $collection[$x][$y];
+                               } 
+                            }  
+                            else
+                            {   
+                                $fields[$x - 1][$columns[$y]] = $collection[$x][$y];
+                            }
+                        }
+                        
 
-        }
+                        $rules = [
+                            '*.ref_no.required' => 'Reference No. is required',
+                            '*.report_title.required' => 'Report Title is required',
+                            '*.programmer_id.required' => 'Programmer is required',
+                            '*.programmer_id.integer' => 'Programmer must be an integer',
+                            '*.department_id.required' => 'Department is required',
+                            '*.department_id.integer' => 'Department must be an integer',
+                            '*.programmer_id.required' => 'Programmer is required',
+                            '*.programmer_id.integer' => 'Programmer must be an integer',
+                            // 'validator.required' => 'Validator is required',
+                            // 'validator.integer' => 'Validator must be an integer',
+                            // 'date_received.sometimes' => 'Enter a valid date',
+                            // 'date_approved.sometimes' => 'Enter a valid date',
+                            '*.type.required' => 'Report Type is required'
+                        ];
+                
+                        $valid_fields = [
+                            '*.ref_no' => 'required',
+                            '*.report_title' => 'required',
+                            '*.programmer_id' => 'required|integer',
+                            '*.department_id' => 'required|integer',
+                            '*.programmer_id' => 'required|integer',
+                            // 'validator_id' => 'sometimes|required|integer',
+                            // 'date_received' => 'sometimes|date',
+                            // 'date_approved' => 'sometimes|date',
+                            '*.type' => 'required',
+                        ];
 
+                        
+                
+                        $validator = Validator::make($fields, $valid_fields, $rules);  
+                
+                        if($validator->fails())
+                        {
+                            $collection_errors =  $validator->errors();
+                        }
+                        // return $validator;
+                    }   
+                    
+                    return $collection_errors;
+                    
+                }
+                else
+                {
+                    return response()->json(['error' => 'Insert valid values '], 200);
+                }
+    
+                // Excel::import(new ProjectsImport,$path);
+                // return $collection = Excel::toCollection(new ProjectsImport, $request->file('file'));
+    
+                return response()->json(['success' => 'Record has successfully imported'], 200);
+            }
+            else
+            {
+                return response()->json(['error' => 'File is empty'], 200);
+            }
+          
+          } catch (\Exception $e) {
+          
+              return response()->json(['error' => $e->getMessage()], 200);
+          }
         
     }
     
