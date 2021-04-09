@@ -1128,9 +1128,10 @@ class ProjectController extends Controller
                     'validate_hrs', 
                     'accepted_date'
                 ]; 
+
                 $collection_errors = [];
+                $collection_column_errors = [];
                 $fields = [];    
-                $response = response()->json(['error' => 'Invalid Column'], 200);
 
                 if($ctr_collection > 1)
                 {   
@@ -1142,8 +1143,7 @@ class ProjectController extends Controller
                             {
                                if($collection[$x][$y] != $columns[$y])
                                {
-                                // return response()->json(['error' => 'Invalid '. $collection[$x][$y]], 200);
-                                $collection_errors[] =  'Invalid '. $collection[$x][$y];
+                                $collection_column_errors[] =  'Invalid column name "'. $collection[$x][$y]. '"';
                                } 
                             }  
                             else
@@ -1152,7 +1152,12 @@ class ProjectController extends Controller
                             }
                         }
                         
-
+                        // if column names did not match
+                        if(count($collection_column_errors))
+                        {
+                            return response()->json(['error_column_name' => $collection_column_errors], 200);
+                        }
+                        
                         $rules = [
                             '*.ref_no.required' => 'Reference No. is required',
                             '*.report_title.required' => 'Report Title is required',
@@ -1162,11 +1167,31 @@ class ProjectController extends Controller
                             '*.department_id.integer' => 'Department must be an integer',
                             '*.programmer_id.required' => 'Programmer is required',
                             '*.programmer_id.integer' => 'Programmer must be an integer',
-                            // 'validator.required' => 'Validator is required',
-                            // 'validator.integer' => 'Validator must be an integer',
-                            // 'date_received.sometimes' => 'Enter a valid date',
-                            // 'date_approved.sometimes' => 'Enter a valid date',
-                            '*.type.required' => 'Report Type is required'
+                            '*.validator_id.integer' => 'Validator must be an integer',
+                            '*.date_receive.date_format' => 'Invalid date format(YYYY-MM-DD)',
+                            '*.date_approve.date_format' => 'Invalid date format(YYYY-MM-DD)',
+                            '*.type.required' => 'Report Type is required',
+                            '*.type.in' => 'Value is invalid, must be on the ff. value ("New", "Change Order")',
+                            '*.department_id.integer' => 'Department must be an integer',
+                            '*.ideal_prog_hrs.numeric' => 'Ideal Prog. Hrs must be numeric',
+                            '*.ideal_prog_hrs.between' => 'Ideal Prog. Hrs must be 0 or above',
+                            '*.ideal_valid_hrs.numeric' => 'Ideal Valid. Hrs. must be numeric',
+                            '*.ideal_valid_hrs.between' => 'Ideal Valid. Hrs. must be 0 or above',
+                            '*.status.required' => 'Status is required',
+                            '*.status.in' => 'Value is invalid, must be on the ff. value ("Ongoing", "For Validation", "Accepted", "Pending", "Cancelled")',
+                            '*.template_percent.numeric' => 'Template Percentage must be numeric',
+                            '*.template_percent.between' => 'Template Percentage must be 0 or above',
+                            '*.program_percent.numeric' => 'Programming Percentage must be numeric',
+                            '*.program_percent.between' => 'Programming Percentage must be 0 or above',
+                            '*.validation_percent.numeric' => 'Validation Percentage must be numeric',
+                            '*.validation_percent.between' => 'Validation Percentage must be 0 or above',
+                            '*.program_date.date_format' => 'Invalid date format(YYYY-MM-DD)',
+                            '*.validation_date.date_format' => 'Invalid date format(YYYY-MM-DD)',
+                            '*.program_hrs.numeric' => 'Programming Hrs must be numeric',
+                            '*.program_hrs.between' => 'Programming Hrs must be 0 or above',
+                            '*.validate_hrs.numeric' => 'Validation Hrs must be numeric',
+                            '*.validate_hrs.between' => 'Validation Hrs must be 0 or above',
+                            '*.accepted_date.date_format' => 'Invalid date format(YYYY-MM-DD)',
                         ];
                 
                         $valid_fields = [
@@ -1175,39 +1200,56 @@ class ProjectController extends Controller
                             '*.programmer_id' => 'required|integer',
                             '*.department_id' => 'required|integer',
                             '*.programmer_id' => 'required|integer',
-                            // 'validator_id' => 'sometimes|required|integer',
-                            // 'date_received' => 'sometimes|date',
-                            // 'date_approved' => 'sometimes|date',
-                            '*.type' => 'required',
+                            '*.validator_id' => 'nullable|integer',
+                            '*.date_receive' => 'nullable|date_format:Y-m-d',
+                            '*.date_approve' => 'nullable|date_format:Y-m-d',
+                            '*.type' => 'required|in:"New", "Change Order"',
+                            '*.department_id' => 'nullable|integer',
+                            '*.ideal_prog_hrs' => 'nullable|numeric|between:0,9999999.99',
+                            '*.ideal_valid_hrs' => 'nullable|numeric|between:0,9999999.99',
+                            '*.status' => 'required|in:"Ongoing", "For Validation", "Accepted", "Pending", "Cancelled"',
+                            '*.template_percent' => 'nullable|numeric|between:0,9999999.99',
+                            '*.program_percent' => 'nullable|numeric|between:0,9999999.99',
+                            '*.validation_percent' => 'nullable|numeric|between:0,9999999.99',
+                            '*.program_date' => 'nullable|date_format:Y-m-d',
+                            '*.validation_date' => 'nullable|date_format:Y-m-d',
+                            '*.program_hrs' => 'nullable|numeric|between:0,9999999.99',
+                            '*.validate_hrs' => 'nullable|numeric|between:0,9999999.99',
+                            '*.accepted_date' => 'nullable|date_format:Y-m-d',
                         ];
 
-                        
-                
                         $validator = Validator::make($fields, $valid_fields, $rules);  
                 
                         if($validator->fails())
                         {
                             $collection_errors =  $validator->errors();
                         }
-                        // return $validator;
-                    }   
-                    
-                    return $collection_errors;
+
+                    } 
                     
                 }
                 else
                 {
-                    return response()->json(['error' => 'Insert valid values '], 200);
+                    return response()->json(['error_empty' => 'File is Empty'], 200);
                 }
-    
-                // Excel::import(new ProjectsImport,$path);
+                
+                if(count($collection_errors))
+                {
+                    return response()->json(['error_row_data' => $collection_errors], 200);
+                }
+                else
+                {
+                    // Excel::import(new ProjectsImport,$path);
+                }
+                
+                // 
                 // return $collection = Excel::toCollection(new ProjectsImport, $request->file('file'));
     
                 return response()->json(['success' => 'Record has successfully imported'], 200);
             }
             else
             {
-                return response()->json(['error' => 'File is empty'], 200);
+                return response()->json(['error_empty' => 'File is empty'], 200);
             }
           
           } catch (\Exception $e) {

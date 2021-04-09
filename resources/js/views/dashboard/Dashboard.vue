@@ -298,7 +298,7 @@
                               prepend-icon="mdi-paperclip"
                               required
                               :error-messages="fileErrors"
-                              @change="$v.file.$touch()"
+                              @change="$v.file.$touch() + (fileIsEmpty = false)"
                               @blur="$v.file.$touch()"
                             >
                               <template v-slot:selection="{ text }">
@@ -324,10 +324,45 @@
                         color="primary"
                         class="mb-4 mr-4"
                         @click="uploadFile()"
+                        :disabled="uploadDisabled"
                       >
                         Upload
                       </v-btn>
                     </v-card-actions>
+                  </v-card>
+                </v-dialog>
+                <v-dialog v-model="dialog_error_list" max-width="800px">
+                  <v-card>
+                    <v-card-title>
+                      <span class="headline">Error List</span>
+                      <v-spacer></v-spacer>
+                      <v-icon @click="dialog_error_list = false">
+                        mdi-close
+                      </v-icon>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-col>
+                            <v-simple-table dense>
+                              <thead>
+                                <tr>
+                                  <th>#</th>
+                                  <th>Error Message</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr v-for="(item, index) in imported_file_errors">
+                                  <td>{{ index + 1 }}</td>
+                                  <td>{{ item }}</td>
+                                </tr>
+                              </tbody>
+                            </v-simple-table>
+                          </v-col>
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
                   </v-card>
                 </v-dialog>
               </v-toolbar>
@@ -431,13 +466,17 @@ export default {
       date_received: "",
       date_approved: "",
       disabled: false,
+      uploadDisabled: false,
       dialog: false,
       dialog_import: false,
+      dialog_error_list: false,
       file: [],
+      fileIsEmpty: false,
       projects: [],
       departments: [],
       programmers: [],
       validators: [],
+      errors_array: [],
       types: [
         { text: "New", value: "New" },
         { text: "Change Order", value: "Change Order" },
@@ -499,6 +538,8 @@ export default {
           this.programmers = response.data.programmers;
           this.validators = response.data.validators;
           this.loading = false;
+
+          console.log(this.projects);
         },
         (error) => {
           // if unauthenticated (401)
@@ -730,8 +771,8 @@ export default {
     uploadFile() {
       this.$v.$touch();
 
-      if(!this.$v.file.$error)
-      {
+      if (!this.$v.file.$error) {
+        this.uploadDisabled = true;
         let formData = new FormData();
 
         formData.append("file", this.file);
@@ -739,13 +780,13 @@ export default {
         Axios.post("api/project/import_project", formData, {
           headers: {
             Authorization: "Bearer " + access_token,
-            'Content-Type': 'multipart/form-data'
+            "Content-Type": "multipart/form-data",
           },
         }).then(
           (response) => {
-            console.log(response.data);
-            if(response.data.success)
-            {
+            // console.log(response.data);
+
+            if (response.data.success) {
               this.$swal({
                 position: "center",
                 icon: "success",
@@ -756,14 +797,44 @@ export default {
               this.$v.$reset();
               this.dialog_import = false;
               this.file = [];
+              this.fileIsEmpty = false;
+            } else if (response.data.error_column_name) {
+              this.errors_array = response.data.error_column_name;
+              this.dialog_error_list = true;
+            } else if (response.data.error_row_data) {
+              let error_keys = Object.keys(response.data.error_row_data);
+              let errors = response.data.error_row_data;
+              let row = "";
+              let col = "";
+
+              error_keys.forEach((value, index) => {
+                row = value.split(".")[0];
+                col = value.split(".")[1];
+                errors[value].forEach((val, i) => {
+                  this.errors_array.push(
+                    "Error on Row: " +
+                      row +
+                      "; Column: " +
+                      col +
+                      "; Msg: " +
+                      val
+                  );
+                });
+              });
+
+              this.dialog_error_list = true;
+            } else if (response.data.error_empty) {
+              this.fileIsEmpty = true;
             }
+
+            this.uploadDisabled = false;
           },
           (error) => {
             console.log(error);
+            this.uploadDisabled = false;
           }
         );
       }
-      
     },
 
     userRolesPermissions() {
@@ -883,8 +954,12 @@ export default {
       const errors = [];
       if (!this.$v.file.$dirty) return errors;
       !this.$v.file.required && errors.push("File is required.");
+      this.fileIsEmpty && errors.push("File is empty.");
       return errors;
     },
+    imported_file_errors() {
+      return this.errors_array.sort();
+    }
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
