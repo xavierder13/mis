@@ -63,7 +63,7 @@
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
-                <v-dialog v-model="dialog" max-width="700px">
+                <v-dialog v-model="dialog" max-width="700px" persistent>
                   <v-card>
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
@@ -124,6 +124,7 @@
                               :return-value.sync="editedItem.remarks_time"
                               persistent
                               width="290px"
+                              persistent
                             >
                               <template v-slot:activator="{ on, attrs }">
                                 <v-text-field

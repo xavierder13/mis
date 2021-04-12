@@ -117,7 +117,7 @@
             </v-menu>
             <template>
               <v-toolbar flat>
-                <v-dialog v-model="dialog" max-width="700px">
+                <v-dialog v-model="dialog" max-width="700px" persistent>
                   <v-card>
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
@@ -700,7 +700,6 @@ export default {
     remarks_date: { required },
     remarks_time: { required },
     remarks: { required },
-    file:{ required },
   },
   data() {
     return {
@@ -924,12 +923,15 @@ export default {
           this.holidays = response.data.holidays;
           this.loading = false;
 
-          if (this.user_type == "Admin") {
-            this.filter_project_by_programmer = this.programmers[0].id;
-          } else {
-            this.filter_project_by_programmer = parseInt(this.user_id);
+          if(!this.filter_project_by_programmer)
+          {
+            if (this.user_type == "Admin") {
+              this.filter_project_by_programmer = this.programmers[0].id;
+            } else {
+              this.filter_project_by_programmer = parseInt(this.user_id);
+            }
           }
-
+          
           this.project_execution_hrs.forEach((value, index) => {
             this.filteredProjects.forEach((val, index) => {
               if (value.project_id == val.project_id) {
@@ -1383,12 +1385,6 @@ export default {
       return errors;
     },
 
-    fileErrors() {
-      const errors = [];
-      if (!this.$v.file.$dirty) return errors;
-      !this.$v.file.required && errors.push("File is required.");
-      return errors;
-    },
     
   },
   mounted() {

@@ -1080,7 +1080,7 @@ class ProjectController extends Controller
 
         try {
             $file_extension = '';
-
+            $path = $request->file('file')->getRealPath();
             if($request->file('file'))
             {
                 $file_extension = $request->file('file')->getClientOriginalExtension();
@@ -1101,9 +1101,7 @@ class ProjectController extends Controller
             }
     
             if ($request->file('file')) {
-    
-                $path = $request->file('file')->getRealPath();
-                
+                    
                 // $array = Excel::toArray(new ProjectsImport, $request->file('file'));
                 $collection = Excel::toCollection(new ProjectsImport, $request->file('file'))[0];
                 $ctr_collection = count($collection);
@@ -1143,7 +1141,7 @@ class ProjectController extends Controller
                             {
                                if($collection[$x][$y] != $columns[$y])
                                {
-                                $collection_column_errors[] =  'Invalid column name "'. $collection[$x][$y]. '"';
+                                    $collection_column_errors[] =  'Invalid column name "'. $collection[$x][$y]. '"';
                                } 
                             }  
                             else
@@ -1157,94 +1155,105 @@ class ProjectController extends Controller
                         {
                             return response()->json(['error_column_name' => $collection_column_errors], 200);
                         }
-                        
-                        $rules = [
-                            '*.ref_no.required' => 'Reference No. is required',
-                            '*.report_title.required' => 'Report Title is required',
-                            '*.programmer_id.required' => 'Programmer is required',
-                            '*.programmer_id.integer' => 'Programmer must be an integer',
-                            '*.department_id.required' => 'Department is required',
-                            '*.department_id.integer' => 'Department must be an integer',
-                            '*.programmer_id.required' => 'Programmer is required',
-                            '*.programmer_id.integer' => 'Programmer must be an integer',
-                            '*.validator_id.integer' => 'Validator must be an integer',
-                            '*.date_receive.date_format' => 'Invalid date format(YYYY-MM-DD)',
-                            '*.date_approve.date_format' => 'Invalid date format(YYYY-MM-DD)',
-                            '*.type.required' => 'Report Type is required',
-                            '*.type.in' => 'Value is invalid, must be on the ff. value ("New", "Change Order")',
-                            '*.department_id.integer' => 'Department must be an integer',
-                            '*.ideal_prog_hrs.numeric' => 'Ideal Prog. Hrs must be numeric',
-                            '*.ideal_prog_hrs.between' => 'Ideal Prog. Hrs must be 0 or above',
-                            '*.ideal_valid_hrs.numeric' => 'Ideal Valid. Hrs. must be numeric',
-                            '*.ideal_valid_hrs.between' => 'Ideal Valid. Hrs. must be 0 or above',
-                            '*.status.required' => 'Status is required',
-                            '*.status.in' => 'Value is invalid, must be on the ff. value ("Ongoing", "For Validation", "Accepted", "Pending", "Cancelled")',
-                            '*.template_percent.numeric' => 'Template Percentage must be numeric',
-                            '*.template_percent.between' => 'Template Percentage must be 0 or above',
-                            '*.program_percent.numeric' => 'Programming Percentage must be numeric',
-                            '*.program_percent.between' => 'Programming Percentage must be 0 or above',
-                            '*.validation_percent.numeric' => 'Validation Percentage must be numeric',
-                            '*.validation_percent.between' => 'Validation Percentage must be 0 or above',
-                            '*.program_date.date_format' => 'Invalid date format(YYYY-MM-DD)',
-                            '*.validation_date.date_format' => 'Invalid date format(YYYY-MM-DD)',
-                            '*.program_hrs.numeric' => 'Programming Hrs must be numeric',
-                            '*.program_hrs.between' => 'Programming Hrs must be 0 or above',
-                            '*.validate_hrs.numeric' => 'Validation Hrs must be numeric',
-                            '*.validate_hrs.between' => 'Validation Hrs must be 0 or above',
-                            '*.accepted_date.date_format' => 'Invalid date format(YYYY-MM-DD)',
-                        ];
-                
-                        $valid_fields = [
-                            '*.ref_no' => 'required',
-                            '*.report_title' => 'required',
-                            '*.programmer_id' => 'required|integer',
-                            '*.department_id' => 'required|integer',
-                            '*.programmer_id' => 'required|integer',
-                            '*.validator_id' => 'nullable|integer',
-                            '*.date_receive' => 'nullable|date_format:Y-m-d',
-                            '*.date_approve' => 'nullable|date_format:Y-m-d',
-                            '*.type' => 'required|in:"New", "Change Order"',
-                            '*.department_id' => 'nullable|integer',
-                            '*.ideal_prog_hrs' => 'nullable|numeric|between:0,9999999.99',
-                            '*.ideal_valid_hrs' => 'nullable|numeric|between:0,9999999.99',
-                            '*.status' => 'required|in:"Ongoing", "For Validation", "Accepted", "Pending", "Cancelled"',
-                            '*.template_percent' => 'nullable|numeric|between:0,9999999.99',
-                            '*.program_percent' => 'nullable|numeric|between:0,9999999.99',
-                            '*.validation_percent' => 'nullable|numeric|between:0,9999999.99',
-                            '*.program_date' => 'nullable|date_format:Y-m-d',
-                            '*.validation_date' => 'nullable|date_format:Y-m-d',
-                            '*.program_hrs' => 'nullable|numeric|between:0,9999999.99',
-                            '*.validate_hrs' => 'nullable|numeric|between:0,9999999.99',
-                            '*.accepted_date' => 'nullable|date_format:Y-m-d',
-                        ];
-
-                        $validator = Validator::make($fields, $valid_fields, $rules);  
-                
-                        if($validator->fails())
-                        {
-                            $collection_errors =  $validator->errors();
-                        }
 
                     } 
+
+                    $rules = [
+                        '*.ref_no.required' => 'Reference No. is required',
+                        '*.report_title.required' => 'Report Title is required',
+                        '*.programmer_id.required' => 'Programmer is required',
+                        '*.programmer_id.integer' => 'Programmer must be an integer',
+                        '*.department_id.required' => 'Department is required',
+                        '*.department_id.integer' => 'Department must be an integer',
+                        '*.programmer_id.required' => 'Programmer is required',
+                        '*.programmer_id.integer' => 'Programmer must be an integer',
+                        '*.validator_id.integer' => 'Validator must be an integer',
+                        '*.date_receive.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+                        '*.date_approve.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+                        '*.type.required' => 'Report Type is required',
+                        '*.type.in' => 'Value is invalid, must be on the ff. values ("New", "Change Order")',
+                        '*.department_id.integer' => 'Department must be an integer',
+                        '*.ideal_prog_hrs.numeric' => 'Ideal Prog. Hrs must be numeric',
+                        '*.ideal_prog_hrs.between' => 'Ideal Prog. Hrs must be 0 or above',
+                        '*.ideal_valid_hrs.numeric' => 'Ideal Valid. Hrs. must be numeric',
+                        '*.ideal_valid_hrs.between' => 'Ideal Valid. Hrs. must be 0 or above',
+                        '*.status.required' => 'Status is required',
+                        '*.status.in' => 'Value is invalid, must be on the ff. values ("Ongoing", "For Validation", "Accepted", "Pending", "Cancelled")',
+                        '*.template_percent.numeric' => 'Template Percentage must be numeric',
+                        '*.template_percent.between' => 'Template Percentage must be 0 or above',
+                        '*.program_percent.numeric' => 'Programming Percentage must be numeric',
+                        '*.program_percent.between' => 'Programming Percentage must be 0 or above',
+                        '*.validation_percent.numeric' => 'Validation Percentage must be numeric',
+                        '*.validation_percent.between' => 'Validation Percentage must be 0 or above',
+                        '*.program_date.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+                        '*.validation_date.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+                        '*.program_hrs.numeric' => 'Programming Hrs must be numeric',
+                        '*.program_hrs.between' => 'Programming Hrs must be 0 or above',
+                        '*.validate_hrs.numeric' => 'Validation Hrs must be numeric',
+                        '*.validate_hrs.between' => 'Validation Hrs must be 0 or above',
+                        '*.accepted_date.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+                    ];
+            
+                    $valid_fields = [
+                        '*.ref_no' => 'required',
+                        '*.report_title' => 'required',
+                        '*.programmer_id' => 'required|integer',
+                        '*.department_id' => 'required|integer',
+                        '*.programmer_id' => 'required|integer',
+                        '*.validator_id' => 'nullable|integer',
+                        '*.date_receive' => 'nullable|date_format:Y-m-d',
+                        '*.date_approve' => 'nullable|date_format:Y-m-d',
+                        '*.type' => 'required|in:"New", "Change Order"',
+                        '*.department_id' => 'nullable|integer',
+                        '*.ideal_prog_hrs' => 'nullable|numeric|between:0,9999999.99',
+                        '*.ideal_valid_hrs' => 'nullable|numeric|between:0,9999999.99',
+                        '*.status' => 'required|in:"Ongoing", "For Validation", "Accepted", "Pending", "Cancelled"',
+                        '*.template_percent' => 'nullable|numeric|between:0,9999999.99',
+                        '*.program_percent' => 'nullable|numeric|between:0,9999999.99',
+                        '*.validation_percent' => 'nullable|numeric|between:0,9999999.99',
+                        '*.program_date' => 'nullable|date_format:Y-m-d',
+                        '*.validation_date' => 'nullable|date_format:Y-m-d',
+                        '*.program_hrs' => 'nullable|numeric|between:0,9999999.99',
+                        '*.validate_hrs' => 'nullable|numeric|between:0,9999999.99',
+                        '*.accepted_date' => 'nullable|date_format:Y-m-d',
+                    ];
+                    
+                    $validator = Validator::make($fields, $valid_fields, $rules);  
+            
+                    if($validator->fails())
+                    {
+                        $collection_errors =  $validator->errors();
+                    }
                     
                 }
                 else
                 {
                     return response()->json(['error_empty' => 'File is Empty'], 200);
                 }
-                
+             
                 if(count($collection_errors))
                 {
-                    return response()->json(['error_row_data' => $collection_errors], 200);
+                    return response()->json(['error_row_data' => $collection_errors, 'field_values' => $fields], 200);
                 }
                 else
                 {
-                    // Excel::import(new ProjectsImport,$path);
+                    Excel::import(new ProjectsImport, $path);
+                    event(new WebsocketEvent(['action' => 'import-project']));
+                    // try {
+                    //     $project = Excel::import(new ProjectsImport(), $request->file('file'));
+                    // } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+                    //     $failures = $e->failures();
+                    //     dd($failures);
+                         
+                    //      foreach ($failures as $failure) {
+                    //          $failure->row(); // row that went wrong
+                    //          $failure->attribute(); // either heading key (if using heading row concern) or column index
+                    //          $failure->errors(); // Actual error messages from Laravel validator
+                    //          $failure->values(); // The values of the row that has failed.
+                    //      }
+                    // }
                 }
-                
-                // 
-                // return $collection = Excel::toCollection(new ProjectsImport, $request->file('file'));
-    
+                    
                 return response()->json(['success' => 'Record has successfully imported'], 200);
             }
             else

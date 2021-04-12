@@ -43,7 +43,7 @@
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
 
-                <v-dialog v-model="dialog" max-width="500px">
+                <v-dialog v-model="dialog" max-width="500px" persistent>
                   <v-card>
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
@@ -166,7 +166,7 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-dialog v-model="dialogPermission" max-width="700px">
+                <v-dialog v-model="dialogPermission" max-width="700px" persistent>
                   <v-card>
                     <v-card-title>
                       <span class="headline">Roles</span>

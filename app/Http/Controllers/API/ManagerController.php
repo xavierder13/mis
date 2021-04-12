@@ -14,7 +14,7 @@ class ManagerController extends Controller
     public function index()
     {
         $managers = DB::table('managers')
-                      ->join('departments', 'managers.department_id', '=', 'departments.id')
+                      ->leftJoin('departments', 'managers.department_id', '=', 'departments.id')
                       ->select('managers.id', 'managers.name', 'managers.department_id', DB::raw('departments.name as department'), 'managers.active')
                       ->get();    
         $departments = Department::all();

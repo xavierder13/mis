@@ -34,7 +34,7 @@
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
-                <v-dialog v-model="dialog" max-width="500px">
+                <v-dialog v-model="dialog" max-width="500px" persistent>
                   <v-card>
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>

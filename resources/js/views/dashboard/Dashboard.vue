@@ -52,7 +52,7 @@
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
 
-                <v-dialog v-model="dialog" max-width="700px">
+                <v-dialog v-model="dialog" max-width="700px" persistent>
                   <v-card>
                     <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
@@ -281,7 +281,7 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-dialog v-model="dialog_import" max-width="500px">
+                <v-dialog v-model="dialog_import" max-width="500px" persistent>
                   <v-card>
                     <v-card-title>
                       <span class="headline">Import Projects</span>
@@ -331,7 +331,7 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-dialog v-model="dialog_error_list" max-width="800px">
+                <v-dialog v-model="dialog_error_list" max-width="1000px" persistent>
                   <v-card>
                     <v-card-title>
                       <span class="headline">Error List</span>
@@ -353,9 +353,11 @@
                                 </tr>
                               </thead>
                               <tbody>
-                                <tr v-for="(item, index) in imported_file_errors">
+                                <tr
+                                  v-for="(item, index) in imported_file_errors"
+                                >
                                   <td>{{ index + 1 }}</td>
-                                  <td>{{ item }}</td>
+                                  <td v-html="item"></td>
                                 </tr>
                               </tbody>
                             </v-simple-table>
@@ -539,7 +541,7 @@ export default {
           this.validators = response.data.validators;
           this.loading = false;
 
-          console.log(this.projects);
+          // console.log(this.projects);
         },
         (error) => {
           // if unauthenticated (401)
@@ -770,6 +772,7 @@ export default {
 
     uploadFile() {
       this.$v.$touch();
+      this.fileIsEmpty = false;
 
       if (!this.$v.file.$error) {
         this.uploadDisabled = true;
@@ -784,7 +787,7 @@ export default {
           },
         }).then(
           (response) => {
-            // console.log(response.data);
+            console.log(response.data);
 
             if (response.data.success) {
               this.$swal({
@@ -804,6 +807,7 @@ export default {
             } else if (response.data.error_row_data) {
               let error_keys = Object.keys(response.data.error_row_data);
               let errors = response.data.error_row_data;
+              let field_values = response.data.field_values;
               let row = "";
               let col = "";
 
@@ -812,12 +816,15 @@ export default {
                 col = value.split(".")[1];
                 errors[value].forEach((val, i) => {
                   this.errors_array.push(
-                    "Error on Row: " +
+                    "Error on Index: <label class='text-info'>" +
                       row +
-                      "; Column: " +
+                      "</label>; Column: <label class='text-primary'>" +
                       col +
-                      "; Msg: " +
-                      val
+                      "</label>; Msg: <label class='text-danger'>" +
+                      val +
+                      "</label>; Value: <label class='text-success'>" +
+                      field_values[row][col] +
+                      "</label>"
                   );
                 });
               });
@@ -959,7 +966,7 @@ export default {
     },
     imported_file_errors() {
       return this.errors_array.sort();
-    }
+    },
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
