@@ -25,9 +25,9 @@ class ProjectController extends Controller
     {  
 
         $projects = DB::table('projects')
-                    ->join('departments', 'projects.department_id', '=','departments.id')
-                    ->join('managers', 'departments.id', '=', 'managers.department_id')
-                    ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
+                    ->leftJoin('departments', 'projects.department_id', '=','departments.id')
+                    ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
+                    ->leftJoin(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
                     ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
                     ->select(DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
                              DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
@@ -100,9 +100,9 @@ class ProjectController extends Controller
         }    
 
         $projects = DB::table('projects')
-                    ->join('departments', 'projects.department_id', '=','departments.id')
-                    ->join('managers', 'departments.id', '=', 'managers.department_id')
-                    ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
+                    ->leftJoin('departments', 'projects.department_id', '=','departments.id')
+                    ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
+                    ->leftJoin(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
                     ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
                     ->select(DB::raw('CASE WHEN projects.status = "For Validation" THEN "01" 
                                            WHEN projects.status = "Ongoing" THEN "02"
@@ -224,9 +224,9 @@ class ProjectController extends Controller
         }
 
         $project = DB::table('projects')
-                    ->join('departments', 'projects.department_id', '=','departments.id')
-                    ->join('managers', 'departments.id', '=', 'managers.department_id')
-                    ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
+                    ->leftJoin('departments', 'projects.department_id', '=','departments.id')
+                    ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
+                    ->leftJoin(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
                     ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
                     ->select('projects.id', 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
                              DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
@@ -522,13 +522,13 @@ class ProjectController extends Controller
                 
             }
 
-            if($log->turnover == 'Y' || $log->status == 'Pending' || $log->status == 'Accepted')
+            if($log->turnover == 'Y' || $log->status == 'Pending' || $log->status == 'Accepted' || $log->status == 'Cancelled')
             {
                 $curr_mins = 0;
             }   
 
             ProjectLog::where('id', '=', $log->id)
-                        ->update(['mins_diff' => $curr_mins]);
+                      ->update(['mins_diff' => $curr_mins]);            
 
         }        
 
@@ -1080,20 +1080,25 @@ class ProjectController extends Controller
 
         try {
             $file_extension = '';
-            $path = $request->file('file')->getRealPath();
+            $path = '';
             if($request->file('file'))
-            {
+            {   
+                $path = $request->file('file')->getRealPath();
                 $file_extension = $request->file('file')->getClientOriginalExtension();
             }
 
-            $validator = Validator::make([
-                'file'      => $request->file('file'),
-                'extension' => strtolower($file_extension),
-            ],
-            [
-                'file'          => 'required',
-                'extension'      => 'required|in:doc,csv,xlsx,xls,docx,ppt,odt,ods,odp',
-            ]);  
+            $validator = Validator::make(
+                [
+                    'file' => strtolower($file_extension),
+                ],
+                [
+                    'file' => 'required|in:xlsx,xls,',
+                ], 
+                [
+                    'file.required' => 'File is required',
+                    'file.in' => 'File type must be xlsx, xls or ods',
+                ]
+            );  
             
             if($validator->fails())
             {
@@ -1227,31 +1232,21 @@ class ProjectController extends Controller
                     
                 }
                 else
-                {
+                {   
+                    // if file has no row data
                     return response()->json(['error_empty' => 'File is Empty'], 200);
                 }
-             
+                
+                // if row data has errors
                 if(count($collection_errors))
                 {
                     return response()->json(['error_row_data' => $collection_errors, 'field_values' => $fields], 200);
                 }
                 else
-                {
+                {   
+                    // import excel file
                     Excel::import(new ProjectsImport, $path);
                     event(new WebsocketEvent(['action' => 'import-project']));
-                    // try {
-                    //     $project = Excel::import(new ProjectsImport(), $request->file('file'));
-                    // } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-                    //     $failures = $e->failures();
-                    //     dd($failures);
-                         
-                    //      foreach ($failures as $failure) {
-                    //          $failure->row(); // row that went wrong
-                    //          $failure->attribute(); // either heading key (if using heading row concern) or column index
-                    //          $failure->errors(); // Actual error messages from Laravel validator
-                    //          $failure->values(); // The values of the row that has failed.
-                    //      }
-                    // }
                 }
                     
                 return response()->json(['success' => 'Record has successfully imported'], 200);

@@ -50,7 +50,12 @@ class PermissionSeeder extends Seeder
             'print-preview',
             'import-project',
             'export-project',
-            
+            'import-project-log',
+            'export-project-log',
+            'view-all-projects',
+            'edit-template-percentage',
+            'edit-program-percentage',
+            'edit-validate-percentage',
          ];
  
  

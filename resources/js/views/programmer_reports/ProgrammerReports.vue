@@ -17,6 +17,34 @@
             </v-breadcrumbs-item>
           </template>
         </v-breadcrumbs>
+
+        <!-- <v-btn
+          class="mb-2"
+          :disabled="printDisabled"
+          color="primary"
+          @click="printPreview()"
+          v-if="permissions.print_preview"
+        >
+          <v-icon> mdi-printer </v-icon>
+          print
+        </v-btn>
+        <export-excel
+          class="btn btn-default mb-2"
+          :data="filteredProjects"
+          :fields="json_fields"
+          worksheet="My Worksheet"
+          :name="filename"
+          v-if="permissions.export_project"
+        >
+          <v-btn
+            :disabled="printDisabled"
+            color="success"
+            v-if="permissions.export_project"
+          >
+            <v-icon> mdi-file-excel </v-icon>
+            export
+          </v-btn>
+        </export-excel> -->
         <v-card>
           <v-card-title>
             <v-select
@@ -26,49 +54,14 @@
               item-value="id"
               label="Programmer"
               hide-details=""
-              v-if="user_type == 'Admin'"
+              v-if="permissions.view_all_projects || user_type == 'Validator'"
             ></v-select>
 
-            {{ user_type == "Programmer" ? "My Projects" : "" }}
-
-            <v-divider
-              vertical
-              class="ml-2"
-              v-if="permissions.print_preview"
-            ></v-divider>
-
-            <v-icon
-              class="ml-2"
-              :disabled="printDisabled"
-              color="primary"
-              @click="printPreview()"
-              v-if="permissions.print_preview"
-            >
-              mdi-printer
-            </v-icon>
-
-            <v-divider
-              vertical
-              class="ml-2"
-              v-if="permissions.export_project"
-            ></v-divider>
-
-            <export-excel
-              class="btn btn-default"
-              :data="filteredProjects"
-              :fields="json_fields"
-              worksheet="My Worksheet"
-              name="filename.xls"
-              v-if="permissions.export_project"
-            >
-              <v-icon
-                :disabled="printDisabled"
-                color="success"
-                v-if="permissions.export_project"
-              >
-                mdi-file-excel
-              </v-icon>
-            </export-excel>
+            {{
+              permissions.view_all_projects || user_type == "Validator"
+                ? ""
+                : "My Projects"
+            }}
 
             <v-spacer></v-spacer>
             <v-text-field
@@ -115,6 +108,34 @@
                 @input="input_filter_date = false + calculateHoursByDate()"
               ></v-date-picker>
             </v-menu>
+
+                <v-icon
+                  :disabled="printDisabled"
+                  color="primary"
+                  @click="printPreview()"
+                  v-if="permissions.print_preview"
+                >
+                  mdi-printer
+                </v-icon>
+              
+              <v-divider></v-divider>
+              
+                <export-excel
+                  :data="filteredProjects"
+                  :fields="json_fields"
+                  worksheet="My Worksheet"
+                  :name="filename"
+                  v-if="permissions.export_project"
+                >
+                  <v-icon
+                    :disabled="printDisabled"
+                    color="success"
+                    v-if="permissions.export_project"
+                  >
+                    mdi-file-excel
+                  </v-icon>
+                </export-excel>
+           
             <template>
               <v-toolbar flat>
                 <v-dialog v-model="dialog" max-width="700px" persistent>
@@ -286,7 +307,7 @@
                     <v-card-text>
                       <v-container>
                         <v-row>
-                          <v-col>
+                          <v-col v-if="permissions.edit_template_percentage">
                             <v-text-field-money
                               v-model="editedItem.template_percent"
                               v-bind:properties="{
@@ -303,7 +324,7 @@
                             >
                             </v-text-field-money>
                           </v-col>
-                          <v-col>
+                          <v-col v-if="permissions.edit_program_percentage">
                             <v-text-field-money
                               v-model="editedItem.program_percent"
                               v-bind:properties="{
@@ -320,7 +341,7 @@
                             >
                             </v-text-field-money>
                           </v-col>
-                          <v-col>
+                          <v-col v-if="permissions.edit_validate_percentage">
                             <v-text-field-money
                               v-model="editedItem.validation_percent"
                               v-bind:properties="{
@@ -562,7 +583,7 @@
                         ? 'warning'
                         : item.status == 'Accepted'
                         ? 'success'
-                        : ''
+                        : 'error'
                     "
                   >
                     {{ item.status }}
@@ -587,7 +608,13 @@
                       </v-btn>
                     </template>
                     <v-list>
-                      <v-list-item v-if="permissions.project_edit">
+                      <v-list-item
+                        v-if="
+                          permissions.edit_program_percentage ||
+                          permissions.edit_template_percentage ||
+                          permissions.edit_validate_percentage
+                        "
+                      >
                         <v-list-item-title>
                           <v-btn
                             x-small
@@ -602,7 +629,11 @@
                       </v-list-item>
                       <v-divider
                         class="ma-0"
-                        v-if="permissions.project_log_create"
+                        v-if="
+                          permissions.edit_program_percentage ||
+                          permissions.edit_template_percentage ||
+                          permissions.edit_validate_percentage
+                        "
                       ></v-divider>
                       <v-list-item
                         v-if="
@@ -624,7 +655,7 @@
                       </v-list-item>
                       <v-divider
                         class="ma-0"
-                        v-if="permissions.project_log_list"
+                        v-if="permissions.project_log_create"
                       ></v-divider>
                       <v-list-item v-if="permissions.project_log_list">
                         <v-list-item-title>
@@ -923,32 +954,7 @@ export default {
           this.holidays = response.data.holidays;
           this.loading = false;
 
-          if(!this.filter_project_by_programmer)
-          {
-            if (this.user_type == "Admin") {
-              this.filter_project_by_programmer = this.programmers[0].id;
-            } else {
-              this.filter_project_by_programmer = parseInt(this.user_id);
-            }
-          }
-          
-          this.project_execution_hrs.forEach((value, index) => {
-            this.filteredProjects.forEach((val, index) => {
-              if (value.project_id == val.project_id) {
-                // execution hrs overall
-                this.filteredProjects[index].program_hrs =
-                  value.execution_hrs.program_hrs;
-                this.filteredProjects[index].validate_hrs =
-                  value.execution_hrs.validate_hrs;
-
-                // execution hrs this month
-                this.filteredProjects[index].program_hrs_tm =
-                  value.execution_hrs_tm.program_hrs;
-                this.filteredProjects[index].validate_hrs_tm =
-                  value.execution_hrs_tm.validate_hrs;
-              }
-            });
-          });
+          // console.log(this.filteredProjects);
         },
         (error) => {
           // if unauthenticated (401)
@@ -1245,6 +1251,30 @@ export default {
       this.permissions.project_edit = Home.methods.hasPermission([
         "project-edit",
       ]);
+      this.permissions.view_all_projects = Home.methods.hasPermission([
+        "view-all-projects",
+      ]);
+      this.permissions.edit_template_percentage = Home.methods.hasPermission([
+        "edit-template-percentage",
+      ]);
+      this.permissions.edit_program_percentage = Home.methods.hasPermission([
+        "edit-program-percentage",
+      ]);
+      this.permissions.edit_validate_percentage = Home.methods.hasPermission([
+        "edit-validate-percentage",
+      ]);
+
+      // if dropdown programmger has no value(first load) then set a value
+      if (!this.filter_project_by_programmer) {
+        if (
+          this.permissions.view_all_projects ||
+          this.user_type == "Validator"
+        ) {
+          this.filter_project_by_programmer = parseInt(this.programmers[0].id);
+        } else {
+          this.filter_project_by_programmer = parseInt(this.user_id);
+        }
+      }
 
       // hide column actions if user has no permission
       if (
@@ -1253,9 +1283,7 @@ export default {
         !this.permissions.project_edit
       ) {
         this.headers[1].align = " d-none";
-      }
-      else
-      {
+      } else {
         this.headers[1].align = "";
       }
 
@@ -1276,12 +1304,21 @@ export default {
           this.userRolesPermissions();
         }
 
-        if(action == 'project-create' || action == 'project-edit' || action == 'project-delete' || action == 'import-project')
-        {
+        if (
+          action == "project-create" ||
+          action == "project-edit" ||
+          action == "project-delete" ||
+          action == "import-project"
+        ) {
           this.getProject();
         }
-
       });
+    },
+    function1() {
+      console.log("function1");
+    },
+    function2() {
+      console.log("function2");
     },
   },
   computed: {
@@ -1301,6 +1338,7 @@ export default {
       let filteredProjects = [];
       let filteredAcceptedProjects = [];
 
+      // filter record based on programmer dropdown value
       this.projects.forEach((value, index) => {
         if (this.search_report_status == value.status) {
           if (this.filter_project_by_programmer == value.programmer_id) {
@@ -1309,17 +1347,32 @@ export default {
         }
       });
 
+      // if dropdown Report Status has no value
       if (!this.search_report_status) {
         this.projects.forEach((value, index) => {
-          if (this.filter_project_by_programmer == value.programmer_id) {
-            filteredProjects.push(value);
+          // if user has the permission to view all projects or user type is not validator
+          if (
+            this.permissions.view_all_projects ||
+            this.user_type != "Validator"
+          ) {
+            if (this.filter_project_by_programmer == value.programmer_id) {
+              filteredProjects.push(value);
+            }
+          } else {
+            if (
+              this.filter_project_by_programmer == value.programmer_id &&
+              this.user_id == value.validator_id &&
+              value.status != "Accepted"
+            ) {
+              filteredProjects.push(value);
+            }
           }
         });
       }
 
+      // filter accepted report based on parameter date
       filteredProjects.forEach((value, index) => {
         let accepted_date = new Date(value.accepted_date);
-
         if (
           (accepted_date >= firstDay && accepted_date <= lastDay) ||
           !value.accepted_date
@@ -1335,6 +1388,24 @@ export default {
         { text: "Accepted", value: "Accepted" },
         { text: "Cancelled", value: "Cancelled" },
       ];
+
+      this.project_execution_hrs.forEach((value, index) => {
+        filteredAcceptedProjects.forEach((val, i) => {
+          if (value.project_id == val.project_id) {
+            // execution hrs overall
+            filteredAcceptedProjects[i].program_hrs =
+              value.execution_hrs.program_hrs;
+            filteredAcceptedProjects[i].validate_hrs =
+              value.execution_hrs.validate_hrs;
+
+            // execution hrs this month
+            filteredAcceptedProjects[i].program_hrs_tm =
+              value.execution_hrs_tm.program_hrs;
+            filteredAcceptedProjects[i].validate_hrs_tm =
+              value.execution_hrs_tm.validate_hrs;
+          }
+        });
+      });
 
       return filteredAcceptedProjects;
     },
@@ -1384,8 +1455,16 @@ export default {
       !this.$v.remarks.required && errors.push("Remarks is required.");
       return errors;
     },
+    filename() {
+      let filename = "";
+      this.programmers.forEach((value, index) => {
+        if (this.filter_project_by_programmer == value.id) {
+          filename = value.name + " Report.xls";
+        }
+      });
 
-    
+      return filename;
+    },
   },
   mounted() {
     access_token = localStorage.getItem("access_token");

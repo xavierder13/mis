@@ -10,6 +10,9 @@ use Carbon\Carbon;
 use Validator;
 use DB;
 use App\Holiday;
+use Excel;
+use App\Imports\ProjectLogsImport;
+use App\Events\WebsocketEvent;
 
 class ProjectLogController extends Controller
 {
@@ -17,9 +20,9 @@ class ProjectLogController extends Controller
     {   
         
         $project = DB::table('projects')
-                    ->join('departments', 'projects.department_id', '=','departments.id')
-                    ->join('managers', 'departments.id', '=', 'managers.department_id')
-                    ->join(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
+                    ->leftJoin('departments', 'projects.department_id', '=','departments.id')
+                    ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
+                    ->leftJoin(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
                     ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
                     ->select(DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
                              DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
@@ -571,7 +574,7 @@ class ProjectLogController extends Controller
                 
             }
 
-            if($log->turnover == 'Y' || $log->status == 'Pending' || $log->status == 'Accepted')
+            if($log->turnover == 'Y' || $log->status == 'Pending' || $log->status == 'Accepted' || $log->status == 'Pending')
             {
                 $curr_mins = 0;
             }   
@@ -610,6 +613,195 @@ class ProjectLogController extends Controller
         }
 
         return $holidays_array;
+    }
+
+    public function import_project_log(Request $request) 
+    {   
+        
+        try {
+            $file_extension = '';
+            $path = '';
+            if($request->file('file'))
+            {   $path = $request->file('file')->getRealPath();
+                $file_extension = $request->file('file')->getClientOriginalExtension();
+            }
+
+            $validator = Validator::make(
+                [
+                    'file' => strtolower($file_extension),
+                    'project_id' => $request->get('project_id')
+                ],
+                [
+                    'file' => 'required|in:xlsx,xls,ods',
+                    'project_id' => 'required|integer'
+                ], 
+                [
+                    'file.required' => 'File is required',
+                    'file.in' => 'File type must be xlsx, xls or ods',
+                    'project_id.required' => 'Project ID is required',
+                    'project_id.integer' => 'Project ID must be an integer'
+                ]
+            );  
+            
+            if($validator->fails())
+            {
+                return response()->json($validator->errors(), 200);
+            }
+    
+            if ($request->file('file')) {
+                    
+                // $array = Excel::toArray(new ProjectsImport, $request->file('file'));
+                $collection = Excel::toCollection(new ProjectLogsImport, $request->file('file'))[0];
+                $ctr_collection = count($collection);
+                $columns = [
+                    // 'project_id', 
+                    'remarks_date', 
+                    'remarks_time', 
+                    'status',
+                    'remarks',
+                    'mins_diff',
+                    'turnover'
+                    
+                ]; 
+
+                $collection_errors = [];
+                $collection_column_errors = [];
+                $fields = [];    
+
+                if($ctr_collection > 1)
+                {   
+                    for($x=0; $ctr_collection > $x; $x++)
+                    {   
+                        for($y=0; count($collection[$x]) > $y; $y++)
+                        {
+                            if($x == 0)
+                            {
+                               if($collection[$x][$y] != $columns[$y])
+                               {
+                                    $collection_column_errors[] =  'Invalid column name "'. $collection[$x][$y]. '"';
+                               } 
+                            }  
+                            else
+                            {   
+                                $fields[$x - 1][$columns[$y]] = $collection[$x][$y];
+                            }
+                        }
+                        
+                        // if column names did not match
+                        if(count($collection_column_errors))
+                        {
+                            return response()->json(['error_column_name' => $collection_column_errors], 200);
+                        }
+
+                    } 
+
+                    $rules = [
+                        // '*.project_id.required' => 'Project ID is required',
+                        // '*.project_id.integer' => 'Project ID must be an integer',
+                        '*.remarks_date.required' => 'Remarks date is required',
+                        '*.remarks_date.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+                        '*.remarks_time.required' => 'Remarks time is required',
+                        '*.remarks_time.date_format' => 'Invalid time. Format: (H:i)',
+                        '*.status.required' => 'Status is required',
+                        '*.status.in' => 'Value is invalid, must be on the ff. values ("Ongoing", "For Validation", "Pending", "Accepted", "Cancelled")',
+                        '*.remarks.required' => 'Remarks is required',
+                        '*.mins_diff.integer' => 'Minutes difference must be an integer',
+                        '*.mins_diff.between' => 'Minutes difference must be 0 or above',
+                        '*.ideal_prog_hrs.numeric' => 'Ideal Prog. Hrs must be numeric',
+                        '*.ideal_prog_hrs.between' => 'Ideal Prog. Hrs must be 0 or above',
+                        '*.turnover.in' => 'Value is invalid, must be "Y" or Null',
+                    ];
+            
+                    $valid_fields = [
+                        // '*.project_id' => 'required|integer',
+                        '*.remarks_date' => 'required|date_format:Y-m-d',
+                        '*.remarks_time' => 'required|date_format:H:i',
+                        '*.status' => 'required|in:"Ongoing", "For Validation", "Pending", "Accepted", "Cancelled"',
+                        '*.remarks' => 'required',
+                        '*.mins_diff' => 'nullable|integer|between:0, 999999999',
+                        '*.turnover' => 'nullable|in:"Y"',
+                    ];
+                    
+                    $validator = Validator::make($fields, $valid_fields, $rules);  
+            
+                    if($validator->fails())
+                    {
+                        $collection_errors =  $validator->errors();
+                    }
+                    
+                }
+                else
+                {   
+                    // if file has no row data
+                    return response()->json(['error_empty' => 'File is Empty'], 200);
+                }
+                
+                // if row data has errors
+                if(count($collection_errors))
+                {
+                    return response()->json(['error_row_data' => $collection_errors, 'field_values' => $fields], 200);
+                }
+                else
+                {   
+                    // import excel file
+                    // Excel::import(new ProjectLogsImport, $path);
+                    
+                    foreach($fields as $data)
+                    {
+                        $project_log = new ProjectLog();
+                        $project_log->project_id = $request->get('project_id');
+                        $project_log->remarks_date = $data['remarks_date'];
+                        $project_log->remarks_time = $data['remarks_time'];
+                        $project_log->status = $data['status'];
+                        $project_log->remarks = $data['remarks'];
+                        $project_log->turnover = $data['turnover'];
+                        $project_log->save();
+
+                        $project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                  ->orderBy('remarks_date', 'Asc')
+                                  ->orderBy('remarks_time', 'Asc')
+                                  ->get();
+
+                        if(count($project_logs))
+                        {   
+                            $first_ongoing_log = null;
+                            $first_validation_log = null;
+                            if($project_logs->where('status', '=', 'Ongoing')->first())
+                            {
+                                $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+                            }
+                            if($project_logs->where('status', '=', 'For Validation')->first())
+                            {
+                                $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+                            }
+
+                            Project::where('id', '=', $project_id)
+                                ->update([
+                                    'status' => $status, 
+                                    'program_date' => $first_ongoing_log,
+                                    'validation_date' => $first_validation_log,
+                                ]);
+                        }
+
+                        // calculate hours difference per remarks log
+                        $this->calculateHours($project_logs);
+                    }
+
+                    event(new WebsocketEvent(['action' => 'import-project-log']));
+                }
+                    
+                return response()->json(['success' => 'Record has successfully imported', $request], 200);
+            }
+            else
+            {
+                return response()->json(['error_empty' => 'File is empty'], 200);
+            }
+          
+          } catch (\Exception $e) {
+          
+              return response()->json(['error' => $e->getMessage()], 200);
+          }
+        
     }
 
 }

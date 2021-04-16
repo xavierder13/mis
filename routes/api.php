@@ -94,10 +94,6 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
         'as' => 'import_project',
     ]);
 
-    Route::get('export_project', 'DemoController@export')->name('export');
-    Route::get('importExportView', 'DemoController@importExportView');
-    Route::post('import', 'DemoController@import')->name('import');
-
 });
 
 // Projects Logs Routes
@@ -135,6 +131,16 @@ Route::group(['prefix' => 'project_log', 'middleware' => ['auth:api']], function
     Route::get('/get_latest_log/{id}', [
         'uses' => 'API\ProjectLogController@get_latest_log',
         'as' => 'project_log.get_latest_log',
+    ]);
+
+    Route::get('/export_project_log', [
+        'uses' => 'API\ProjectLogController@export_project_log',
+        'as' => 'export_project_log',
+    ]);
+
+    Route::post('/import_project_log', [
+        'uses' => 'API\ProjectLogController@import_project_log',
+        'as' => 'import_project_log',
     ]);
 
 });

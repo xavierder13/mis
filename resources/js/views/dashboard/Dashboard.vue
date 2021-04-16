@@ -309,6 +309,24 @@
                             </v-file-input>
                           </v-col>
                         </v-row>
+                        <v-row
+                          class="fill-height"
+                          align-content="center"
+                          justify="center"
+                          v-if="uploading"
+                        >
+                          <v-col class="subtitle-1 text-center" cols="12">
+                            Uploading...
+                          </v-col>
+                          <v-col cols="6">
+                            <v-progress-linear
+                              color="primary"
+                              indeterminate
+                              rounded
+                              height="6"
+                            ></v-progress-linear>
+                          </v-col>
+                        </v-row>
                       </v-container>
                     </v-card-text>
                     <v-card-actions>
@@ -331,7 +349,11 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-dialog v-model="dialog_error_list" max-width="1000px" persistent>
+                <v-dialog
+                  v-model="dialog_error_list"
+                  max-width="1000px"
+                  persistent
+                >
                   <v-card>
                     <v-card-title>
                       <span class="headline">Error List</span>
@@ -374,7 +396,7 @@
             style="width: 100%; overflow-x: scroll"
             v-if="permissions.project_list"
           >
-            <div style="width: 2000px">
+            <div style="width: 2200px">
               <v-data-table
                 :headers="headers"
                 :items="projects"
@@ -389,7 +411,23 @@
                 <template v-slot:item.template_percent="{ item }">
                   {{ item.template_percent ? item.template_percent + "%" : "" }}
                 </template>
-
+                <template v-slot:item.status="{ item, index }">
+                  <v-chip
+                    :color="
+                      item.status == 'For Validation'
+                        ? 'info'
+                        : item.status == 'Ongoing'
+                        ? 'secondary'
+                        : item.status == 'Pending'
+                        ? 'warning'
+                        : item.status == 'Accepted'
+                        ? 'success'
+                        : 'error'
+                    "
+                  >
+                    {{ item.status }}
+                  </v-chip>
+                </template>
                 <template v-slot:item.actions="{ item }">
                   <v-icon
                     small
@@ -461,6 +499,7 @@ export default {
         { text: "Ideal Prog Hrs.", value: "ideal_prog_hrs" },
         { text: "Ideal Valid Hrs.", value: "ideal_valid_hrs" },
         { text: "Template %", value: "template_percent" },
+        { text: "Status", value: "status" },
         { text: "Actions", value: "actions", width: "80px", sortable: false },
       ],
       input_date_received: false,
@@ -469,11 +508,13 @@ export default {
       date_approved: "",
       disabled: false,
       uploadDisabled: false,
+      uploading: false,
       dialog: false,
       dialog_import: false,
       dialog_error_list: false,
       file: [],
       fileIsEmpty: false,
+      fileIsInvalid: false,
       projects: [],
       departments: [],
       programmers: [],
@@ -647,8 +688,8 @@ export default {
 
     save() {
       this.$v.$touch();
-
-      if (!this.$v.$error) {
+      
+      if (!this.$v.editedItem.$error) {
         this.overlay = true;
         this.disabled = true;
 
@@ -773,9 +814,11 @@ export default {
     uploadFile() {
       this.$v.$touch();
       this.fileIsEmpty = false;
+      this.fileIsInvalid = false;
 
       if (!this.$v.file.$error) {
         this.uploadDisabled = true;
+        this.uploading = true;
         let formData = new FormData();
 
         formData.append("file", this.file);
@@ -788,6 +831,8 @@ export default {
         }).then(
           (response) => {
             console.log(response.data);
+
+            this.errors_array = [];
 
             if (response.data.success) {
               this.$swal({
@@ -832,9 +877,12 @@ export default {
               this.dialog_error_list = true;
             } else if (response.data.error_empty) {
               this.fileIsEmpty = true;
+            } else {
+              this.fileIsInvalid = true;
             }
 
             this.uploadDisabled = false;
+            this.uploading = false;
           },
           (error) => {
             console.log(error);
@@ -962,6 +1010,8 @@ export default {
       if (!this.$v.file.$dirty) return errors;
       !this.$v.file.required && errors.push("File is required.");
       this.fileIsEmpty && errors.push("File is empty.");
+      this.fileIsInvalid &&
+        errors.push("File type must be 'xlsx', 'xls' or 'ods'.");
       return errors;
     },
     imported_file_errors() {

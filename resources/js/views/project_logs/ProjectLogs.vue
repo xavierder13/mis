@@ -43,6 +43,41 @@
             >
               {{ project.status }}
             </v-chip>
+
+            <!-- <v-divider
+              vertical
+              class="ml-2"
+              v-if="permissions.export_project_log"
+            ></v-divider>
+            <export-excel
+              class="btn btn-default"
+              :data="filteredProjects"
+              :fields="json_fields"
+              worksheet="My Worksheet"
+              name="filename.xls"
+              v-if="permissions.export_project_log"
+            >
+              <v-icon
+                :disabled="printDisabled"
+                color="success"
+                v-if="permissions.export_project_log"
+              >
+                mdi-file-excel
+              </v-icon>
+            </export-excel> -->
+            <v-divider
+              vertical
+              class="ml-3"
+              v-if="permissions.import_project_log"
+            ></v-divider>
+            <v-icon
+              color="primary"
+              class="ml-2"
+              @click="importExcel()"
+              v-if="permissions.import_project_log"
+            >
+              mdi-import
+            </v-icon>
             <v-spacer></v-spacer>
 
             <template>
@@ -209,7 +244,7 @@
                               @blur="$v.editedItem.minute.$touch()"
                             ></v-autocomplete>
                           </v-col>
-                        </v-row>                       
+                        </v-row>
                         <v-row>
                           <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-textarea
@@ -254,6 +289,106 @@
               </v-toolbar>
             </template>
           </v-card-title>
+          <v-dialog v-model="dialog_import" max-width="500px" persistent>
+            <v-card>
+              <v-card-title>
+                <span class="headline">Import Projects</span>
+              </v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+                <v-container>
+                  <v-row>
+                    <v-col class="mt-0 mb-0 pt-0 pb-0">
+                      <v-file-input
+                        v-model="file"
+                        show-size
+                        label="File input"
+                        prepend-icon="mdi-paperclip"
+                        required
+                        :error-messages="fileErrors"
+                        @change="$v.file.$touch() + (fileIsEmpty = false)"
+                        @blur="$v.file.$touch()"
+                      >
+                        <template v-slot:selection="{ text }">
+                          <v-chip small label color="primary">
+                            {{ text }}
+                          </v-chip>
+                        </template>
+                      </v-file-input>
+                    </v-col>
+                  </v-row>
+                  <v-row
+                    class="fill-height"
+                    align-content="center"
+                    justify="center"
+                    v-if="uploading"
+                  >
+                    <v-col class="subtitle-1 text-center" cols="12">
+                      Uploading...
+                    </v-col>
+                    <v-col cols="6">
+                      <v-progress-linear
+                        color="primary"
+                        indeterminate
+                        rounded
+                        height="6"
+                      ></v-progress-linear>
+                    </v-col>
+                  </v-row>
+                </v-container>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn
+                  color="#E0E0E0"
+                  @click="dialog_import = false"
+                  class="mb-4"
+                >
+                  Cancel
+                </v-btn>
+                <v-btn
+                  color="primary"
+                  class="mb-4 mr-4"
+                  @click="uploadFile()"
+                  :disabled="uploadDisabled"
+                >
+                  Upload
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+          <v-dialog v-model="dialog_error_list" max-width="1000px" persistent>
+            <v-card>
+              <v-card-title>
+                <span class="headline">Error List</span>
+                <v-spacer></v-spacer>
+                <v-icon @click="dialog_error_list = false"> mdi-close </v-icon>
+              </v-card-title>
+              <v-divider></v-divider>
+              <v-card-text>
+                <v-container>
+                  <v-row>
+                    <v-col>
+                      <v-simple-table dense>
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Error Message</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="(item, index) in imported_file_errors">
+                            <td>{{ index + 1 }}</td>
+                            <td v-html="item"></td>
+                          </tr>
+                        </tbody>
+                      </v-simple-table>
+                    </v-col>
+                  </v-row>
+                </v-container>
+              </v-card-text>
+            </v-card>
+          </v-dialog>
           <v-data-table
             :headers="headers"
             :items="project_logs"
@@ -317,7 +452,7 @@ import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import moment from "moment";
-import Home from '../Home.vue';  
+import Home from "../Home.vue";
 
 let now_date = moment(new Date().toISOString().substring(0, 10), "YYYY-MM-DD");
 let now_datetime = moment(new Date(), "YYYY-MM-DD");
@@ -331,9 +466,8 @@ let now_noon_time = new Date(
 );
 
 export default {
-
   components: {
-    Home
+    Home,
   },
 
   mixins: [validationMixin],
@@ -347,6 +481,7 @@ export default {
       minute: { required },
       remarks: { required },
     },
+    file: { required },
   },
   data() {
     return {
@@ -386,8 +521,16 @@ export default {
       ],
       disabled: false,
       dialog: false,
+      dialog_import: false,
+      dialog_error_list: false,
+      uploadDisabled: false,
+      fileIsEmpty: false,
+      fileIsInvalid: false,
+      uploading: false,
       project_logs: [],
       project: {},
+      file: [],
+      errors_array: [],
       types: [
         { text: "New", value: "New" },
         { text: "Change Order", value: "Change Order" },
@@ -397,8 +540,8 @@ export default {
         status: "",
         remarks_date: new Date().toISOString().substr(0, 10),
         remarks_time: "",
-        hour: String(new Date().toTimeString().substr(0, 5).split(':')[0]),
-        minute: String(new Date().toTimeString().substr(0, 5).split(':')[1]),
+        hour: String(new Date().toTimeString().substr(0, 5).split(":")[0]),
+        minute: String(new Date().toTimeString().substr(0, 5).split(":")[1]),
         remarks: "",
         turnover: "",
       },
@@ -406,8 +549,8 @@ export default {
         status: "",
         remarks_date: new Date().toISOString().substr(0, 10),
         remarks_time: "",
-        hour: String(new Date().toTimeString().substr(0, 5).split(':')[0]),
-        minute: String(new Date().toTimeString().substr(0, 5).split(':')[1]),
+        hour: String(new Date().toTimeString().substr(0, 5).split(":")[0]),
+        minute: String(new Date().toTimeString().substr(0, 5).split(":")[1]),
         remarks: "",
         turnover: "",
       },
@@ -717,6 +860,92 @@ export default {
         this.disabledSwitch = true;
       }
     },
+    importExcel() {
+      this.dialog_import = true;
+      this.file = [];
+      this.$v.$reset();
+    },
+
+    uploadFile() {
+      this.$v.$touch();
+      this.fileIsEmpty = false;
+      this.fileIsInvalid = false;
+
+      if (!this.$v.file.$error) {
+        this.uploadDisabled = true;
+        this.uploading = true;
+        let formData = new FormData();
+        let project_id = this.$route.params.project_id;
+
+        formData.append("file", this.file);
+        formData.append("project_id", project_id);
+
+        Axios.post("api/project_log/import_project_log", formData, {
+          headers: {
+            Authorization: "Bearer " + access_token,
+            "Content-Type": "multipart/form-data",
+          },
+        }).then(
+          (response) => {
+            console.log(response.data);
+            this.errors_array = [];
+            if (response.data.success) {
+              this.$swal({
+                position: "center",
+                icon: "success",
+                title: "Record has been imported",
+                showConfirmButton: false,
+                timer: 2500,
+              });
+              this.$v.$reset();
+              this.dialog_import = false;
+              this.file = [];
+              this.fileIsEmpty = false;
+            } else if (response.data.error_column_name) {
+              this.errors_array = response.data.error_column_name;
+              this.dialog_error_list = true;
+            } else if (response.data.error_row_data) {
+              let error_keys = Object.keys(response.data.error_row_data);
+              let errors = response.data.error_row_data;
+              let field_values = response.data.field_values;
+              let row = "";
+              let col = "";
+
+              error_keys.forEach((value, index) => {
+                row = value.split(".")[0];
+                col = value.split(".")[1];
+                errors[value].forEach((val, i) => {
+                  this.errors_array.push(
+                    "Error on Index: <label class='text-info'>" +
+                      row +
+                      "</label>; Column: <label class='text-primary'>" +
+                      col +
+                      "</label>; Msg: <label class='text-danger'>" +
+                      val +
+                      "</label>; Value: <label class='text-success'>" +
+                      field_values[row][col] +
+                      "</label>"
+                  );
+                });
+              });
+
+              this.dialog_error_list = true;
+            } else if (response.data.error_empty) {
+              this.fileIsEmpty = true;
+            } else {
+              this.fileIsInvalid = true;
+            }
+
+            this.uploadDisabled = false;
+            this.uploading = false;
+          },
+          (error) => {
+            console.log(error);
+            this.uploadDisabled = false;
+          }
+        );
+      }
+    },
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {
         headers: {
@@ -751,23 +980,54 @@ export default {
       this.permissions.project_log_delete = Home.methods.hasPermission([
         "project-log-delete",
       ]);
+      this.permissions.import_project_log = Home.methods.hasPermission([
+        "import-project-log",
+      ]);
+      this.permissions.export_project_log = Home.methods.hasPermission([
+        "export-project-log",
+      ]);
 
       // hide column actions if user has no permission
-      if (!this.permissions.project_log_edit && !this.permissions.project_log_delete) {
+      if (
+        !this.permissions.project_log_edit &&
+        !this.permissions.project_log_delete
+      ) {
         this.headers[7].align = " d-none";
-      }
-      else
-      {
+      } else {
         this.headers[7].align = "";
       }
 
       // if user is not authorize
-      if (!this.permissions.project_log_list && !this.permissions.project_log_create) {
+      if (
+        !this.permissions.project_log_list &&
+        !this.permissions.project_log_create
+      ) {
         this.$router.push("/unauthorize").catch(() => {});
       }
-      
     },
-  
+    websocket() {
+      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+        console.log(e);
+        let action = e.data.action;
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
+        ) {
+          this.userRolesPermissions();
+        }
+
+        if (
+          action == "project-log-create" ||
+          action == "project-log-edit" ||
+          action == "project-log-delete" ||
+          action == "import-project-log"
+        ) {
+          this.getProjectLogs();
+        }
+      });
+    },
   },
   computed: {
     formTitle() {
@@ -823,6 +1083,18 @@ export default {
         errors.push("Remarks is required.");
       return errors;
     },
+    fileErrors() {
+      const errors = [];
+      if (!this.$v.file.$dirty) return errors;
+      !this.$v.file.required && errors.push("File is required.");
+      this.fileIsEmpty && errors.push("File is empty.");
+      this.fileIsInvalid &&
+        errors.push("File type must be 'xlsx', 'xls' or 'ods'.");
+      return errors;
+    },
+    imported_file_errors() {
+      return this.errors_array.sort();
+    },
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
@@ -830,16 +1102,16 @@ export default {
     this.userRolesPermissions();
 
     for (let hour = 1; hour <= 24; hour++) {
-      let hr = hour < 10 ? '0'+hour : hour;
+      let hr = hour < 10 ? "0" + hour : hour;
       this.hour.push(String(hr));
     }
 
     for (let minute = 1; minute <= 60; minute++) {
-      let min = minute < 10 ? '0'+minute : minute;
+      let min = minute < 10 ? "0" + minute : minute;
       this.minute.push(String(min));
     }
 
-
+    this.websocket();
   },
 };
 </script>

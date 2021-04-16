@@ -33,32 +33,31 @@ class ProjectsImport implements ToModel
         // insert all rows except first row(header)
         if($this->rows > 0)
         {   
-            var_dump($this->rows);
-            // return new Project([
-            //     'ref_no' => $row[0], 
-            //     'report_title' => $row[1], 
-            //     'programmer_id' => $row[2], 
-            //     'validator_id' => $row[3], 
-            //     'date_receive' => $row[4], 
-            //     'date_approve' => $row[5], 
-            //     'type' => $row[6], 
-            //     'department_id' => $row[7], 
-            //     'ideal_prog_hrs' => $row[8], 
-            //     'ideal_valid_hrs' => $row[9], 
-            //     'status' => $row[10], 
-            //     'template_percent' => $row[11], 
-            //     'program_percent' => $row[12], 
-            //     'validation_percent' => $row[13], 
-            //     'program_date' => $row[14], 
-            //     'validation_date' => $row[15], 
-            //     'program_hrs' => $row[16], 
-            //     'validate_hrs' => $row[17], 
-            //     'accepted_date' => $row[18]
-            // ]);
+            
+            return new Project([
+                'ref_no' => $row[0], 
+                'report_title' => $row[1], 
+                'programmer_id' => $row[2], 
+                'validator_id' => $row[3], 
+                'date_receive' => $row[4], 
+                'date_approve' => $row[5], 
+                'type' => $row[6], 
+                'department_id' => $row[7], 
+                'ideal_prog_hrs' => $row[8], 
+                'ideal_valid_hrs' => $row[9], 
+                'status' => $row[10], 
+                'template_percent' => $row[11], 
+                'program_percent' => $row[12], 
+                'validation_percent' => $row[13], 
+                'program_date' => $row[14], 
+                'validation_date' => $row[15], 
+                'program_hrs' => $row[16], 
+                'validate_hrs' => $row[17], 
+                'accepted_date' => $row[18]
+            ]);
     
         }
 
-        
         ++$this->rows;
     }
 

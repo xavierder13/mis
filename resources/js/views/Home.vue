@@ -49,7 +49,7 @@
           <v-list-item-icon>
             <v-icon>mdi-file-document</v-icon>
           </v-list-item-icon>
-          <v-list-item-title>My Projects</v-list-item-title>
+          <v-list-item-title>Projects</v-list-item-title>
         </v-list-item>
         <v-list-item
           link
@@ -216,6 +216,12 @@ export default {
         print_preview: false,
         import_project: false,
         export_project: false,
+        import_project_log: false,
+        export_project_log: false,
+        view_all_projects: false,
+        edit_template_percentage: false,
+        edit_program_percentage: false,
+        edit_validate_percentage: false,
       },
       roles: {
         administrator: false,
@@ -354,6 +360,9 @@ export default {
       this.permissions.print_preview = this.hasPermission(["print-preview"]);
       this.permissions.import_project = this.hasPermission(["import-project"]);
       this.permissions.export_project = this.hasPermission(["export-project"]);
+      this.permissions.import_project_log = this.hasPermission(["import-project-log"]);
+      this.permissions.export_project_log = this.hasPermission(["export-project-log"]);
+      this.permissions.view_all_projects = this.hasPermission(["view-all-projects"]);
       this.roles.administrator = this.hasRole(["Administrator"]);
     },
 
