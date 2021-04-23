@@ -17,34 +17,42 @@
             </v-breadcrumbs-item>
           </template>
         </v-breadcrumbs>
+        <div class="d-flex flex-row-reverse mb-2">
+          <div>
+            <v-btn
+              class="ml-1"
+              :disabled="printDisabled"
+              color="primary"
+              small
+              @click="printPreview()"
+              v-if="permissions.print_preview"
+            >
+              <v-icon class="mr-1" small> mdi-printer </v-icon>
+              print
+            </v-btn>
+          </div>
+          <div>
+            <export-excel
+              class="btn btn-default pa-0 ma-0"
+              :data="filteredProjects"
+              :fields="json_fields"
+              worksheet="My Worksheet"
+              :name="filename"
+              v-if="permissions.export_project"
+            >
+              <v-btn
+                :disabled="printDisabled"
+                color="success"
+                small
+                v-if="permissions.export_project"
+              >
+                <v-icon small> mdi-file-excel </v-icon>
+                export
+              </v-btn>
+            </export-excel>
+          </div>
+        </div>
 
-        <!-- <v-btn
-          class="mb-2"
-          :disabled="printDisabled"
-          color="primary"
-          @click="printPreview()"
-          v-if="permissions.print_preview"
-        >
-          <v-icon> mdi-printer </v-icon>
-          print
-        </v-btn>
-        <export-excel
-          class="btn btn-default mb-2"
-          :data="filteredProjects"
-          :fields="json_fields"
-          worksheet="My Worksheet"
-          :name="filename"
-          v-if="permissions.export_project"
-        >
-          <v-btn
-            :disabled="printDisabled"
-            color="success"
-            v-if="permissions.export_project"
-          >
-            <v-icon> mdi-file-excel </v-icon>
-            export
-          </v-btn>
-        </export-excel> -->
         <v-card>
           <v-card-title>
             <v-select
@@ -108,34 +116,6 @@
                 @input="input_filter_date = false + calculateHoursByDate()"
               ></v-date-picker>
             </v-menu>
-
-                <v-icon
-                  :disabled="printDisabled"
-                  color="primary"
-                  @click="printPreview()"
-                  v-if="permissions.print_preview"
-                >
-                  mdi-printer
-                </v-icon>
-              
-              <v-divider></v-divider>
-              
-                <export-excel
-                  :data="filteredProjects"
-                  :fields="json_fields"
-                  worksheet="My Worksheet"
-                  :name="filename"
-                  v-if="permissions.export_project"
-                >
-                  <v-icon
-                    :disabled="printDisabled"
-                    color="success"
-                    v-if="permissions.export_project"
-                  >
-                    mdi-file-excel
-                  </v-icon>
-                </export-excel>
-           
             <template>
               <v-toolbar flat>
                 <v-dialog v-model="dialog" max-width="700px" persistent>
@@ -377,11 +357,94 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
+                <v-dialog v-model="dialog_endorse" max-width="700px">
+                  <v-card>
+                    <v-card-title>
+                      <span class="headline">Endorse Project</span>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-col>
+                            <v-text-field
+                              name="report_title"
+                              v-model="project.report_title"
+                              label="Report Title"
+                              readonly
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="6">
+                            <v-select
+                              v-model="endorse.programmer_id"
+                              :items="endorseProgrammerList"
+                              item-text="name"
+                              item-value="id"
+                              label="Endorse To"
+                              :error-messages="endorseProgrammerErrors"
+                              @change="$v.endorse.programmer_id.$touch()"
+                              @blur="$v.endorse.programmer_id.$touch()"
+                            ></v-select>
+                          </v-col>
+                          <v-col cols="6">
+                            <v-menu
+                              v-model="input_endorse_date"
+                              :close-on-content-click="false"
+                              transition="scale-transition"
+                              offset-y
+                              max-width="290px"
+                              min-width="290px"
+                            >
+                              <template v-slot:activator="{ on, attrs }">
+                                <v-text-field
+                                  name="endorse_date"
+                                  v-model="computedEndorseDateFormatted"
+                                  label="Date"
+                                  hint="MM/DD/YYYY"
+                                  persistent-hint
+                                  prepend-icon="mdi-calendar"
+                                  readonly
+                                  v-bind="attrs"
+                                  v-on="on"
+                                ></v-text-field>
+                              </template>
+                              <v-date-picker
+                                v-model="endorse_date"
+                                no-title
+                                @input="input_endorse_date = false"
+                              ></v-date-picker>
+                            </v-menu>
+                          </v-col>
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                      <v-btn
+                        color="#E0E0E0"
+                        @click="closeEndorseDialog()"
+                        class="mb-4"
+                      >
+                        Cancel
+                      </v-btn>
+                      <v-btn
+                        color="primary"
+                        class="mb-4 mr-4"
+                        :disabled="disabled"
+                        @click="endorseProject()"
+                      >
+                        Save
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
               </v-toolbar>
             </template>
           </v-card-title>
           <div style="width: 100%; overflow-x: scroll">
-            <div style="width: 2700px">
+            <div style="width: 2800px">
               <v-data-table
                 :headers="headers"
                 :items="filteredProjects"
@@ -609,17 +672,19 @@
                     </template>
                     <v-list>
                       <v-list-item
+                        style="min-height: 25px"
                         v-if="
                           permissions.edit_program_percentage ||
                           permissions.edit_template_percentage ||
-                          permissions.edit_validate_percentage
+                          permissions.edit_validate_percentage ||
+                          permissions.endorse_project
                         "
                       >
                         <v-list-item-title>
                           <v-btn
                             x-small
                             width="100px"
-                            color="success"
+                            color="primary"
                             @click="editProject(item)"
                           >
                             <v-icon small class="mr-2"> mdi-pencil </v-icon>
@@ -636,6 +701,7 @@
                         "
                       ></v-divider>
                       <v-list-item
+                        style="min-height: 25px"
                         v-if="
                           item.status != 'Accepted' &&
                           permissions.project_log_create
@@ -657,16 +723,39 @@
                         class="ma-0"
                         v-if="permissions.project_log_create"
                       ></v-divider>
-                      <v-list-item v-if="permissions.project_log_list">
+                      <v-list-item
+                        style="min-height: 25px"
+                        v-if="permissions.project_log_list"
+                      >
                         <v-list-item-title>
                           <v-btn
                             x-small
                             width="100px"
-                            color="info"
+                            color="primary"
                             @click="viewProjectLogs(item)"
                           >
                             <v-icon small class="mr-2"> mdi-eye </v-icon>
                             View
+                          </v-btn>
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-divider
+                        class="ma-0"
+                        v-if="permissions.project_log_list"
+                      ></v-divider>
+                      <v-list-item
+                        style="min-height: 25px"
+                        v-if="permissions.endorse_project"
+                      >
+                        <v-list-item-title>
+                          <v-btn
+                            x-small
+                            width="100px"
+                            color="primary"
+                            @click="openEndorseDialog(item)"
+                          >
+                            <v-icon small class="mr-2"> mdi-share </v-icon>
+                            Endorse
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
@@ -731,7 +820,13 @@ export default {
     remarks_date: { required },
     remarks_time: { required },
     remarks: { required },
+    endorse: {
+      project_id: { required },
+      programmer_id: { required },
+      date: { required },
+    },
   },
+
   data() {
     return {
       json_fields: {
@@ -870,9 +965,12 @@ export default {
       program_date: "",
       validation_date: "",
       disabled: false,
+      disabledEndorse: false,
       dialog: false,
       dialog2: false,
+      dialog_endorse: false,
       projects: [],
+      project: {},
       project_logs: [],
       logs_per_project: [],
       project_execution_hrs: [],
@@ -903,6 +1001,16 @@ export default {
         validation_date: "",
         validation_percent: "",
       },
+      endorse: {
+        project_id: "",
+        programmer_id: "",
+        date: "",
+      },
+      defaultEndorse: {
+        project_id: "",
+        programmer_id: "",
+        date: "",
+      },
       permissions: Home.data().permissions,
       loading: true,
       searchReportStatus: [
@@ -921,10 +1029,12 @@ export default {
       ],
       status: [],
       input_remarks_date: false,
+      input_endorse_date: false,
       time_modal: false,
       status: "",
       remarks_date: new Date().toISOString().substr(0, 10),
       remarks_time: new Date().toTimeString().substr(0, 5),
+      endorse_date: new Date().toISOString().substr(0, 10),
       remarks: "",
       user: localStorage.getItem("user"),
       user_type: localStorage.getItem("user_type"),
@@ -1210,6 +1320,60 @@ export default {
         "_blank"
       );
     },
+    openEndorseDialog(item) {
+      this.project = item;
+      this.dialog_endorse = true;
+      this.endorse.project_id = item.project_id;
+      this.$v.endorse.$reset();
+
+    },
+
+    closeEndorseDialog() {
+      this.dialog_endorse = false;
+      this.endorse = this.defaultEndorse;
+      this.project = {};
+      this.disabledEndorse = false;
+      this.$v.endorse.$reset();
+
+    },
+
+    endorseProject() {
+      this.$v.endorse.$touch();
+      if(!this.$v.endorse.$error)
+      { 
+        this.$swal({
+          title: "Are you sure?",
+          text: "You won't be able to revert this!",
+          icon: "info",
+          showCancelButton: true,
+          confirmButtonColor: "primary",
+          cancelButtonColor: "#6c757d",
+          confirmButtonText: "Proceed",
+        }).then((result) => {
+          if (result.value) {
+            Axios.post("/api/project/endorse_project", this.endorse, {
+              headers: {
+                Authorization: "Bearer " + access_token,
+              },
+            }).then(
+              (response) => {
+                if(response.data.success)
+                { 
+                  this.closeEndorseDialog();
+                  this.showAlert();
+                }
+                this.disabledEndorse = false;
+              },
+              (error) => {
+                console.log(response);
+              }
+            );
+          }
+        });
+        
+      }
+      
+    },
 
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {
@@ -1263,6 +1427,9 @@ export default {
       this.permissions.edit_validate_percentage = Home.methods.hasPermission([
         "edit-validate-percentage",
       ]);
+      this.permissions.endorse_project = Home.methods.hasPermission([
+        "endorse-project",
+      ]);
 
       // if dropdown programmger has no value(first load) then set a value
       if (!this.filter_project_by_programmer) {
@@ -1313,12 +1480,6 @@ export default {
           this.getProject();
         }
       });
-    },
-    function1() {
-      console.log("function1");
-    },
-    function2() {
-      console.log("function2");
     },
   },
   computed: {
@@ -1429,6 +1590,12 @@ export default {
       this.editedItem.validation_date = this.formatDate(this.validation_date);
       return this.editedItem.validation_date;
     },
+    computedEndorseDateFormatted() {
+      let formattedDate = this.formatDate(this.endorse_date).split("/");
+      this.endorse.date =
+        formattedDate[2] + "-" + formattedDate[0] + "-" + formattedDate[1];
+      return this.formatDate(this.endorse_date);
+    },
     computedRemarksDateFormatted() {
       return this.formatDate(this.remarks_date);
     },
@@ -1455,6 +1622,13 @@ export default {
       !this.$v.remarks.required && errors.push("Remarks is required.");
       return errors;
     },
+    endorseProgrammerErrors() {
+      const errors = [];
+      if (!this.$v.endorse.programmer_id.$dirty) return errors;
+      !this.$v.endorse.programmer_id.required &&
+        errors.push("Programmer is required.");
+      return errors;
+    },
     filename() {
       let filename = "";
       this.programmers.forEach((value, index) => {
@@ -1464,6 +1638,15 @@ export default {
       });
 
       return filename;
+    },
+    endorseProgrammerList() {
+      let programmers = [];
+      this.programmers.forEach((value, index) => {
+        if (this.user_id != value.id && this.project.programmer_id != value.id) {
+          programmers.push(value);
+        }
+      });
+      return programmers;
     },
   },
   mounted() {

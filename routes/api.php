@@ -94,6 +94,11 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
         'as' => 'import_project',
     ]);
 
+    Route::post('/endorse_project', [
+        'uses' => 'API\ProjectController@endorse_project',
+        'as' => 'endorse_project',
+    ]);
+
 });
 
 // Projects Logs Routes

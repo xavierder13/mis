@@ -315,6 +315,8 @@ class ProjectController extends Controller
                                   ->get();
 
         $project->template_percent = $request->get('template_percent');
+
+        // get the first log remarks of programming and validation date then update the program date and validation date
         if(count($project_logs))
         {   $first_ongoing_log = null;
             $first_validation_log = null;
@@ -336,6 +338,32 @@ class ProjectController extends Controller
         
         return response()->json(['success' => 'Record has been updated', 'project' => $project], 200);
 
+    }
+
+    public function endorse_project(Request $request)
+    {   
+        $rules = [
+            'programmer_id.required' => 'Programmer ID is required',
+            'programmer_id.integer' => 'Programmer ID must be an integer',
+            'project_id.required' => 'Project ID is required',
+            'project_id.integer' => 'Project ID must be an integer',
+            'date.date' => 'Enter a valid date',
+        ];
+
+        $valid_fields = [
+            'programmer_id' => 'required|integer',
+            'project_id' => 'required|integer',
+            'date' => 'date_format:Y-m-d',
+        ];
+        
+        $validator = Validator::make($request->all(), $valid_fields, $rules);
+
+        if($validator->fails())
+        {
+            return response()->json($validator->errors(), 200);
+        }
+
+        return response()->json(['success' => 'Record has been updated'], 200);
     }
 
     public function delete(Request $request)

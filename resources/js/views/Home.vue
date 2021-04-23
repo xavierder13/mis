@@ -222,6 +222,7 @@ export default {
         edit_template_percentage: false,
         edit_program_percentage: false,
         edit_validate_percentage: false,
+        endorse_project: false,
       },
       roles: {
         administrator: false,
@@ -363,6 +364,10 @@ export default {
       this.permissions.import_project_log = this.hasPermission(["import-project-log"]);
       this.permissions.export_project_log = this.hasPermission(["export-project-log"]);
       this.permissions.view_all_projects = this.hasPermission(["view-all-projects"]);
+      this.permissions.edit_template_percentage = this.hasPermission(["edit-template-percentage"]);
+      this.permissions.edit_program_percentage = this.hasPermission(["edit-program-percentage"]);
+      this.permissions.edit_validate_percentage = this.hasPermission(["edit-validate-percentage"]); 
+      this.permissions.endorse_project = this.hasPermission(["endorse-project"]); 
       this.roles.administrator = this.hasRole(["Administrator"]);
     },
 
