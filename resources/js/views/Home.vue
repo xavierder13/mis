@@ -361,13 +361,27 @@ export default {
       this.permissions.print_preview = this.hasPermission(["print-preview"]);
       this.permissions.import_project = this.hasPermission(["import-project"]);
       this.permissions.export_project = this.hasPermission(["export-project"]);
-      this.permissions.import_project_log = this.hasPermission(["import-project-log"]);
-      this.permissions.export_project_log = this.hasPermission(["export-project-log"]);
-      this.permissions.view_all_projects = this.hasPermission(["view-all-projects"]);
-      this.permissions.edit_template_percentage = this.hasPermission(["edit-template-percentage"]);
-      this.permissions.edit_program_percentage = this.hasPermission(["edit-program-percentage"]);
-      this.permissions.edit_validate_percentage = this.hasPermission(["edit-validate-percentage"]); 
-      this.permissions.endorse_project = this.hasPermission(["endorse-project"]); 
+      this.permissions.import_project_log = this.hasPermission([
+        "import-project-log",
+      ]);
+      this.permissions.export_project_log = this.hasPermission([
+        "export-project-log",
+      ]);
+      this.permissions.view_all_projects = this.hasPermission([
+        "view-all-projects",
+      ]);
+      this.permissions.edit_template_percentage = this.hasPermission([
+        "edit-template-percentage",
+      ]);
+      this.permissions.edit_program_percentage = this.hasPermission([
+        "edit-program-percentage",
+      ]);
+      this.permissions.edit_validate_percentage = this.hasPermission([
+        "edit-validate-percentage",
+      ]);
+      this.permissions.endorse_project = this.hasPermission([
+        "endorse-project",
+      ]);
       this.roles.administrator = this.hasRole(["Administrator"]);
     },
 
@@ -397,18 +411,31 @@ export default {
     },
 
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
-    
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
+
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+      //     this.userRolesPermissions();
+      //   }
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        console.log(data);
         if (
-          action == "user-edit" ||
-          action == "role-edit" ||
-          action == "role-delete" ||
-          action == "permission-delete"
+          data.action == "user-edit" ||
+          data.action == "role-edit" ||
+          data.action == "role-delete" ||
+          data.action == "permission-delete"
         ) {
           this.userRolesPermissions();
         }
-      });
+      };
     },
   },
 
@@ -417,6 +444,7 @@ export default {
     this.getUser();
     this.userRolesPermissions();
     this.websocket();
+    
   },
 };
 </script>

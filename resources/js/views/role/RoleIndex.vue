@@ -305,6 +305,7 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
+                this.$socket.emit("sendData", {action: 'role-edit'});
                 Object.assign(this.roles[this.editedIndex], this.editedRole);
                 this.showAlert();
                 this.close();
@@ -450,7 +451,7 @@ export default {
     this.getPermission();
     this.getRole();
     this.userRolesPermissions();
-    this.websocket();
+    // this.websocket();
   },
 };
 </script>
