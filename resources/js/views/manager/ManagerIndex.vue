@@ -252,7 +252,12 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          // console.log(response.data);
+          if(response.data.success)
+          {
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'manager-delete'});
+          }
         },
         (error) => {
           console.log(error);
@@ -332,6 +337,10 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'manager-update'});
+
                 Object.assign(
                   this.managers[this.editedIndex],
                   response.data.manager
@@ -357,8 +366,12 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
+ 
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'manager-create'});
+
                 this.disabled = false;
                 this.showAlert();
                 this.close();
@@ -446,10 +459,30 @@ export default {
       
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
   
-        if (
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+
+      //     this.userRolesPermissions();
+      //   }
+
+      //   if(action == 'manager-create' || action == 'manager-edit' || action == 'manager-delete')
+      //   {
+      //     this.getManager();
+      //   }
+
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
+         if (
           action == "user-edit" ||
           action == "role-edit" ||
           action == "role-delete" ||
@@ -463,8 +496,7 @@ export default {
         {
           this.getManager();
         }
-
-      });
+      }
     },
   },
   computed: {

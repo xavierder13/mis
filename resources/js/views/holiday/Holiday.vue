@@ -259,7 +259,12 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          // console.log(response.data);
+          if(response.data.success)
+          {
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'holiday-delete'});
+          }
         },
         (error) => {
           console.log(error);
@@ -338,8 +343,12 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
+              
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'holiday-update'});
+
                 Object.assign(
                   this.holidays[this.editedIndex],
                   response.data.holiday
@@ -365,8 +374,12 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
+              
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'holiday-create'});
+
                 this.showAlert();
                 this.close();
 
@@ -446,9 +459,29 @@ export default {
       
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
   
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+
+      //     this.userRolesPermissions();
+      //   }
+
+      //   if(action == 'holiday-create' || action == 'holiday-edit' || action == 'holiday-delete')
+      //   {
+      //     this.getHoliday();
+      //   }
+
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
         if (
           action == "user-edit" ||
           action == "role-edit" ||
@@ -463,8 +496,7 @@ export default {
         {
           this.getHoliday();
         }
-
-      });
+      }
     },
   },
   computed: {

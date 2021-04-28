@@ -426,12 +426,12 @@ export default {
 
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
-        console.log(data);
+        let action = data.action;
         if (
-          data.action == "user-edit" ||
-          data.action == "role-edit" ||
-          data.action == "role-delete" ||
-          data.action == "permission-delete"
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-delete"
         ) {
           this.userRolesPermissions();
         }

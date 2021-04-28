@@ -192,6 +192,12 @@ export default {
         },
       }).then(
         (response) => {
+
+          if(response.data.success)
+          {
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'permission-delete'});
+          }
           this.loading = false;
         },
         (error) => {
@@ -270,9 +276,12 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
 
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'permission-edit'});
+
                 Object.assign(
                   this.permissions[this.editedIndex],
                   this.editedPermission
@@ -307,9 +316,12 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
 
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'permission-create'});
+
                 this.disabled = false;
                 this.showAlert();
                 this.close();
@@ -386,9 +398,29 @@ export default {
       }
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
   
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+
+      //     this.userRolesPermissions();
+      //   }
+
+      //   if(action == 'permission-create' || action == 'permission-edit' || action == 'permission-delete')
+      //   {
+      //     this.getPermission();
+      //   }
+
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
         if (
           action == "user-edit" ||
           action == "role-edit" ||
@@ -403,8 +435,7 @@ export default {
         {
           this.getPermission();
         }
-
-      });
+      }
     },
   },
   computed: {

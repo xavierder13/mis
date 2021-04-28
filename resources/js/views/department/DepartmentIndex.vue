@@ -239,7 +239,12 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          // console.log(response.data);
+          if(response.data.success)
+          {
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'department-delete'});
+          }
         },
         (error) => {
           console.log(error);
@@ -319,6 +324,10 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'department-edit'});
+
                 Object.assign(
                   this.departments[this.editedIndex],
                   response.data.department
@@ -346,8 +355,12 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
+              
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'department-create'});
+
                 this.showAlert();
                 this.close();
 
@@ -427,10 +440,30 @@ export default {
       
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
   
-        if (
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+
+      //     this.userRolesPermissions();
+      //   }
+
+      //   if(action == 'department-create' || action == 'department-edit' || action == 'department-delete')
+      //   {
+      //     this.getDepartment();
+      //   }
+
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
+         if (
           action == "user-edit" ||
           action == "role-edit" ||
           action == "role-delete" ||
@@ -444,8 +477,7 @@ export default {
         {
           this.getDepartment();
         }
-
-      });
+      }
     },
   },
   computed: {

@@ -305,7 +305,10 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
                 this.$socket.emit("sendData", {action: 'role-edit'});
+
                 Object.assign(this.roles[this.editedIndex], this.editedRole);
                 this.showAlert();
                 this.close();
@@ -343,6 +346,10 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'role-create'});
+
                 this.disabled = false;
                 this.showAlert();
                 this.close();
@@ -422,8 +429,21 @@ export default {
       }
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+      //     this.userRolesPermissions();
+      //   }
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
         if (
           action == "user-edit" ||
           action == "role-edit" ||
@@ -432,7 +452,7 @@ export default {
         ) {
           this.userRolesPermissions();
         }
-      });
+      }
     },
   },
   computed: {
@@ -451,7 +471,7 @@ export default {
     this.getPermission();
     this.getRole();
     this.userRolesPermissions();
-    // this.websocket();
+    this.websocket();
   },
 };
 </script>

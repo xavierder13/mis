@@ -1140,7 +1140,10 @@ export default {
         (response) => {
           console.log(response.data);
           if (response.data.success) {
-            this.getProject();
+
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'project-edit'});
+            
             this.showAlert();
             this.close();
           }
@@ -1200,8 +1203,12 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+       
           if (response.data.success) {
+
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'project-edit'});
+
             this.overlay = false;
             Object.assign(
               this.filteredProjects[this.editedIndex],
@@ -1437,7 +1444,7 @@ export default {
           this.permissions.view_all_projects ||
           this.user_type == "Validator"
         ) {
-          this.filter_project_by_programmer = parseInt(this.programmers[0].id);
+          this.filter_project_by_programmer = parseInt(this.programmers[0] ? this.programmers[0].id : 0);
         } else {
           this.filter_project_by_programmer = parseInt(this.user_id);
         }
@@ -1460,8 +1467,30 @@ export default {
       }
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+      //     this.userRolesPermissions();
+      //   }
+
+      //   if (
+      //     action == "project-create" ||
+      //     action == "project-edit" ||
+      //     action == "project-delete" ||
+      //     action == "import-project"
+      //   ) {
+      //     this.getProject();
+      //   }
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
         if (
           action == "user-edit" ||
           action == "role-edit" ||
@@ -1479,7 +1508,7 @@ export default {
         ) {
           this.getProject();
         }
-      });
+      }
     },
   },
   computed: {

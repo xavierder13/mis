@@ -421,7 +421,11 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          if(response.data.success)
+          {
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'user-delete'});
+          }
         },
         (error) => {
           console.log(error);
@@ -515,6 +519,10 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'user-edit'});
+
                 Object.assign(this.users[this.editedIndex], response.data.user);
                 this.showAlert();
                 this.close();
@@ -542,6 +550,10 @@ export default {
             (response) => {
               // console.log(response.data);
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'user-create'});
+
                 this.showAlert();
                 this.close();
 
@@ -636,8 +648,27 @@ export default {
       
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+      //     this.userRolesPermissions();
+      //   }
+
+      //   if(action == 'user-create' || action == 'user-edit' || action == 'user-delete' || action == 'login')
+      //   {
+      //     this.getUser();
+      //   }
+
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
         if (
           action == "user-edit" ||
           action == "role-edit" ||
@@ -651,8 +682,7 @@ export default {
         {
           this.getUser();
         }
-
-      });
+      }
     },
   },
   computed: {

@@ -624,7 +624,12 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          // console.log(response.data);
+          if(response.data.success)
+          {
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'project-delete'});
+          }
         },
         (error) => {
           console.log(error);
@@ -704,6 +709,10 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'project-edit'});
+
                 Object.assign(this.projects[this.editedIndex], this.editedItem);
                 this.showAlert();
                 this.close();
@@ -727,6 +736,10 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'project-create'});
+
                 this.showAlert();
                 this.close();
 
@@ -830,11 +843,14 @@ export default {
           },
         }).then(
           (response) => {
-            console.log(response.data);
 
             this.errors_array = [];
 
             if (response.data.success) {
+
+              // send data to Sockot.IO Server
+              this.$socket.emit("sendData", {action: 'import-project'});
+
               this.$swal({
                 position: "center",
                 icon: "success",
@@ -943,9 +959,31 @@ export default {
       }
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   let action = e.data.action;
 
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+      //     this.userRolesPermissions();
+      //   }
+
+      //   if (
+      //     action == "project-create" ||
+      //     action == "project-edit" ||
+      //     action == "project-delete" ||
+      //     action == "import-project"
+      //   ) {
+      //     this.getProject();
+      //   }
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
         if (
           action == "user-edit" ||
           action == "role-edit" ||
@@ -963,7 +1001,7 @@ export default {
         ) {
           this.getProject();
         }
-      });
+      }
     },
   },
   computed: {

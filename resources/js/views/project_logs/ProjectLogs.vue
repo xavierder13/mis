@@ -613,8 +613,12 @@ export default {
             }
           ).then(
             (response) => {
-              console.log(response.data);
+              
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'project-log-edit'});
+
                 Object.assign(
                   this.project_logs[this.editedIndex],
                   response.data.project_log
@@ -644,8 +648,12 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
+              
               if (response.data.success) {
+
+                // send data to Sockot.IO Server
+                this.$socket.emit("sendData", {action: 'project-log-create'});
+
                 this.project_logs.push(response.data.project_log);
 
                 this.project.status = response.data.status;
@@ -700,8 +708,12 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
-          this.getProjectLogs();
+          if(response.data.success)
+          {
+            // send data to Sockot.IO Server
+            this.$socket.emit("sendData", {action: 'project-log-delete'});
+          }
+          
         },
         (error) => {
           console.log(error);
@@ -890,6 +902,10 @@ export default {
             console.log(response.data);
             this.errors_array = [];
             if (response.data.success) {
+
+              // send data to Sockot.IO Server
+              this.$socket.emit("sendData", {action: 'import-project-log'});
+
               this.$swal({
                 position: "center",
                 icon: "success",
@@ -1006,9 +1022,31 @@ export default {
       }
     },
     websocket() {
-      window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-        console.log(e);
-        let action = e.data.action;
+      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
+      //   console.log(e);
+      //   let action = e.data.action;
+      //   if (
+      //     action == "user-edit" ||
+      //     action == "role-edit" ||
+      //     action == "role-delete" ||
+      //     action == "permission-delete"
+      //   ) {
+      //     this.userRolesPermissions();
+      //   }
+
+      //   if (
+      //     action == "project-log-create" ||
+      //     action == "project-log-edit" ||
+      //     action == "project-log-delete" ||
+      //     action == "import-project-log"
+      //   ) {
+      //     this.getProjectLogs();
+      //   }
+      // });
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
         if (
           action == "user-edit" ||
           action == "role-edit" ||
@@ -1026,7 +1064,7 @@ export default {
         ) {
           this.getProjectLogs();
         }
-      });
+      }
     },
   },
   computed: {
