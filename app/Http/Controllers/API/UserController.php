@@ -32,6 +32,7 @@ class UserController extends Controller
         
         $rules = [
             'name.required' => 'Please enter name',
+            'email.required' => 'Email is required',
             'email.email' => 'Please enter a valid email',
             'username.required' => 'Please enter username',
             'username.unique' => 'Username already exists',
@@ -62,7 +63,7 @@ class UserController extends Controller
         $user->type = $request->get('type');
         $user->active = $request->get('active');
         $user->save();
-
+        
         $user->assignRole($request->get('roles'));
 
         event(new WebsocketEvent(['action' => 'user-create']));
