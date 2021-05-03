@@ -13,6 +13,7 @@ use App\ProjectLog;
 use App\User;
 use App\RefNoSetting;
 use App\Holiday;
+use App\EndorseProject;
 use Carbon\Carbon;
 use App\Events\WebsocketEvent;
 use Excel;
@@ -362,8 +363,20 @@ class ProjectController extends Controller
         {
             return response()->json($validator->errors(), 200);
         }
+        
+        
+        $project = Project::find($request->get('project_id'));
+        $project->endorsed = true;
+        $project->endorse_date = $request->get('date');
+        $project->save();
 
-        return response()->json(['success' => 'Record has been updated'], 200);
+        // store data for endorsed project
+        $endorse_project = new EndorseProject();
+        $endorse_project->project_id = $request->get('project_id');
+        $endorse_project->programmer_id = $request->get('programmer_id');
+        $endorse_project->save();
+
+        return response()->json(['success' => 'Record has been updated', $request->all()], 200);
     }
 
     public function delete(Request $request)

@@ -88,12 +88,7 @@
                   fab
                   dark
                   class="mb-2"
-                  @click="
-                    clear() +
-                      (dialog = true) +
-                      (editedItem.status = project.status) +
-                      setStatusSelectItems()
-                  "
+                  @click="showProjectLogDialog()"
                   v-if="project.status != 'Accepted'"
                 >
                   <v-icon>mdi-plus</v-icon>
@@ -577,7 +572,7 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+ 
           this.project = response.data.project;
           this.project_logs = response.data.project_logs;
           this.loading = false;
@@ -596,10 +591,15 @@ export default {
       );
     },
     save() {
-      this.$v.$touch();
-      if (!this.$v.$error) {
+      this.$v.editedItem.$touch();
+
+      if (!this.$v.editedItem.$error) {
         this.overlay = true;
         this.disabled = true;
+
+        this.editedItem.remarks_time =
+            this.editedItem.hour + ":" + this.editedItem.minute;
+
         if (this.editedIndex > -1) {
           let project_log_id = this.editedItem.id;
 
@@ -613,11 +613,9 @@ export default {
             }
           ).then(
             (response) => {
-              
               if (response.data.success) {
-
                 // send data to Sockot.IO Server
-                this.$socket.emit("sendData", {action: 'project-log-edit'});
+                this.$socket.emit("sendData", { action: "project-log-edit" });
 
                 Object.assign(
                   this.project_logs[this.editedIndex],
@@ -640,6 +638,7 @@ export default {
             }
           );
         } else {
+
           this.editedItem.project_id = this.project.project_id;
 
           Axios.post("/api/project_log/store", this.editedItem, {
@@ -650,9 +649,8 @@ export default {
             (response) => {
               
               if (response.data.success) {
-
                 // send data to Sockot.IO Server
-                this.$socket.emit("sendData", {action: 'project-log-create'});
+                this.$socket.emit("sendData", { action: "project-log-create" });
 
                 this.project_logs.push(response.data.project_log);
 
@@ -676,11 +674,18 @@ export default {
     },
 
     editProjectLog(item) {
+      
       this.setStatusSelectItems();
       let remarks_date = "";
+      let hour = item.remarks_time.split(':')[0];
+      let minute = item.remarks_time.split(':')[1];
+
       this.dialog = true;
       this.editedIndex = this.project_logs.indexOf(item);
       this.editedItem = Object.assign({}, item);
+      this.editedItem.hour = String(hour);
+      this.editedItem.minute = String(minute);
+   
       if (item.remarks_date) {
         remarks_date = item.remarks_date.split("/");
         this.editedItem.remarks_date =
@@ -708,12 +713,10 @@ export default {
         },
       }).then(
         (response) => {
-          if(response.data.success)
-          {
+          if (response.data.success) {
             // send data to Sockot.IO Server
-            this.$socket.emit("sendData", {action: 'project-log-delete'});
+            this.$socket.emit("sendData", { action: "project-log-delete" });
           }
-          
         },
         (error) => {
           console.log(error);
@@ -806,6 +809,11 @@ export default {
       let hasOngoingTurnover = false;
       let logs_num_rows = this.project_logs.length;
       let last_log_status = "";
+
+      if (logs_num_rows == 0) {
+        this.editedItem.status = "Ongoing";
+      }
+
       // if logs has Ongoing and Turnover status
       this.project_logs.forEach((value, index) => {
         if (value.status == "Ongoing" && value.turnover == "Y") {
@@ -902,9 +910,8 @@ export default {
             console.log(response.data);
             this.errors_array = [];
             if (response.data.success) {
-
               // send data to Sockot.IO Server
-              this.$socket.emit("sendData", {action: 'import-project-log'});
+              this.$socket.emit("sendData", { action: "import-project-log" });
 
               this.$swal({
                 position: "center",
@@ -962,6 +969,30 @@ export default {
         );
       }
     },
+    showProjectLogDialog() {
+      
+      this.clear();
+      this.dialog = true;
+      this.editedItem.status = this.project.status;
+      this.editedItem.hour = String(new Date().toTimeString().substr(0, 5).split(":")[0]);
+      this.editedItem.minute = String(new Date().toTimeString().substr(0, 5).split(":")[1]);
+      this.setStatusSelectItems();
+
+    },
+
+    setDropdownTime() {
+      
+      for (let hour = 0; hour < 24; hour++) {
+        let hr = hour < 10 ? "0" + hour : hour;
+        this.hour.push(String(hr));
+      }
+
+      for (let minute = 0; minute < 60; minute++) {
+        let min = minute < 10 ? "0" + minute : minute;
+        this.minute.push(String(min));
+      }
+    },
+
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {
         headers: {
@@ -1064,7 +1095,7 @@ export default {
         ) {
           this.getProjectLogs();
         }
-      }
+      };
     },
   },
   computed: {
@@ -1137,18 +1168,8 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProjectLogs();
+    this.setDropdownTime();
     this.userRolesPermissions();
-
-    for (let hour = 1; hour <= 24; hour++) {
-      let hr = hour < 10 ? "0" + hour : hour;
-      this.hour.push(String(hr));
-    }
-
-    for (let minute = 1; minute <= 60; minute++) {
-      let min = minute < 10 ? "0" + minute : minute;
-      this.minute.push(String(min));
-    }
-
     this.websocket();
   },
 };

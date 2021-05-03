@@ -54,7 +54,7 @@ class ProjectLogController extends Controller
             
         }
         
-        $project_logs = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), 'remarks_time', 'remarks', 'status', 'turnover', 'mins_diff')
+        $project_logs = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), DB::raw("TIME_FORMAT(remarks_time, '%H:%i')remarks_time"), 'remarks', 'status', 'turnover', 'mins_diff')
                                   ->where('project_id' , '=', $project_id)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
@@ -87,7 +87,7 @@ class ProjectLogController extends Controller
 
         if($validator->fails())
         {
-            return respons()->json($validator->errors(), 200);
+            return response()->json($validator->errors(), 200);
         }
 
         $project_id = $request->get('project_id');

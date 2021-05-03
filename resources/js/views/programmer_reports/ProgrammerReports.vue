@@ -1063,7 +1063,18 @@ export default {
           this.validators = response.data.validators;
           this.holidays = response.data.holidays;
           this.loading = false;
-
+          
+          // if dropdown programmger has no value(first load) then set a value
+          if (!this.filter_project_by_programmer) {
+            if (
+              this.permissions.view_all_projects ||
+              this.user_type == "Validator"
+            ) {
+              this.filter_project_by_programmer = parseInt(this.programmers[0] ? this.programmers[0].id : 0);
+            } else {
+              this.filter_project_by_programmer = parseInt(this.user_id);
+            }
+          }
           // console.log(this.filteredProjects);
         },
         (error) => {
@@ -1364,6 +1375,7 @@ export default {
               },
             }).then(
               (response) => {
+                console.log(response.data);
                 if(response.data.success)
                 { 
                   this.closeEndorseDialog();
@@ -1437,18 +1449,6 @@ export default {
       this.permissions.endorse_project = Home.methods.hasPermission([
         "endorse-project",
       ]);
-
-      // if dropdown programmger has no value(first load) then set a value
-      if (!this.filter_project_by_programmer) {
-        if (
-          this.permissions.view_all_projects ||
-          this.user_type == "Validator"
-        ) {
-          this.filter_project_by_programmer = parseInt(this.programmers[0] ? this.programmers[0].id : 0);
-        } else {
-          this.filter_project_by_programmer = parseInt(this.user_id);
-        }
-      }
 
       // hide column actions if user has no permission
       if (
