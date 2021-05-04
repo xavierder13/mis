@@ -262,7 +262,7 @@ export default {
           // console.log(response.data);
           if(response.data.success)
           {
-            // send data to Sockot.IO Server
+            // send data to Socket.IO Server
             this.$socket.emit("sendData", {action: 'holiday-delete'});
           }
         },
@@ -346,7 +346,7 @@ export default {
               
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'holiday-update'});
 
                 Object.assign(
@@ -377,7 +377,7 @@ export default {
               
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'holiday-create'});
 
                 this.showAlert();

@@ -255,7 +255,7 @@ export default {
           // console.log(response.data);
           if(response.data.success)
           {
-            // send data to Sockot.IO Server
+            // send data to Socket.IO Server
             this.$socket.emit("sendData", {action: 'manager-delete'});
           }
         },
@@ -338,7 +338,7 @@ export default {
             (response) => {
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'manager-update'});
 
                 Object.assign(
@@ -369,7 +369,7 @@ export default {
  
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'manager-create'});
 
                 this.disabled = false;

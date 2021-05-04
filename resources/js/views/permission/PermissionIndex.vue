@@ -195,7 +195,7 @@ export default {
 
           if(response.data.success)
           {
-            // send data to Sockot.IO Server
+            // send data to Socket.IO Server
             this.$socket.emit("sendData", {action: 'permission-delete'});
           }
           this.loading = false;
@@ -279,7 +279,7 @@ export default {
 
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'permission-edit'});
 
                 Object.assign(
@@ -319,7 +319,7 @@ export default {
 
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'permission-create'});
 
                 this.disabled = false;

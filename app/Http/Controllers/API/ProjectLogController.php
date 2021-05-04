@@ -179,8 +179,6 @@ class ProjectLogController extends Controller
 
         $project_id = $request->get('project_id');
 
-        
-
         // project status
         $status = Project::find($project_id)->status;          
 
@@ -205,17 +203,22 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_time', 'Desc')
                                   ->orderBy('id', 'Desc')
                                   ->first();
-                                  
+
+        // get the last log turnover status  
         if($last_log->status == 'For Validation' || $last_log->status == 'Ongoing')
-        {
-            if($last_log_turnover->status == 'For Validation')
+        {   
+            if($last_log_turnover)
             {
-                $status = 'Ongoing';
+                if($last_log_turnover->status == 'For Validation')
+                {
+                    $status = 'Ongoing';
+                }
+                elseif($last_log_turnover->status == 'Ongoing')
+                {
+                    $status = 'For Validation';
+                }
             }
-            elseif($last_log_turnover->status == 'Ongoing')
-            {
-                $status = 'For Validation';
-            }
+            
         }
         
         // update report status if latest log was updated
@@ -227,7 +230,8 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
-
+        
+        // get the first programming and validation log to update programming date and validation date field   
         if(count($project_logs))
         {   
             $first_ongoing_log = null;

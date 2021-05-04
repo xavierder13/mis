@@ -627,7 +627,7 @@ export default {
           // console.log(response.data);
           if(response.data.success)
           {
-            // send data to Sockot.IO Server
+            // send data to Socket.IO Server
             this.$socket.emit("sendData", {action: 'project-delete'});
           }
         },
@@ -710,7 +710,7 @@ export default {
             (response) => {
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'project-edit'});
 
                 Object.assign(this.projects[this.editedIndex], this.editedItem);
@@ -737,7 +737,7 @@ export default {
             (response) => {
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'project-create'});
 
                 this.showAlert();
@@ -848,7 +848,7 @@ export default {
 
             if (response.data.success) {
 
-              // send data to Sockot.IO Server
+              // send data to Socket.IO Server
               this.$socket.emit("sendData", {action: 'import-project'});
 
               this.$swal({

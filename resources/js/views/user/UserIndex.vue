@@ -439,7 +439,7 @@ export default {
       }).then(
         (response) => {
           if (response.data.success) {
-            // send data to Sockot.IO Server
+            // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "user-delete" });
           }
         },
@@ -535,7 +535,7 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", { action: "user-edit" });
 
                 Object.assign(this.users[this.editedIndex], response.data.user);
@@ -565,7 +565,7 @@ export default {
             (response) => {
               console.log(response.data);
               if (response.data.success) {
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", { action: "user-create" });
 
                 this.showAlert();

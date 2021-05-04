@@ -242,7 +242,7 @@ export default {
           // console.log(response.data);
           if(response.data.success)
           {
-            // send data to Sockot.IO Server
+            // send data to Socket.IO Server
             this.$socket.emit("sendData", {action: 'department-delete'});
           }
         },
@@ -325,7 +325,7 @@ export default {
             (response) => {
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'department-edit'});
 
                 Object.assign(
@@ -358,7 +358,7 @@ export default {
               
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'department-create'});
 
                 this.showAlert();

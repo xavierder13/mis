@@ -572,7 +572,6 @@ export default {
         },
       }).then(
         (response) => {
- 
           this.project = response.data.project;
           this.project_logs = response.data.project_logs;
           this.loading = false;
@@ -598,7 +597,7 @@ export default {
         this.disabled = true;
 
         this.editedItem.remarks_time =
-            this.editedItem.hour + ":" + this.editedItem.minute;
+          this.editedItem.hour + ":" + this.editedItem.minute;
 
         if (this.editedIndex > -1) {
           let project_log_id = this.editedItem.id;
@@ -614,7 +613,7 @@ export default {
           ).then(
             (response) => {
               if (response.data.success) {
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", { action: "project-log-edit" });
 
                 Object.assign(
@@ -638,7 +637,6 @@ export default {
             }
           );
         } else {
-
           this.editedItem.project_id = this.project.project_id;
 
           Axios.post("/api/project_log/store", this.editedItem, {
@@ -647,9 +645,8 @@ export default {
             },
           }).then(
             (response) => {
-              
               if (response.data.success) {
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", { action: "project-log-create" });
 
                 this.project_logs.push(response.data.project_log);
@@ -674,18 +671,18 @@ export default {
     },
 
     editProjectLog(item) {
-      
-      this.setStatusSelectItems();
+      // this.setStatusSelectItems();
+      this.report_status = [item.status];
       let remarks_date = "";
-      let hour = item.remarks_time.split(':')[0];
-      let minute = item.remarks_time.split(':')[1];
+      let hour = item.remarks_time.split(":")[0];
+      let minute = item.remarks_time.split(":")[1];
 
       this.dialog = true;
       this.editedIndex = this.project_logs.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.editedItem.hour = String(hour);
       this.editedItem.minute = String(minute);
-   
+
       if (item.remarks_date) {
         remarks_date = item.remarks_date.split("/");
         this.editedItem.remarks_date =
@@ -714,7 +711,7 @@ export default {
       }).then(
         (response) => {
           if (response.data.success) {
-            // send data to Sockot.IO Server
+            // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "project-log-delete" });
           }
         },
@@ -810,6 +807,14 @@ export default {
       let logs_num_rows = this.project_logs.length;
       let last_log_status = "";
 
+      this.report_status = [
+        { text: "Ongoing", value: "Ongoing" },
+        { text: "For Validation", value: "For Validation" },
+        { text: "Pending", value: "Pending" },
+        { text: "Accepted", value: "Accepted" },
+        { text: "Cancelled", value: "Cancelled" },
+      ];
+
       if (logs_num_rows == 0) {
         this.editedItem.status = "Ongoing";
       }
@@ -831,34 +836,27 @@ export default {
 
       if (hasOngoingTurnover) {
         if (this.project.status == "Ongoing") {
-          this.report_status = [
-            { text: "Ongoing", value: "Ongoing" },
-            { text: "Pending", value: "Pending" },
-            { text: "Accepted", value: "Accepted" },
-            { text: "Cancelled", value: "Cancelled" },
-          ];
+
+          // remove index 1 (For Validation)
+          this.report_status.splice(1, 1);
+
         } else if (this.project.status == "For Validation") {
-          this.report_status = [
-            { text: "For Validation", value: "For Validation" },
-            { text: "Pending", value: "Pending" },
-            { text: "Accepted", value: "Accepted" },
-            { text: "Cancelled", value: "Cancelled" },
-          ];
+
+          // remove index 0 (Ongoing)
+          this.report_status.splice(0, 1);
+
         } else if (this.project.status == "Pending") {
+
           if (last_log_status == "Ongoing") {
-            this.report_status = [
-              { text: "For Validation", value: "For Validation" },
-              { text: "Pending", value: "Pending" },
-              { text: "Accepted", value: "Accepted" },
-              { text: "Cancelled", value: "Cancelled" },
-            ];
+
+            // remove index 0 (Ongoing)
+            this.report_status.splice(0, 1);
+
           } else if (last_log_status == "For Validation") {
-            this.report_status = [
-              { text: "Ongoing", value: "Ongoing" },
-              { text: "Pending", value: "Pending" },
-              { text: "Accepted", value: "Accepted" },
-              { text: "Cancelled", value: "Cancelled" },
-            ];
+
+            // remove index 1 (For Validation)
+            this.report_status.splice(1, 1);
+            
           }
         }
       } else {
@@ -910,7 +908,7 @@ export default {
             console.log(response.data);
             this.errors_array = [];
             if (response.data.success) {
-              // send data to Sockot.IO Server
+              // send data to Socket.IO Server
               this.$socket.emit("sendData", { action: "import-project-log" });
 
               this.$swal({
@@ -970,18 +968,18 @@ export default {
       }
     },
     showProjectLogDialog() {
-      
       this.clear();
       this.dialog = true;
       this.editedItem.status = this.project.status;
-      this.editedItem.hour = String(new Date().toTimeString().substr(0, 5).split(":")[0]);
-      this.editedItem.minute = String(new Date().toTimeString().substr(0, 5).split(":")[1]);
-      this.setStatusSelectItems();
-
+      this.editedItem.hour = String(
+        new Date().toTimeString().substr(0, 5).split(":")[0]
+      );
+      this.editedItem.minute = String(
+        new Date().toTimeString().substr(0, 5).split(":")[1]
+      );
     },
 
     setDropdownTime() {
-      
       for (let hour = 0; hour < 24; hour++) {
         let hr = hour < 10 ? "0" + hour : hour;
         this.hour.push(String(hr));

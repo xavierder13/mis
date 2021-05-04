@@ -306,7 +306,7 @@ export default {
             (response) => {
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'role-edit'});
 
                 Object.assign(this.roles[this.editedIndex], this.editedRole);
@@ -347,7 +347,7 @@ export default {
             (response) => {
               if (response.data.success) {
 
-                // send data to Sockot.IO Server
+                // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'role-create'});
 
                 this.disabled = false;
