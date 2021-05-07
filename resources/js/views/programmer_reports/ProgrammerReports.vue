@@ -1063,17 +1063,19 @@ export default {
           this.validators = response.data.validators;
           this.holidays = response.data.holidays;
           this.loading = false;
-          
-          // if dropdown programmger has no value(first load) then set a value
+
+          // if dropdown programmer has no value(first load) then set a value
           if (!this.filter_project_by_programmer) {
             if (
               this.permissions.view_all_projects ||
               this.user_type == "Validator"
             ) {
-              this.filter_project_by_programmer = parseInt(this.programmers[0] ? this.programmers[0].id : 0);
+              this.filter_project_by_programmer = parseInt(
+              this.programmers[0] ? this.programmers[0].id : 0
+              );
             } else {
               this.filter_project_by_programmer = parseInt(this.user_id);
-            }
+            } 
           }
           // console.log(this.filteredProjects);
         },
@@ -1151,10 +1153,9 @@ export default {
         (response) => {
           console.log(response.data);
           if (response.data.success) {
-
             // send data to Socket.IO Server
-            this.$socket.emit("sendData", {action: 'project-edit'});
-            
+            this.$socket.emit("sendData", { action: "project-edit" });
+
             this.showAlert();
             this.close();
           }
@@ -1214,11 +1215,9 @@ export default {
         },
       }).then(
         (response) => {
-       
           if (response.data.success) {
-
             // send data to Socket.IO Server
-            this.$socket.emit("sendData", {action: 'project-edit'});
+            this.$socket.emit("sendData", { action: "project-edit" });
 
             this.overlay = false;
             Object.assign(
@@ -1339,11 +1338,12 @@ export default {
       );
     },
     openEndorseDialog(item) {
+      
       this.project = item;
       this.dialog_endorse = true;
       this.endorse.project_id = item.project_id;
+      console.log(this.project);
       this.$v.endorse.$reset();
-
     },
 
     closeEndorseDialog() {
@@ -1352,13 +1352,11 @@ export default {
       this.project = {};
       this.disabledEndorse = false;
       this.$v.endorse.$reset();
-
     },
 
     endorseProject() {
       this.$v.endorse.$touch();
-      if(!this.$v.endorse.$error)
-      { 
+      if (!this.$v.endorse.$error) {
         this.$swal({
           title: "Are you sure?",
           text: "You won't be able to revert this!",
@@ -1376,8 +1374,7 @@ export default {
             }).then(
               (response) => {
                 console.log(response.data);
-                if(response.data.success)
-                { 
+                if (response.data.success) {
                   this.closeEndorseDialog();
                   this.showAlert();
                 }
@@ -1389,9 +1386,7 @@ export default {
             );
           }
         });
-        
       }
-      
     },
 
     userRolesPermissions() {
@@ -1449,6 +1444,7 @@ export default {
       this.permissions.endorse_project = Home.methods.hasPermission([
         "endorse-project",
       ]);
+
 
       // hide column actions if user has no permission
       if (
@@ -1508,7 +1504,7 @@ export default {
         ) {
           this.getProject();
         }
-      }
+      };
     },
   },
   computed: {
@@ -1671,7 +1667,10 @@ export default {
     endorseProgrammerList() {
       let programmers = [];
       this.programmers.forEach((value, index) => {
-        if (this.user_id != value.id && this.project.programmer_id != value.id) {
+        if (
+          this.user_id != value.id &&
+          this.project.programmer_id != value.id
+        ) {
           programmers.push(value);
         }
       });

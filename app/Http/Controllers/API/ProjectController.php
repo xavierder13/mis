@@ -100,6 +100,49 @@ class ProjectController extends Controller
 
         }    
 
+        $endorse_projects = DB::table('projects')
+                    ->join('endorse_projects', 'projects.id', '=', 'endorse_projects.project_id')
+                    ->leftJoin('departments', 'projects.department_id', '=','departments.id')
+                    ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
+                    ->leftJoin(DB::raw('users as programmers'), 'endorse_projects.programmer_id', '=', 'programmers.id')
+                    ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
+                    ->select(DB::raw('CASE WHEN projects.status = "For Validation" THEN "01" 
+                                           WHEN projects.status = "Ongoing" THEN "02"
+                                           WHEN projects.status = "Pending" THEN "03"
+                                           WHEN projects.status = "Accepted" THEN "04"
+                                      END as report_grp'),
+                    DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
+                             DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
+                             DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
+                             DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
+                             DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
+                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
+                             DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
+                             DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
+                             DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
+                             DB::raw("DATE_FORMAT(projects.endorse_date, '%m/%d/%Y') as endorse_date"),
+                             'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
+                             'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
+                    ->where('projects.status', '!=', 'Cancelled')
+                    // ->where('projects.ref_no', '=', '4')
+                    ->where(function($query) use ($firstOfMonth, $filter_date) {
+                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
+                              ->orWhereNull('projects.accepted_date');       
+                    })
+                    ->whereDate('projects.endorse_date', '<=', $filter_date);
+
+        $endorse_project_logs = DB::table('projects')
+                    ->join('endorse_projects', 'projects.id', '=', 'endorse_projects.project_id')
+                    ->join('project_logs', 'endorse_projects.id', '=', 'project_logs.endorse_project_id')
+                    ->select(DB::raw('projects.status as project_status, project_logs.*'))
+                    ->where('projects.status', '!=', 'Cancelled')
+                    ->where(function($query) use ($firstOfMonth, $filter_date) {
+                              $query->whereBetween('accepted_date', [$firstOfMonth, $filter_date])
+                                    ->orWhereNull('accepted_date');
+                    })
+                    ->whereDate('projects.endorse_date', '<=', $filter_date);           
+
         $projects = DB::table('projects')
                     ->leftJoin('departments', 'projects.department_id', '=','departments.id')
                     ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
@@ -120,14 +163,20 @@ class ProjectController extends Controller
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
+                             DB::raw("DATE_FORMAT(projects.endorse_date, '%m/%d/%Y') as endorse_date"),
                              'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
                     // ->where('projects.ref_no', '=', '4')
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
                         $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
-                              ->orWhereNull('projects.accepted_date');
+                              ->orWhereNull('projects.accepted_date');       
                     })
+                    ->where(function($query) use ($firstOfMonth, $filter_date) {
+                        $query->whereDate('projects.endorse_date', '>', $filter_date)
+                              ->orWhereNull('projects.endorse_date');       
+                    })
+                    ->union($endorse_projects)
                     ->orderBy('report_grp', 'Desc')
                     ->orderBy('project_id', 'Desc')
                     ->get();
@@ -138,11 +187,14 @@ class ProjectController extends Controller
                     ->where('projects.status', '!=', 'Cancelled')
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
                               $query->whereBetween('accepted_date', [$firstOfMonth, $filter_date])
-                                  ->orWhereNull('accepted_date');
-                      })
-                    ->orderBy('project_logs.remarks_date', 'Asc')
-                    ->orderBy('project_logs.remarks_time', 'Asc')
-                    ->orderBy('project_logs.id', 'Asc')
+                                    ->orWhereNull('accepted_date');
+                    })
+                    ->where(function($query) use ($firstOfMonth, $filter_date) {
+                        $query->whereDate('endorse_date', '>', $filter_date)
+                              ->orWhereNull('endorse_date');       
+                    })
+                    ->union($endorse_project_logs)
+
                     ->get();
         
         $departments = Department::with('managers')->get();
@@ -343,6 +395,7 @@ class ProjectController extends Controller
 
     public function endorse_project(Request $request)
     {   
+        
         $rules = [
             'programmer_id.required' => 'Programmer ID is required',
             'programmer_id.integer' => 'Programmer ID must be an integer',
@@ -366,9 +419,14 @@ class ProjectController extends Controller
         
         
         $project = Project::find($request->get('project_id'));
-        $project->endorsed = true;
-        $project->endorse_date = $request->get('date');
-        $project->save();
+
+        // update endorsed field if endorsed field value is null or 0 (true or false)
+        if(!$project->endorsed)
+        {
+            $project->endorsed = true;
+            $project->endorse_date = $request->get('date');
+            $project->save();
+        }
 
         // store data for endorsed project
         $endorse_project = new EndorseProject();

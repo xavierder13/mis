@@ -114,7 +114,7 @@ export default {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
-        console.log(response.data);
+     
         this.settings = response.data.settings;
 
         this.start = this.settings.start;
