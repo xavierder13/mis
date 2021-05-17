@@ -103,7 +103,7 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
 
 // Projects Logs Routes
 Route::group(['prefix' => 'project_log', 'middleware' => ['auth:api']], function(){
-    Route::get('/index/{id}', [
+    Route::post('/index/{id}', [
         'uses' => 'API\ProjectLogController@index',
         'as' => 'project_log.index',
     ]);

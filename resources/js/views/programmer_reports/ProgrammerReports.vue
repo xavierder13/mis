@@ -137,18 +137,6 @@
                           </v-col>
                         </v-row>
                         <v-row>
-                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
-                            <v-select
-                              v-model="status"
-                              label="Report Status"
-                              :items="report_status"
-                              item-text="text"
-                              item-value="value"
-                              :readonly="editedIndex > -1 ? true : false"
-                            ></v-select>
-                          </v-col>
-                        </v-row>
-                        <v-row>
                           <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-text-field
                               name="report_title"
@@ -156,6 +144,34 @@
                               label="Report Title"
                               readonly
                             ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-row>
+                          <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                            <v-select
+                              v-model="remarksItem.status"
+                              label="Report Status"
+                              :items="report_status"
+                              item-text="text"
+                              item-value="value"
+                              :error-messages="statusErrors"
+                              @change="$v.remarksItem.status.$touch()"
+                              @blur="$v.remarksItem.status.$touch()"
+                              :readonly="editedIndex > -1 ? true : false"
+                              v-if="!endorse_project"
+                            ></v-select>
+
+                            <v-select
+                              v-model="remarksItem.programmer_id"
+                              :items="endorseProgrammerList"
+                              item-text="name"
+                              item-value="id"
+                              label="Endorse To"
+                              :error-messages="endorseProgrammerErrors"
+                              @change="$v.remarksItem.programmer_id.$touch()"
+                              @blur="$v.remarksItem.programmer_id.$touch()"
+                              v-if="endorse_project"
+                            ></v-select>
                           </v-col>
                         </v-row>
                         <v-row>
@@ -189,19 +205,19 @@
                                   v-bind="attrs"
                                   v-on="on"
                                   :error-messages="remarks_dateErrors"
-                                  @input="$v.remarks_date.$touch()"
-                                  @blur="$v.remarks_date.$touch()"
+                                  @input="$v.remarksItem.remarks_date.$touch()"
+                                  @blur="$v.remarksItem.remarks_date.$touch()"
                                 ></v-text-field>
                               </template>
                               <v-date-picker
-                                v-model="remarks_date"
+                                v-model="remarksItem.remarks_date"
                                 no-title
                                 @input="input_remarks_date = false"
                               ></v-date-picker>
                             </v-menu>
                           </v-col>
-                          <v-col cols="6">
-                            <v-dialog
+                          <v-col cols="2">
+                            <!-- <v-dialog
                               ref="dialog"
                               v-model="time_modal"
                               :return-value.sync="remarks_time"
@@ -244,18 +260,34 @@
                                   OK
                                 </v-btn>
                               </v-time-picker>
-                            </v-dialog>
+                            </v-dialog> -->
+                            <v-autocomplete
+                              v-model="remarksItem.hour"
+                              :items="hour"
+                              label="Hour"
+                              @blur="$v.remarksItem.hour.$touch()"
+                              :hint="'24 Hr Format'"
+                              persistent-hint
+                            ></v-autocomplete>
+                          </v-col>
+                          <v-col cols="2">
+                            <v-autocomplete
+                              v-model="remarksItem.minute"
+                              :items="minute"
+                              label="Minute"
+                              @blur="$v.remarksItem.minute.$touch()"
+                            ></v-autocomplete>
                           </v-col>
                         </v-row>
                         <v-row>
                           <v-col class="mt-0 mb-0 pt-0 pb-0">
                             <v-textarea
-                              v-model="remarks"
+                              v-model="remarksItem.remarks"
                               label="Remarks"
                               rows="2"
                               :error-messages="remarksErrors"
-                              @input="$v.remarks.$touch()"
-                              @blur="$v.remarks.$touch()"
+                              @input="$v.remarksItem.remarks.$touch()"
+                              @blur="$v.remarksItem.remarks.$touch()"
                             ></v-textarea>
                           </v-col>
                         </v-row>
@@ -264,14 +296,16 @@
 
                     <v-card-actions>
                       <v-spacer></v-spacer>
-                      <v-btn color="#E0E0E0" @click="close" class="mb-4">
+                      <v-btn color="#E0E0E0" @click="close()" class="mb-4">
                         Cancel
                       </v-btn>
                       <v-btn
                         color="primary"
                         class="mb-4 mr-4"
                         :disabled="disabled"
-                        @click="addRemarks()"
+                        @click="
+                          endorse_project ? endorseProject() : addRemarks()
+                        "
                       >
                         Save
                       </v-btn>
@@ -357,89 +391,6 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-dialog v-model="dialog_endorse" max-width="700px">
-                  <v-card>
-                    <v-card-title>
-                      <span class="headline">Endorse Project</span>
-                    </v-card-title>
-                    <v-divider></v-divider>
-                    <v-card-text>
-                      <v-container>
-                        <v-row>
-                          <v-col>
-                            <v-text-field
-                              name="report_title"
-                              v-model="project.report_title"
-                              label="Report Title"
-                              readonly
-                            ></v-text-field>
-                          </v-col>
-                        </v-row>
-                        <v-row>
-                          <v-col cols="6">
-                            <v-select
-                              v-model="endorse.programmer_id"
-                              :items="endorseProgrammerList"
-                              item-text="name"
-                              item-value="id"
-                              label="Endorse To"
-                              :error-messages="endorseProgrammerErrors"
-                              @change="$v.endorse.programmer_id.$touch()"
-                              @blur="$v.endorse.programmer_id.$touch()"
-                            ></v-select>
-                          </v-col>
-                          <v-col cols="6">
-                            <v-menu
-                              v-model="input_endorse_date"
-                              :close-on-content-click="false"
-                              transition="scale-transition"
-                              offset-y
-                              max-width="290px"
-                              min-width="290px"
-                            >
-                              <template v-slot:activator="{ on, attrs }">
-                                <v-text-field
-                                  name="endorse_date"
-                                  v-model="computedEndorseDateFormatted"
-                                  label="Date"
-                                  hint="MM/DD/YYYY"
-                                  persistent-hint
-                                  prepend-icon="mdi-calendar"
-                                  readonly
-                                  v-bind="attrs"
-                                  v-on="on"
-                                ></v-text-field>
-                              </template>
-                              <v-date-picker
-                                v-model="endorse_date"
-                                no-title
-                                @input="input_endorse_date = false"
-                              ></v-date-picker>
-                            </v-menu>
-                          </v-col>
-                        </v-row>
-                      </v-container>
-                    </v-card-text>
-                    <v-card-actions>
-                      <v-spacer></v-spacer>
-                      <v-btn
-                        color="#E0E0E0"
-                        @click="closeEndorseDialog()"
-                        class="mb-4"
-                      >
-                        Cancel
-                      </v-btn>
-                      <v-btn
-                        color="primary"
-                        class="mb-4 mr-4"
-                        :disabled="disabled"
-                        @click="endorseProject()"
-                      >
-                        Save
-                      </v-btn>
-                    </v-card-actions>
-                  </v-card>
-                </v-dialog>
               </v-toolbar>
             </template>
           </v-card-title>
@@ -491,6 +442,15 @@
                       <strong>{{ items[0].status.toUpperCase() }}</strong>
                     </v-chip>
                   </td>
+                </template>
+                <template v-slot:item.template_percent="{ item, index}">
+                  {{ item.template_percent ? item.template_percent + "%" : "" }}
+                </template>
+                <template v-slot:item.program_percent="{ item, index}">
+                  {{ item.program_percent ? item.program_percent + "%" : ""}}
+                </template>
+                <template v-slot:item.validation_percent="{ item, index}">
+                  {{ item.validation_percent ? item.validation_percent + "%" : "" }}
                 </template>
                 <!-- <template v-slot:item.template_percent="{ item, index }">
                   <v-text-field-money
@@ -752,7 +712,9 @@
                             x-small
                             width="100px"
                             color="primary"
-                            @click="openEndorseDialog(item)"
+                            @click="
+                              createRemarks(item) + (endorse_project = true)
+                            "
                           >
                             <v-icon small class="mr-2"> mdi-share </v-icon>
                             Endorse
@@ -795,7 +757,13 @@ let user_roles;
 import Axios from "axios";
 import moment from "moment";
 import { validationMixin } from "vuelidate";
-import { required, maxLength, email } from "vuelidate/lib/validators";
+import {
+  required,
+  maxLength,
+  email,
+  requiredIf,
+  requiredUnless,
+} from "vuelidate/lib/validators";
 import Home from "../Home.vue";
 
 let now_date = moment(new Date().toISOString().substring(0, 10), "YYYY-MM-DD");
@@ -817,18 +785,24 @@ export default {
   mixins: [validationMixin],
 
   validations: {
-    remarks_date: { required },
-    remarks_time: { required },
-    remarks: { required },
-    endorse: {
-      project_id: { required },
-      programmer_id: { required },
-      date: { required },
+    remarksItem: {
+      status: { required },
+      programmer_id: {
+        required: requiredIf(function () {
+          return this.programmerIsRequired;
+        }),
+      },
+      remarks_date: { required },
+      hour: { required },
+      minute: { required },
+      remarks: { required },
     },
   },
 
   data() {
     return {
+      hour: [],
+      minute: [],
       json_fields: {
         "Approved/ Filing Date": "date_approved",
         "Date Accepted": "accepted_date",
@@ -1001,15 +975,27 @@ export default {
         validation_date: "",
         validation_percent: "",
       },
-      endorse: {
+      remarksItem: {
         project_id: "",
         programmer_id: "",
-        date: "",
+        status: "",
+        remarks_date: new Date().toISOString().substr(0, 10),
+        remarks_time: "",
+        hour: String(new Date().toTimeString().substr(0, 5).split(":")[0]),
+        minute: String(new Date().toTimeString().substr(0, 5).split(":")[1]),
+        remarks: "",
+        turnover: "",
       },
-      defaultEndorse: {
+      remarksDefault: {
         project_id: "",
         programmer_id: "",
-        date: "",
+        status: "",
+        remarks_date: new Date().toISOString().substr(0, 10),
+        remarks_time: "",
+        hour: String(new Date().toTimeString().substr(0, 5).split(":")[0]),
+        minute: String(new Date().toTimeString().substr(0, 5).split(":")[1]),
+        remarks: "",
+        turnover: "",
       },
       permissions: Home.data().permissions,
       loading: true,
@@ -1027,15 +1013,13 @@ export default {
         { text: "Accepted", value: "Accepted" },
         { text: "Cancelled", value: "Cancelled" },
       ],
+      endorse_project: false,
       status: [],
       input_remarks_date: false,
       input_endorse_date: false,
       time_modal: false,
-      status: "",
-      remarks_date: new Date().toISOString().substr(0, 10),
-      remarks_time: new Date().toTimeString().substr(0, 5),
       endorse_date: new Date().toISOString().substr(0, 10),
-      remarks: "",
+      endorse_time: new Date().toTimeString().substr(0, 5),
       user: localStorage.getItem("user"),
       user_type: localStorage.getItem("user_type"),
       user_id: localStorage.getItem("user_id"),
@@ -1071,11 +1055,11 @@ export default {
               this.user_type == "Validator"
             ) {
               this.filter_project_by_programmer = parseInt(
-              this.programmers[0] ? this.programmers[0].id : 0
+                this.programmers[0] ? this.programmers[0].id : 0
               );
             } else {
               this.filter_project_by_programmer = parseInt(this.user_id);
-            } 
+            }
           }
           // console.log(this.filteredProjects);
         },
@@ -1114,9 +1098,11 @@ export default {
       }
     },
     addRemarks() {
-      this.$v.$touch();
+      this.$v.remarksItem.$touch();
+
       let project_id = this.editedItem.project_id;
-      if (!this.$v.$error) {
+
+      if (!this.$v.remarksItem.$error) {
         Axios.get("/api/project_log/get_latest_log/" + project_id, {
           headers: {
             Authorization: "Bearer " + access_token,
@@ -1126,8 +1112,11 @@ export default {
           let latest_log = response.data.latest_log;
 
           // if last remarks has turnover status then show warning message
-          if (latest_log.turnover && this.status != this.editedItem.status) {
-            this.showConfirmAlert(this.status);
+          if (
+            latest_log.turnover &&
+            this.remarksItem.status != this.editedItem.status
+          ) {
+            this.showConfirmAlert(this.remarksItem.status);
           } else {
             this.storeRemarks();
           }
@@ -1138,27 +1127,34 @@ export default {
       let project_id = this.editedItem.project_id;
       this.overlay = true;
       this.disabled = true;
-      const data = {
-        project_id: project_id,
-        remarks_date: this.remarks_date,
-        remarks_time: this.remarks_time,
-        remarks: this.remarks,
-        status: this.status,
-      };
+
+      this.remarksItem.project_id = project_id;
+      this.remarksItem.remarks_time =
+        this.remarksItem.hour + ":" + this.remarksItem.minute;
+
+      const data = this.remarksItem;
+
       Axios.post("/api/project_log/project_turnover", data, {
         headers: {
           Authorization: "Bearer " + access_token,
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          // console.log(response.data);
           if (response.data.success) {
             // send data to Socket.IO Server
-            this.$socket.emit("sendData", { action: "project-edit" });
+            this.$socket.emit("sendData", { action: "project-log-create" });
+            let change_status = response.data.change_status;
+
+            // if changed status is true
+            if (change_status == true) {
+              this.$socket.emit("sendData", { action: "project-edit" });
+            }
 
             this.showAlert();
             this.close();
           }
+
           this.overlay = false;
           this.disabled = false;
         },
@@ -1170,10 +1166,22 @@ export default {
       );
     },
     viewProjectLogs(item) {
+      
+      let params_value = { project_id: item.project_id };
+      let route_name = "project.logs"
+
+      // if endorse_project_id has value
+      if(item.endorse_project_id)
+      {
+        params_value = { project_id: item.project_id,  endorse_project_id: item.endorse_project_id };
+        route_name = "endorse_project.logs"
+      }
+
       this.$router.push({
-        name: "project.logs",
-        params: { project_id: item.project_id },
+        name: route_name,
+        params: params_value,
       });
+
     },
 
     showAlert() {
@@ -1202,9 +1210,18 @@ export default {
       this.editedIndex = -1;
       this.program_date = "";
       this.validation_date = "";
-      (this.remarks_date = new Date().toISOString().substr(0, 10)),
-        (this.remarks_time = new Date().toTimeString().substr(0, 5)),
-        (this.remarks = "");
+      this.remarksItem = {
+        project_id: "",
+        programmer_id: "",
+        status: "",
+        remarks_date: new Date().toISOString().substr(0, 10),
+        remarks_time: "",
+        hour: String(new Date().toTimeString().substr(0, 5).split(":")[0]),
+        minute: String(new Date().toTimeString().substr(0, 5).split(":")[1]),
+        remarks: "",
+        turnover: "",
+      };
+      this.endorse_project = false;
     },
 
     updateReportPercentage() {
@@ -1247,9 +1264,12 @@ export default {
     createRemarks(item) {
       this.editedItem = item;
       this.dialog = true;
-      this.status = item.status;
-      this.getLogsPerProject(item);
-      this.setStatusSelectItems(item);
+      this.remarksItem.status = item.status;
+
+      if (!this.endorse_project) {
+        this.getLogsPerProject(item);
+        this.setStatusSelectItems(item);
+      }
     },
     getLogsPerProject(item) {
       this.logs_per_project = [];
@@ -1337,26 +1357,11 @@ export default {
         "_blank"
       );
     },
-    openEndorseDialog(item) {
-      
-      this.project = item;
-      this.dialog_endorse = true;
-      this.endorse.project_id = item.project_id;
-      console.log(this.project);
-      this.$v.endorse.$reset();
-    },
-
-    closeEndorseDialog() {
-      this.dialog_endorse = false;
-      this.endorse = this.defaultEndorse;
-      this.project = {};
-      this.disabledEndorse = false;
-      this.$v.endorse.$reset();
-    },
 
     endorseProject() {
-      this.$v.endorse.$touch();
-      if (!this.$v.endorse.$error) {
+      this.$v.remarksItem.$touch();
+
+      if (!this.$v.remarksItem.$error) {
         this.$swal({
           title: "Are you sure?",
           text: "You won't be able to revert this!",
@@ -1367,7 +1372,13 @@ export default {
           confirmButtonText: "Proceed",
         }).then((result) => {
           if (result.value) {
-            Axios.post("/api/project/endorse_project", this.endorse, {
+            this.remarksItem.project_id = this.editedItem.project_id;
+            this.remarksItem.remarks_time =
+              this.remarksItem.hour + ":" + this.remarksItem.minute;
+
+            const data = this.remarksItem;
+
+            Axios.post("/api/project/endorse_project", data, {
               headers: {
                 Authorization: "Bearer " + access_token,
               },
@@ -1375,8 +1386,8 @@ export default {
               (response) => {
                 console.log(response.data);
                 if (response.data.success) {
-                  this.closeEndorseDialog();
                   this.showAlert();
+                  this.close();
                 }
                 this.disabledEndorse = false;
               },
@@ -1386,6 +1397,18 @@ export default {
             );
           }
         });
+      }
+    },
+
+    setDropdownTime() {
+      for (let hour = 0; hour < 24; hour++) {
+        let hr = hour < 10 ? "0" + hour : hour;
+        this.hour.push(String(hr));
+      }
+
+      for (let minute = 0; minute < 60; minute++) {
+        let min = minute < 10 ? "0" + minute : minute;
+        this.minute.push(String(min));
       }
     },
 
@@ -1444,7 +1467,6 @@ export default {
       this.permissions.endorse_project = Home.methods.hasPermission([
         "endorse-project",
       ]);
-
 
       // hide column actions if user has no permission
       if (
@@ -1615,42 +1637,66 @@ export default {
       this.editedItem.validation_date = this.formatDate(this.validation_date);
       return this.editedItem.validation_date;
     },
-    computedEndorseDateFormatted() {
-      let formattedDate = this.formatDate(this.endorse_date).split("/");
-      this.endorse.date =
-        formattedDate[2] + "-" + formattedDate[0] + "-" + formattedDate[1];
-      return this.formatDate(this.endorse_date);
-    },
     computedRemarksDateFormatted() {
-      return this.formatDate(this.remarks_date);
+      return this.formatDate(this.remarksItem.remarks_date);
     },
     computedFilterDateFormatted() {
       return this.formatDate(this.filter_date);
     },
+    statusErrors() {
+      const errors = [];
+      if (!this.$v.remarksItem.status.$dirty) return errors;
+      !this.$v.remarksItem.status.required &&
+        errors.push("Report Status is required.");
+      return errors;
+    },
     remarks_dateErrors() {
       const errors = [];
-      if (!this.$v.remarks_date.$dirty) return errors;
-      !this.$v.remarks_date.required &&
+      if (!this.$v.remarksItem.remarks_date.$dirty) return errors;
+      !this.$v.remarksItem.remarks_date.required &&
         errors.push("Remarks Date is required.");
       return errors;
     },
     remarks_timeErrors() {
       const errors = [];
-      if (!this.$v.remarks_time.$dirty) return errors;
-      !this.$v.remarks_time.required &&
+      if (!this.$v.remarksItem.remarks_time.$dirty) return errors;
+      !this.$v.remarksItem.remarks_time.required &&
         errors.push("Remarks Time is required.");
+      return errors;
+    },
+    hourErrors() {
+      const errors = [];
+      if (!this.$v.remarksItem.hour.$dirty) return errors;
+      !this.$v.remarksItem.hour.required && errors.push("Required.");
+
+      if (this.timeHasError) {
+        errors.push("Invalid");
+      }
+
+      return errors;
+    },
+    minuteErrors() {
+      const errors = [];
+      if (!this.$v.remarksItem.minute.$dirty) return errors;
+      !this.$v.remarksItem.minute.required && errors.push("Required.");
+
+      if (this.timeHasError) {
+        errors.push("Invalid");
+      }
+
       return errors;
     },
     remarksErrors() {
       const errors = [];
-      if (!this.$v.remarks.$dirty) return errors;
-      !this.$v.remarks.required && errors.push("Remarks is required.");
+      if (!this.$v.remarksItem.remarks.$dirty) return errors;
+      !this.$v.remarksItem.remarks.required &&
+        errors.push("Remarks is required.");
       return errors;
     },
     endorseProgrammerErrors() {
       const errors = [];
-      if (!this.$v.endorse.programmer_id.$dirty) return errors;
-      !this.$v.endorse.programmer_id.required &&
+      if (!this.$v.remarksItem.programmer_id.$dirty) return errors;
+      !this.$v.remarksItem.programmer_id.required &&
         errors.push("Programmer is required.");
       return errors;
     },
@@ -1669,18 +1715,29 @@ export default {
       this.programmers.forEach((value, index) => {
         if (
           this.user_id != value.id &&
-          this.project.programmer_id != value.id
+          this.editedItem.programmer_id != value.id
         ) {
           programmers.push(value);
         }
       });
       return programmers;
     },
+    programmerIsRequired() {
+      let isRequired = false;
+      if (this.endorse_project) {
+        isRequired = true;
+      } else {
+        isRequired = false;
+      }
+
+      return isRequired;
+    },
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getProject();
     this.userRolesPermissions();
+    this.setDropdownTime();
     this.websocket();
   },
 };

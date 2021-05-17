@@ -70,7 +70,7 @@ class ProjectController extends Controller
 
         $projects = Project::where('projects.status', '!=', 'Cancelled')
                            ->select(DB::raw('*'), DB::raw('id as project_id'))
-                           ->get();
+                           ->get();                 
 
         $project_execution_hrs = [];
                            
@@ -78,12 +78,13 @@ class ProjectController extends Controller
         foreach($projects as $i => $project)
         {
             if($project->status != 'Accepted')
-            {   
+            {                 
                 
                 $project_logs = ProjectLog::where('project_id', '=', $project->project_id)
                                         ->orderBy('remarks_date', 'Asc')
                                         ->orderBy('remarks_time', 'Asc')
                                         ->get();
+
                 if(count($project_logs))
                 {
                     // calculate hours difference per remarks log
@@ -101,7 +102,22 @@ class ProjectController extends Controller
         }    
 
         $endorse_projects = DB::table('projects')
-                    ->join('endorse_projects', 'projects.id', '=', 'endorse_projects.project_id')
+                    ->join(DB::raw('(SELECT MAX(a.id) as id, 
+                                            a.project_id,
+                                            (SELECT t1.Name 
+                                             FROM endorse_projects t0 
+                                             INNER JOIN (SELECT id, name FROM users WHERE type = "programmer") t1 ON t0.programmer_id = t1.id 
+                                             WHERE t0.id = MAX(a.id)) as programmer,
+                                            (SELECT t0.programmer_id FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as programmer_id,
+                                            (SELECT DATE_FORMAT(date_receive, "%m/%d/%Y") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as date_receive,
+                                            (SELECT DATE_FORMAT(program_date, "%m/%d/%Y") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as program_date,
+                                            (SELECT DATE_FORMAT(validation_date, "%m/%d/%Y") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as validation_date,
+                                            (SELECT DATE_FORMAT(endorse_date, "%m/%d/%Y") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as endorse_date
+                                     FROM endorse_projects a 
+                                     WHERE a.endorse_date <= "'.$filter_date.'" OR a.endorse_date IS NULL
+                                     group by a.project_id
+                                    ) as endorse_projects'
+                            ), 'projects.id', '=', 'endorse_projects.project_id')
                     ->leftJoin('departments', 'projects.department_id', '=','departments.id')
                     ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
                     ->leftJoin(DB::raw('users as programmers'), 'endorse_projects.programmer_id', '=', 'programmers.id')
@@ -111,19 +127,20 @@ class ProjectController extends Controller
                                            WHEN projects.status = "Pending" THEN "03"
                                            WHEN projects.status = "Accepted" THEN "04"
                                       END as report_grp'),
-                    DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
+                             DB::raw('projects.id as project_id'), DB::raw('endorse_projects.id as endorse_project_id'), 
+                             DB::raw('departments.name as department'), 'projects.ref_no', 'projects.report_title', 
                              DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
-                             DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
+                             'endorse_projects.programmer', 'endorse_projects.programmer_id',
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
                              DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
-                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
+                             DB::raw("DATE_FORMAT(endorse_projects.date_receive, '%m/%d/%Y') as date_received"),
                              DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
-                             DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
-                             DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
+                             DB::raw("DATE_FORMAT(endorse_projects.program_date, '%m/%d/%Y') as program_date"),
+                             DB::raw("DATE_FORMAT(endorse_projects.validation_date, '%m/%d/%Y') as validation_date"),
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
-                             DB::raw("DATE_FORMAT(projects.endorse_date, '%m/%d/%Y') as endorse_date"),
+                             DB::raw("DATE_FORMAT(endorse_projects.endorse_date, '%m/%d/%Y') as endorse_date"),
                              'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
-                             'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
+                             'projects.program_percent', 'projects.validation_percent', 'projects.program_hrs', 'projects.validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
                     // ->where('projects.ref_no', '=', '4')
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
@@ -131,15 +148,21 @@ class ProjectController extends Controller
                               ->orWhereNull('projects.accepted_date');       
                     })
                     ->whereDate('projects.endorse_date', '<=', $filter_date);
+                    
 
         $endorse_project_logs = DB::table('projects')
-                    ->join('endorse_projects', 'projects.id', '=', 'endorse_projects.project_id')
+                    ->join(DB::raw('(SELECT MAX(a.id) as id, a.project_id
+                                            FROM endorse_projects a 
+                                            WHERE a.endorse_date <= "'.$filter_date.'" OR a.endorse_date IS NULL
+                                            group by a.project_id
+                                            ) as endorse_projects'
+                            ), 'projects.id', '=', 'endorse_projects.project_id')
                     ->join('project_logs', 'endorse_projects.id', '=', 'project_logs.endorse_project_id')
                     ->select(DB::raw('projects.status as project_status, project_logs.*'))
                     ->where('projects.status', '!=', 'Cancelled')
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
-                              $query->whereBetween('accepted_date', [$firstOfMonth, $filter_date])
-                                    ->orWhereNull('accepted_date');
+                              $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
+                                    ->orWhereNull('projects.accepted_date');
                     })
                     ->whereDate('projects.endorse_date', '<=', $filter_date);           
 
@@ -153,7 +176,8 @@ class ProjectController extends Controller
                                            WHEN projects.status = "Pending" THEN "03"
                                            WHEN projects.status = "Accepted" THEN "04"
                                       END as report_grp'),
-                    DB::raw('projects.id as project_id'), 'projects.ref_no', 'projects.report_title', DB::raw('departments.name as department'), 
+                             DB::raw('projects.id as project_id'), DB::raw('null as endorse_project_id'), 
+                             DB::raw('departments.name as department'), 'projects.ref_no', 'projects.report_title', 
                              DB::raw('departments.id as department_id'), DB::raw('managers.name as manager'), 
                              DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
@@ -165,7 +189,7 @@ class ProjectController extends Controller
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
                              DB::raw("DATE_FORMAT(projects.endorse_date, '%m/%d/%Y') as endorse_date"),
                              'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
-                             'projects.program_percent', 'projects.validation_percent', 'program_hrs', 'validate_hrs')
+                             'projects.program_percent', 'projects.validation_percent', 'projects.program_hrs', 'projects.validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
                     // ->where('projects.ref_no', '=', '4')
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
@@ -176,6 +200,7 @@ class ProjectController extends Controller
                         $query->whereDate('projects.endorse_date', '>', $filter_date)
                               ->orWhereNull('projects.endorse_date');       
                     })
+
                     ->union($endorse_projects)
                     ->orderBy('report_grp', 'Desc')
                     ->orderBy('project_id', 'Desc')
@@ -186,12 +211,12 @@ class ProjectController extends Controller
                     ->select(DB::raw('projects.status as project_status, project_logs.*'))
                     ->where('projects.status', '!=', 'Cancelled')
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
-                              $query->whereBetween('accepted_date', [$firstOfMonth, $filter_date])
-                                    ->orWhereNull('accepted_date');
+                              $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
+                                    ->orWhereNull('projects.accepted_date');
                     })
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
-                        $query->whereDate('endorse_date', '>', $filter_date)
-                              ->orWhereNull('endorse_date');       
+                        $query->whereDate('projects.endorse_date', '>', $filter_date)
+                              ->orWhereNull('projects.endorse_date');       
                     })
                     ->union($endorse_project_logs)
 
@@ -223,10 +248,9 @@ class ProjectController extends Controller
             'department_id.integer' => 'Department must be an integer',
             'programmer_id.required' => 'Programmer is required',
             'programmer_id.integer' => 'Programmer must be an integer',
-            // 'validator.required' => 'Validator is required',
-            // 'validator.integer' => 'Validator must be an integer',
-            // 'date_received.sometimes' => 'Enter a valid date',
-            // 'date_approved.sometimes' => 'Enter a valid date',
+            'validator.integer' => 'Validator must be an integer',
+            'date_received.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'date_approved.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
             'type.required' => 'Report Type is required'
         ];
 
@@ -234,9 +258,9 @@ class ProjectController extends Controller
             'report_title' => 'required',
             'department_id' => 'required|integer',
             'programmer_id' => 'required|integer',
-            // 'validator_id' => 'sometimes|required|integer',
-            // 'date_received' => 'sometimes|date',
-            // 'date_approved' => 'sometimes|date',
+            'validator_id' => 'nullable|integer',
+            'date_received' => 'nullable|date_format:Y-m-d',
+            'date_approved' => 'nullable|date_format:Y-m-d',
             'type' => 'required',
         ];
 
@@ -308,10 +332,9 @@ class ProjectController extends Controller
             'department_id.integer' => 'Department must be an integer',
             'programmer_id.required' => 'Programmer is required',
             'programmer_id.integer' => 'Programmer must be an integer',
-            // 'validator.required' => 'Validator is required',
-            // 'validator.integer' => 'Validator must be an integer',
-            // 'date_received.sometimes' => 'Enter a valid date',
-            // 'date_approved.sometimes' => 'Enter a valid date',
+            'validator.integer' => 'Validator must be an integer',
+            'date_received.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'date_approved.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
             'type.required' => 'Report Type is required'
         ];
 
@@ -319,9 +342,9 @@ class ProjectController extends Controller
             'report_title' => 'required',
             'department_id' => 'required|integer',
             'programmer_id' => 'required|integer',
-            // 'validator_id' => 'sometimes|required|integer',
-            // 'date_received' => 'sometimes|date',
-            // 'date_approved' => 'sometimes|date',
+            'validator_id' => 'nullable|integer',
+            'date_received' => 'nullable|date_format:Y-m-d',
+            'date_approved' => 'nullable|date_format:Y-m-d',
             'type' => 'required',
         ];
 
@@ -395,19 +418,23 @@ class ProjectController extends Controller
 
     public function endorse_project(Request $request)
     {   
-        
+      
         $rules = [
             'programmer_id.required' => 'Programmer ID is required',
             'programmer_id.integer' => 'Programmer ID must be an integer',
             'project_id.required' => 'Project ID is required',
             'project_id.integer' => 'Project ID must be an integer',
-            'date.date' => 'Enter a valid date',
+            'remarks_date.required' => 'Remarks date is required',
+            'remarks_date.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'remarks_time.required' => 'Remarks time is required',
+            'remarks_time.date_format' => 'Invalid time. Format: (H:i)',
         ];
 
         $valid_fields = [
             'programmer_id' => 'required|integer',
             'project_id' => 'required|integer',
-            'date' => 'date_format:Y-m-d',
+            'remarks_date' => 'required|date_format:Y-m-d',
+            'remarks_time' => 'required|date_format:H:i',
         ];
         
         $validator = Validator::make($request->all(), $valid_fields, $rules);
@@ -417,16 +444,19 @@ class ProjectController extends Controller
             return response()->json($validator->errors(), 200);
         }
         
-        
         $project = Project::find($request->get('project_id'));
 
         // update endorsed field if endorsed field value is null or 0 (true or false)
         if(!$project->endorsed)
         {
             $project->endorsed = true;
-            $project->endorse_date = $request->get('date');
-            $project->save();
+            $project->endorse_date = $request->get('remarks_date');
         }
+         
+        $project->status = 'Pending';
+        $project->save();
+
+        $programmer = $project ? User::where('id', '=', $project->programmer_id)->select('name')->first() : '';
 
         // store data for endorsed project
         $endorse_project = new EndorseProject();
@@ -434,7 +464,27 @@ class ProjectController extends Controller
         $endorse_project->programmer_id = $request->get('programmer_id');
         $endorse_project->save();
 
-        return response()->json(['success' => 'Record has been updated', $request->all()], 200);
+        // store project_log for endorse - last log of current holder
+        $project_log = new ProjectLog();
+        $project_log->project_id = $request->get('project_id');
+        $project_log->remarks_date = Carbon::parse($request->get('remarks_date'))->format('Y-m-d');
+        $project_log->remarks_time = Carbon::parse($request->get('remarks_time'))->format('H:i');
+        $project_log->remarks = $request->get('remarks');
+        $project_log->status = $request->get('status');
+        $project_log->turnover = 'Y';
+        $project_log->save();
+
+        // store project_log with endorse_project_id field
+        $project_log = new ProjectLog();
+        $project_log->project_id = $request->get('project_id');
+        $project_log->endorse_project_id = $endorse_project->id;
+        $project_log->remarks_date = Carbon::parse($request->get('remarks_date'))->format('Y-m-d');
+        $project_log->remarks_time = Carbon::parse($request->get('remarks_time'))->format('H:i');
+        $project_log->remarks = 'Endorsed by '. $programmer->name;
+        $project_log->status = 'Pending';
+        $project_log->save();
+
+        return response()->json(['success' => 'Record has been updated'], 200);
     }
 
     public function delete(Request $request)
@@ -675,12 +725,40 @@ class ProjectController extends Controller
             $datetime_now =  $new_remarks_datetime = Carbon::parse($date_now . ' 13:00');
         }
 
+        // select statement to check if project was endorsed based on filter_date parameter
+        $endorse_projects = DB::table('projects')
+                                ->join(DB::raw('(SELECT max(a.id) as id, 
+                                                        a.project_id,
+                                                        (SELECT t1.Name 
+                                                        FROM endorse_projects t0 
+                                                        INNER JOIN (SELECT id, name FROM users WHERE type = "programmer") t1 ON t0.programmer_id = t1.id 
+                                                        WHERE t0.id = MAX(a.id)) as programmer,
+                                                        (SELECT t0.programmer_id FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as programmer_id
+                                                FROM endorse_projects a 
+                                                WHERE a.endorse_date <= "'.$filter_date.'" OR a.endorse_date IS NULL
+                                                group by a.project_id
+                                                ) as endorse_projects'
+                                        ), 'projects.id', '=', 'endorse_projects.project_id')
+                                ->select()
+                                ->where('projects.id', '=', $project_id)
+                                ->whereDate('projects.endorse_date', '<=', $filter_date)
+                                ->first();
+              
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
                                 ->where('remarks_date', '<=', $filter_date)
                                 ->orderBy('remarks_date', 'desc')
                                 ->orderBy('remarks_time', 'desc')
                                 ->orderBy('id', 'desc')
                                 ->get(); 
+
+        // if this project was endorsed then get the project_logs with endorse_project_id
+        if($endorse_projects)
+        {
+            $project_logs = ProjectLog::where('endorse_project_id', '=', $endorse_projects->id)
+                                ->orderBy('remarks_date', 'Asc')
+                                ->orderBy('remarks_time', 'Asc')
+                                ->get();
+        }
 
         $log = $project_logs->first();
                          
@@ -880,11 +958,40 @@ class ProjectController extends Controller
     {   
         $holidays = $this->holidays();
 
+        // select statement to check if project was endorsed based on filter_date parameter
+        $endorse_projects = DB::table('projects')
+                                ->join(DB::raw('(SELECT max(a.id) as id, 
+                                                        a.project_id,
+                                                        (SELECT t1.Name 
+                                                        FROM endorse_projects t0 
+                                                        INNER JOIN (SELECT id, name FROM users WHERE type = "programmer") t1 ON t0.programmer_id = t1.id 
+                                                        WHERE t0.id = MAX(a.id)) as programmer,
+                                                        (SELECT t0.programmer_id FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as programmer_id
+                                                FROM endorse_projects a 
+                                                WHERE a.endorse_date <= "'.$filter_date.'" OR a.endorse_date IS NULL
+                                                group by a.project_id
+                                                ) as endorse_projects'
+                                        ), 'projects.id', '=', 'endorse_projects.project_id')
+                                ->select()
+                                ->where('projects.id', '=', $project_id)
+                                ->whereDate('projects.endorse_date', '<=', $filter_date)
+                                ->first();
+              
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
-                                  ->orderBy('remarks_date', 'Asc')
-                                  ->orderBy('remarks_time', 'Asc')
-                                  ->get();
+                                ->orderBy('remarks_date', 'Asc')
+                                ->orderBy('remarks_time', 'Asc')
+                                ->get();
 
+        // if this project was endorsed then get the project_logs with endorse_project_id
+        if($endorse_projects)
+        {
+            $project_logs = ProjectLog::where('endorse_project_id', '=', $endorse_projects->id)
+                                ->orderBy('remarks_date', 'Asc')
+                                ->orderBy('remarks_time', 'Asc')
+                                ->get();
+        }
+
+        
         $program_hrs = 0;
         $validate_hrs = 0;
         $ongoing_last_log_mins = 0;
@@ -943,6 +1050,27 @@ class ProjectController extends Controller
                                    ->orderBy('remarks_time', 'asc')
                                    ->orderBy('id', 'asc')
                                    ->get();
+        
+        // if this project was endorsed then get the project_logs with endorse_project_id
+        if($endorse_projects)
+        {
+            // logs as of previous month
+            $project_logs_pm = ProjectLog::where('endorse_project_id', '=', $endorse_projects->id)
+                                        ->where('remarks_date', '<=', $lastPrevMonth)
+                                        ->orderBy('remarks_date', 'asc')
+                                        ->orderBy('remarks_time', 'asc')
+                                        ->orderBy('id', 'asc')
+                                        ->get();
+
+            // logs this month
+            $project_logs_tm = ProjectLog::where('endorse_project_id', '=', $endorse_projects->id)
+                                        ->where('remarks_date', '<=', $filter_date)
+                                        ->where('remarks_date', '>=', $firstOfMonth)
+                                        ->orderBy('remarks_date', 'asc')
+                                        ->orderBy('remarks_time', 'asc')
+                                        ->orderBy('id', 'asc')
+                                        ->get();
+        }
 
         $log_rows = count($project_logs);
 
@@ -1195,7 +1323,7 @@ class ProjectController extends Controller
                 ], 
                 [
                     'file.required' => 'File is required',
-                    'file.in' => 'File type must be xlsx, xls or ods',
+                    'file.in' => 'File type must be xlsx/xls.',
                 ]
             );  
             

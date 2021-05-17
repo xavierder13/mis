@@ -75,6 +75,23 @@ const routes = [
         }
       },
       {
+        path: '/project_logs/:project_id/:endorse_project_id',
+        name: 'endorse_project.logs',
+        component: ProjectLogs,
+        beforeEnter(to, from, next)
+        { 
+          let user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
+          if(user_permissions.includes('project-log-list') || user_permissions.includes('project-log-create'))
+          {
+            next();
+          }
+          else
+          {
+            next('/unauthorize');
+          }
+        }
+      },
+      {
         path: '/user/index',
         name: 'user.index',
         component: UserIndex,

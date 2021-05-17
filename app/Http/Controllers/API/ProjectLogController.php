@@ -16,8 +16,9 @@ use App\Events\WebsocketEvent;
 
 class ProjectLogController extends Controller
 {
-    public function index($project_id)
+    public function index(Request $request, $project_id)
     {   
+        $endorse_project_id = $request->get('endorse_project_id');
         
         $project = DB::table('projects')
                     ->leftJoin('departments', 'projects.department_id', '=','departments.id')
@@ -50,19 +51,30 @@ class ProjectLogController extends Controller
             if(count($project_logs))
             {
                 $this->calculateHours($project_logs); 
-            }
-            
+            }   
         }
         
         $project_logs = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), DB::raw("TIME_FORMAT(remarks_time, '%H:%i')remarks_time"), 'remarks', 'status', 'turnover', 'mins_diff')
                                   ->where('project_id' , '=', $project_id)
+                                  ->where('endorse_project_id', '=', null)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
+        
+        // if endorse_project_id has value
+        if($endorse_project_id)
+        {
+            $project_logs = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), DB::raw("TIME_FORMAT(remarks_time, '%H:%i')remarks_time"), 'remarks', 'status', 'turnover', 'mins_diff')
+                                  ->where('endorse_project_id' , '=', $endorse_project_id)
+                                  ->orderBy('remarks_date', 'Asc')
+                                  ->orderBy('remarks_time', 'Asc')
+                                  ->get();
+        }
 
         return response()->json([
             'project' => $project, 
             'project_logs' => $project_logs,
+            'endorse_project_id' => $endorse_project_id,
         ], 200);
 
     }
@@ -72,15 +84,18 @@ class ProjectLogController extends Controller
         // return Carbon::parse($request->get('remarks_date'). ' ' .$request->get('remarks_time'))->format('Y-m-d H:i');
 
         $rules = [
-            'remarks_date.required' => 'Remarks Date is required',
-            'remarks_date.date' => 'Please enter a valid date',
-            'remarks_time.required' => 'Remarks Time is required',
-            'remarks_time.time' => 'Please enter a valid time',
+            'programmer_id.required' => 'Programmer ID is required',
+            'programmer_id.integer' => 'Programmer ID must be an integer',
+            'remarks_date.required' => 'Remarks date is required',
+            'remarks_date.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'remarks_time.required' => 'Remarks time is required',
+            'remarks_time.date_format' => 'Invalid time. Format: (H:i)',
         ];
 
         $valid_fields = [
-            'remarks_date' => 'required|date',
-            'remarks_time' => 'required',
+            'project_id' => 'required|integer',
+            'remarks_date' => 'required|date_format:Y-m-d',
+            'remarks_time' => 'required|date_format:H:i',
         ];
 
         $validator = Validator::make($request->all(), $valid_fields, $rules);
@@ -117,6 +132,12 @@ class ProjectLogController extends Controller
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
+
+        // // if project was endorsed
+        // if()
+        // {
+
+        // }
 
         if(count($project_logs))
         {   
@@ -159,15 +180,18 @@ class ProjectLogController extends Controller
     public function update(Request $request, $project_log_id)
     {   
         $rules = [
-            'remarks_date.required' => 'Remarks Date is required',
-            'remarks_date.date' => 'Please enter a valid date',
-            'remarks_time.required' => 'Remarks Time is required',
-            'remarks_time.time' => 'Please enter a valid time',
+            'programmer_id.required' => 'Programmer ID is required',
+            'programmer_id.integer' => 'Programmer ID must be an integer',
+            'remarks_date.required' => 'Remarks date is required',
+            'remarks_date.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'remarks_time.required' => 'Remarks time is required',
+            'remarks_time.date_format' => 'Invalid time. Format: (H:i)',
         ];
 
         $valid_fields = [
-            'remarks_date' => 'required|date',
-            'remarks_time' => 'required',
+            'project_id' => 'required|integer',
+            'remarks_date' => 'required|date_format:Y-m-d',
+            'remarks_time' => 'required|date_format:H:i',
         ];
 
         $validator = Validator::make($request->all(), $valid_fields, $rules);
@@ -355,6 +379,7 @@ class ProjectLogController extends Controller
         $project_logs = ProjectLog::where('project_id', '=', $project_id)->get();
         $status = $request->get('status');
         $remarks = "";
+        $change_status = false;
         
         if($project->status == 'For Validation')
         {
@@ -376,12 +401,14 @@ class ProjectLogController extends Controller
             $project_log->remarks = $remarks;
             $project_log->status = $project->status;
 
-            if($project->status == 'For Validation' || $project->status == 'Ongoing')
+            if($status == 'For Validation' || $status == 'Ongoing')
             {   
                 $project_log->turnover = 'Y';
             }
             
-            $project_log->save();
+            // $project_log->save();
+    
+            $change_status = true;
         }
 
         // create new remarks log
@@ -391,7 +418,7 @@ class ProjectLogController extends Controller
         $project_log->remarks_time = Carbon::parse($request->get('remarks_time'))->format('H:i');
         $project_log->remarks = $request->get('remarks');
         $project_log->status = $request->get('status');
-        $project_log->save();
+        // $project_log->save();
         
         // get latest data
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
@@ -406,13 +433,14 @@ class ProjectLogController extends Controller
             $this->calculateHours($project_logs);
         }
 
-        Project::where('id', '=', $project_id)
-                ->update(['status' => $request->get('status')]);
+        // Project::where('id', '=', $project_id)
+        //         ->update(['status' => $request->get('status')]);
 
         return response()->json([
             'success' => 'Record has successfully added', 
             'project_log' => $project_log, 
             'status' => $status,
+            'change_status' => $change_status,
         ], 200);   
     }
 

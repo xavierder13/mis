@@ -232,13 +232,13 @@ export default {
 
   methods: {
     getUser() {
-      Axios.get("/api/user/index", {
+      Axios.get("/api/auth/init", {
         headers: {
           Authorization: "Bearer " + access_token,
         },
       }).then(
         (response) => {
-          // console.log(response.data);
+          console.log(response.data);
         },
         (error) => {
           // if unauthenticated (401)

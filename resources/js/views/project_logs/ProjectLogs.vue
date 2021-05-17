@@ -336,7 +336,7 @@
                 <v-spacer></v-spacer>
                 <v-btn
                   color="#E0E0E0"
-                  @click="dialog_import = false"
+                  @click="(dialog_import = false) + (uploading = false)"
                   class="mb-4"
                 >
                   Cancel
@@ -565,13 +565,15 @@ export default {
       this.loading = true;
 
       let project_id = this.$route.params.project_id;
+      const data = { endorse_project_id: this.$route.params.endorse_project_id };
 
-      Axios.get("/api/project_log/index/" + project_id, {
+      Axios.post("/api/project_log/index/" + project_id, data, {
         headers: {
           Authorization: "Bearer " + access_token,
         },
       }).then(
         (response) => {
+          console.log(response.data);
           this.project = response.data.project;
           this.project_logs = response.data.project_logs;
           this.loading = false;
