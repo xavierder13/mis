@@ -321,6 +321,35 @@
                     <v-card-text>
                       <v-container>
                         <v-row>
+                          <v-col v-if="editedItem.endorse_project_id">
+                              <v-menu
+                                v-model="input_date_receive"
+                                :close-on-content-click="false"
+                                transition="scale-transition"
+                                offset-y
+                                max-width="290px"
+                                min-width="290px"
+                              >
+                                <template v-slot:activator="{ on, attrs }">
+                                  <v-text-field
+                                    name="date_receive"
+                                    v-model="computedDateReceiveFormatted"
+                                    label="Date Received"
+                                    hint="MM/DD/YYYY"
+                                    persistent-hint
+                                    prepend-icon="mdi-calendar"
+                                    readonly
+                                    v-bind="attrs"
+                                    v-on="on"
+                                  ></v-text-field>
+                                </template>
+                                <v-date-picker
+                                  v-model="date_receive"
+                                  no-title
+                                  @input="input_date_receive = false"
+                                ></v-date-picker>
+                              </v-menu>
+                          </v-col>
                           <v-col v-if="permissions.edit_template_percentage">
                             <v-text-field-money
                               v-model="editedItem.template_percent"
@@ -443,14 +472,16 @@
                     </v-chip>
                   </td>
                 </template>
-                <template v-slot:item.template_percent="{ item, index}">
+                <template v-slot:item.template_percent="{ item, index }">
                   {{ item.template_percent ? item.template_percent + "%" : "" }}
                 </template>
-                <template v-slot:item.program_percent="{ item, index}">
-                  {{ item.program_percent ? item.program_percent + "%" : ""}}
+                <template v-slot:item.program_percent="{ item, index }">
+                  {{ item.program_percent ? item.program_percent + "%" : "" }}
                 </template>
-                <template v-slot:item.validation_percent="{ item, index}">
-                  {{ item.validation_percent ? item.validation_percent + "%" : "" }}
+                <template v-slot:item.validation_percent="{ item, index }">
+                  {{
+                    item.validation_percent ? item.validation_percent + "%" : ""
+                  }}
                 </template>
                 <!-- <template v-slot:item.template_percent="{ item, index }">
                   <v-text-field-money
@@ -804,7 +835,7 @@ export default {
       hour: [],
       minute: [],
       json_fields: {
-        "Approved/ Filing Date": "date_approved",
+        "Approved/ Filing Date": "date_approve",
         "Date Accepted": "accepted_date",
         "Ref No.": "ref_no",
         "Report Title": "report_title",
@@ -812,7 +843,7 @@ export default {
         "Ideal Valid Hrs.": "ideal_valid_hrs",
         Department: "department",
         Manager: "manager",
-        "Date Received": "date_received",
+        "Date Received": "date_receive",
         "Template %": "template_percent",
         "Program Date": "program_date",
         "Program %": "program_percent",
@@ -863,7 +894,7 @@ export default {
         { text: "Actions", value: "actions", width: "80px", sortable: false },
         {
           text: "Approved/ Filing Date",
-          value: "date_approved",
+          value: "date_approve",
           width: "100px",
           sortable: false,
         },
@@ -879,7 +910,7 @@ export default {
         { text: "Ideal Valid Hrs.", value: "ideal_valid_hrs", sortable: false },
         { text: "Department", value: "department", sortable: false },
         { text: "Manager", value: "manager", sortable: false },
-        { text: "Date Received", value: "date_received", sortable: false },
+        { text: "Date Received", value: "date_receive", sortable: false },
         {
           text: "Template %",
           value: "template_percent",
@@ -934,8 +965,10 @@ export default {
         },
       ],
       input_filter_date: false,
+      input_date_receive: false,
       input_program_date: false,
       input_validation_date: false,
+      date_receive: "",
       program_date: "",
       validation_date: "",
       disabled: false,
@@ -961,6 +994,7 @@ export default {
         ref_no: "",
         report_title: "",
         template_percent: "",
+        date_receive: "",
         program_date: "",
         program_percent: "",
         validation_date: "",
@@ -970,6 +1004,7 @@ export default {
         ref_no: "",
         report_title: "",
         template_percent: "",
+        date_receive: "",
         program_date: "",
         program_percent: "",
         validation_date: "",
@@ -1037,7 +1072,7 @@ export default {
         },
       }).then(
         (response) => {
-          // console.log(response.data);
+          console.log(response.data);
           this.printDisabled = false;
           this.projects = response.data.projects;
           this.project_logs = response.data.project_logs;
@@ -1074,7 +1109,9 @@ export default {
     },
 
     editProject(item) {
+     
       this.dialog2 = true;
+      let date_receive = "";
       let program_date = "";
       let validation_date = "";
 
@@ -1082,6 +1119,12 @@ export default {
       this.editedItem = Object.assign({}, item);
       this.program_date = "";
       this.validation_date = "";
+
+      if (item.date_receive) {
+        date_receive = item.date_receive.split("/");
+        this.date_receive =
+          date_receive[2] + "-" + date_receive[0] + "-" + date_receive[1];
+      }
       if (item.program_date) {
         program_date = item.program_date.split("/");
         this.program_date =
@@ -1166,22 +1209,22 @@ export default {
       );
     },
     viewProjectLogs(item) {
-      
       let params_value = { project_id: item.project_id };
-      let route_name = "project.logs"
+      let route_name = "project.logs";
 
       // if endorse_project_id has value
-      if(item.endorse_project_id)
-      {
-        params_value = { project_id: item.project_id,  endorse_project_id: item.endorse_project_id };
-        route_name = "endorse_project.logs"
+      if (item.endorse_project_id) {
+        params_value = {
+          project_id: item.project_id,
+          endorse_project_id: item.endorse_project_id,
+        };
+        route_name = "endorse_project.logs";
       }
 
       this.$router.push({
         name: route_name,
         params: params_value,
       });
-
     },
 
     showAlert() {
@@ -1208,6 +1251,7 @@ export default {
       this.$v.$reset();
       this.editedItem = this.defaultItem;
       this.editedIndex = -1;
+      this.date_receive = "";
       this.program_date = "";
       this.validation_date = "";
       this.remarksItem = {
@@ -1232,6 +1276,7 @@ export default {
         },
       }).then(
         (response) => {
+          console.log(response.data);
           if (response.data.success) {
             // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "project-edit" });
@@ -1386,6 +1431,14 @@ export default {
               (response) => {
                 console.log(response.data);
                 if (response.data.success) {
+                  // send data to Socket.IO Server
+                  this.$socket.emit("sendData", { action: "project-edit" });
+
+                  // send data to Socket.IO Server
+                  this.$socket.emit("sendData", {
+                    action: "project-log-create",
+                  });
+
                   this.showAlert();
                   this.close();
                 }
@@ -1628,7 +1681,10 @@ export default {
         errors.push("Report Title is required.");
       return errors;
     },
-
+    computedDateReceiveFormatted() {
+      this.editedItem.date_receive = this.formatDate(this.date_receive);
+      return this.editedItem.date_receive;
+    },
     computedProgramDateFormatted() {
       this.editedItem.program_date = this.formatDate(this.program_date);
       return this.editedItem.program_date;

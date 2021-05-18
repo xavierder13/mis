@@ -152,7 +152,7 @@
                         <v-row>
                           <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-menu
-                              v-model="input_date_received"
+                              v-model="input_date_receive"
                               :close-on-content-click="false"
                               transition="scale-transition"
                               offset-y
@@ -161,8 +161,8 @@
                             >
                               <template v-slot:activator="{ on, attrs }">
                                 <v-text-field
-                                  name="date_received"
-                                  v-model="computedDateReceivedFormatted"
+                                  name="date_receive"
+                                  v-model="computedDateReceiveFormatted"
                                   label="Date Received"
                                   hint="MM/DD/YYYY format"
                                   persistent-hint
@@ -173,15 +173,15 @@
                                 ></v-text-field>
                               </template>
                               <v-date-picker
-                                v-model="date_received"
+                                v-model="date_receive"
                                 no-title
-                                @input="input_date_received = false"
+                                @input="input_date_receive = false"
                               ></v-date-picker>
                             </v-menu>
                           </v-col>
                           <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                             <v-menu
-                              v-model="input_date_approved"
+                              v-model="input_date_approve"
                               :close-on-content-click="false"
                               transition="scale-transition"
                               offset-y
@@ -190,7 +190,7 @@
                             >
                               <template v-slot:activator="{ on, attrs }">
                                 <v-text-field
-                                  name="date_received"
+                                  name="date_receive"
                                   v-model="computedDateApprovedFormatted"
                                   label="Date Approved"
                                   hint="MM/DD/YYYY format"
@@ -202,9 +202,9 @@
                                 ></v-text-field>
                               </template>
                               <v-date-picker
-                                v-model="date_approved"
+                                v-model="date_approve"
                                 no-title
-                                @input="input_date_approved = false"
+                                @input="input_date_approve = false"
                               ></v-date-picker>
                             </v-menu>
                           </v-col>
@@ -493,8 +493,8 @@ export default {
         { text: "Programmer", value: "programmer" },
         { text: "Validator", value: "validator" },
         { text: "Date Logged", value: "date_logged" },
-        { text: "Date Received", value: "date_received" },
-        { text: "Date Approved", value: "date_approved" },
+        { text: "Date Received", value: "date_receive" },
+        { text: "Date Approved", value: "date_approve" },
         { text: "Report Type", value: "type" },
         { text: "Ideal Prog Hrs.", value: "ideal_prog_hrs" },
         { text: "Ideal Valid Hrs.", value: "ideal_valid_hrs" },
@@ -502,10 +502,10 @@ export default {
         { text: "Status", value: "status" },
         { text: "Actions", value: "actions", width: "80px", sortable: false },
       ],
-      input_date_received: false,
-      input_date_approved: false,
-      date_received: "",
-      date_approved: "",
+      input_date_receive: false,
+      input_date_approve: false,
+      date_receive: "",
+      date_approve: "",
       disabled: false,
       uploadDisabled: false,
       uploading: false,
@@ -535,8 +535,8 @@ export default {
         programmer_id: "",
         validator: "",
         validator_id: "",
-        date_received: "",
-        date_approved: "",
+        date_receive: "",
+        date_approve: "",
         type: "",
         ideal_prog_hrs: "",
         ideal_valid_hrs: "",
@@ -552,8 +552,8 @@ export default {
         programmer_id: "",
         validator: "",
         validator_id: "",
-        date_received: "",
-        date_approved: "",
+        date_receive: "",
+        date_approve: "",
         type: "",
         ideal_prog_hrs: "",
         ideal_valid_hrs: "",
@@ -595,21 +595,21 @@ export default {
     },
 
     editProject(item) {
-      let date_received = "";
-      let date_approved = "";
+      let date_receive = "";
+      let date_approve = "";
 
       this.editedIndex = this.projects.indexOf(item);
       this.editedItem = Object.assign({}, item);
 
-      if (item.date_received) {
-        date_received = item.date_received.split("/");
-        this.date_received =
-          date_received[2] + "-" + date_received[0] + "-" + date_received[1];
+      if (item.date_receive) {
+        date_receive = item.date_receive.split("/");
+        this.date_receive =
+          date_receive[2] + "-" + date_receive[0] + "-" + date_receive[1];
       }
-      if (item.date_approved) {
-        date_approved = item.date_approved.split("/");
-        this.date_approved =
-          date_approved[2] + "-" + date_approved[0] + "-" + date_approved[1];
+      if (item.date_approve) {
+        date_approve = item.date_approve.split("/");
+        this.date_approve =
+          date_approve[2] + "-" + date_approve[0] + "-" + date_approve[1];
       }
 
       this.dialog = true;
@@ -761,8 +761,8 @@ export default {
     clear() {
       this.$v.$reset();
       this.editedItem = this.defaultItem;
-      this.date_received = "";
-      this.date_approved = "";
+      this.date_receive = "";
+      this.date_approve = "";
 
       if (this.user_type == "Programmer") {
         this.editedItem.programmer_id = parseInt(this.user_id);
@@ -1029,13 +1029,13 @@ export default {
         errors.push("Programmer is required.");
       return errors;
     },
-    computedDateReceivedFormatted() {
-      this.editedItem.date_received = this.formatDate(this.date_received);
-      return this.editedItem.date_received;
+    computedDateReceiveFormatted() {
+      this.editedItem.date_receive = this.formatDate(this.date_receive);
+      return this.editedItem.date_receive;
     },
     computedDateApprovedFormatted() {
-      this.editedItem.date_approved = this.formatDate(this.date_approved);
-      return this.editedItem.date_approved;
+      this.editedItem.date_approve = this.formatDate(this.date_approve);
+      return this.editedItem.date_approve;
     },
     typeErrors() {
       const errors = [];

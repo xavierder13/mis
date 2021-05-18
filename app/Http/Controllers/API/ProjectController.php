@@ -35,8 +35,8 @@ class ProjectController extends Controller
                              DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
                              DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
-                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
-                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
+                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_receive"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approve"),
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
@@ -109,10 +109,10 @@ class ProjectController extends Controller
                                              INNER JOIN (SELECT id, name FROM users WHERE type = "programmer") t1 ON t0.programmer_id = t1.id 
                                              WHERE t0.id = MAX(a.id)) as programmer,
                                             (SELECT t0.programmer_id FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as programmer_id,
-                                            (SELECT DATE_FORMAT(date_receive, "%m/%d/%Y") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as date_receive,
-                                            (SELECT DATE_FORMAT(program_date, "%m/%d/%Y") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as program_date,
-                                            (SELECT DATE_FORMAT(validation_date, "%m/%d/%Y") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as validation_date,
-                                            (SELECT DATE_FORMAT(endorse_date, "%m/%d/%Y") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as endorse_date
+                                            (SELECT date_receive FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as date_receive,
+                                            (SELECT program_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as program_date,
+                                            (SELECT validation_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as validation_date,
+                                            (SELECT endorse_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as endorse_date
                                      FROM endorse_projects a 
                                      WHERE a.endorse_date <= "'.$filter_date.'" OR a.endorse_date IS NULL
                                      group by a.project_id
@@ -133,8 +133,8 @@ class ProjectController extends Controller
                              'endorse_projects.programmer', 'endorse_projects.programmer_id',
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
                              DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
-                             DB::raw("DATE_FORMAT(endorse_projects.date_receive, '%m/%d/%Y') as date_received"),
-                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
+                             DB::raw("DATE_FORMAT(endorse_projects.date_receive, '%m/%d/%Y') as date_receive"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approve"),
                              DB::raw("DATE_FORMAT(endorse_projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(endorse_projects.validation_date, '%m/%d/%Y') as validation_date"),
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
@@ -182,8 +182,8 @@ class ProjectController extends Controller
                              DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
                              DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
-                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
-                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
+                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_receive"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approve"),
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
@@ -249,8 +249,8 @@ class ProjectController extends Controller
             'programmer_id.required' => 'Programmer is required',
             'programmer_id.integer' => 'Programmer must be an integer',
             'validator.integer' => 'Validator must be an integer',
-            'date_received.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
-            'date_approved.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'date_receive.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
+            'date_approve.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
             'type.required' => 'Report Type is required'
         ];
 
@@ -259,8 +259,8 @@ class ProjectController extends Controller
             'department_id' => 'required|integer',
             'programmer_id' => 'required|integer',
             'validator_id' => 'nullable|integer',
-            'date_received' => 'nullable|date_format:Y-m-d',
-            'date_approved' => 'nullable|date_format:Y-m-d',
+            'date_receive' => 'nullable|date_format:m/d/Y',
+            'date_approve' => 'nullable|date_format:m/d/Y',
             'type' => 'required',
         ];
 
@@ -280,13 +280,13 @@ class ProjectController extends Controller
         $project->department_id = $request->get('department_id');
         $project->programmer_id = $request->get('programmer_id');
         $project->validator_id = $request->get('validator_id');
-        if($request->get('date_received'))
+        if($request->get('date_receive'))
         {
-            $project->date_receive = Carbon::parse($request->get('date_received'))->format('Y-m-d');
+            $project->date_receive = Carbon::parse($request->get('date_receive'))->format('Y-m-d');
         }
-        if($request->get('date_approved'))
+        if($request->get('date_approve'))
         {
-            $project->date_approve = Carbon::parse($request->get('date_approved'))->format('Y-m-d');
+            $project->date_approve = Carbon::parse($request->get('date_approve'))->format('Y-m-d');
         }
         $project->ideal_prog_hrs = $request->get('ideal_prog_hrs');
         $project->ideal_valid_hrs = $request->get('ideal_valid_hrs');
@@ -310,8 +310,8 @@ class ProjectController extends Controller
                              DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
                              DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
-                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
-                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
+                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_receive"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approve"),
                              'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent',
                              'projects.program_date', 'projects.validation_date')
@@ -333,8 +333,8 @@ class ProjectController extends Controller
             'programmer_id.required' => 'Programmer is required',
             'programmer_id.integer' => 'Programmer must be an integer',
             'validator.integer' => 'Validator must be an integer',
-            'date_received.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
-            'date_approved.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'date_receive.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
+            'date_approve.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
             'type.required' => 'Report Type is required'
         ];
 
@@ -343,8 +343,8 @@ class ProjectController extends Controller
             'department_id' => 'required|integer',
             'programmer_id' => 'required|integer',
             'validator_id' => 'nullable|integer',
-            'date_received' => 'nullable|date_format:Y-m-d',
-            'date_approved' => 'nullable|date_format:Y-m-d',
+            'date_receive' => 'nullable|date_format:m/d/Y',
+            'date_approve' => 'nullable|date_format:m/d/Y',
             'type' => 'required',
         ];
 
@@ -360,13 +360,13 @@ class ProjectController extends Controller
         $project->department_id = $request->get('department_id');
         $project->programmer_id = $request->get('programmer_id');
         $project->validator_id = $request->get('validator_id');
-        if($request->get('date_received'))
+        if($request->get('date_receive'))
         {
-            $project->date_receive = Carbon::parse($request->get('date_received'))->format('Y-m-d');
+            $project->date_receive = Carbon::parse($request->get('date_receive'))->format('Y-m-d');
         }
-        if($request->get('date_approved'))
+        if($request->get('date_approve'))
         {
-            $project->date_approve = Carbon::parse($request->get('date_approved'))->format('Y-m-d');
+            $project->date_approve = Carbon::parse($request->get('date_approve'))->format('Y-m-d');
         }
         $project->ideal_prog_hrs = $request->get('ideal_prog_hrs');
         $project->ideal_valid_hrs = $request->get('ideal_valid_hrs');
@@ -381,31 +381,82 @@ class ProjectController extends Controller
 
     public function update_status(Request $request)
     {   
-        // return $request;
+        $rules = [
+            'date_receive.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
+            'template_percent.numeric' => 'Template Percentage must be numeric',
+            'template_percent.between' => 'Template Percentage must be 0 or above',
+            'program_percent.numeric' => 'Programming Percentage must be numeric',
+            'program_percent.between' => 'Programming Percentage must be 0 or above',
+            'validation_percent.numeric' => 'Validation Percentage must be numeric',
+            'validation_percent.between' => 'Validation Percentage must be 0 or above',
+        ];
+
+        $valid_fields = [        
+            'date_receive' => 'nullable|date_format:m/d/Y',
+            'template_percent' => 'nullable|numeric|between:0,9999999.99',
+            'program_percent' => 'nullable|numeric|between:0,9999999.99',
+            'validation_percent' => 'nullable|numeric|between:0,9999999.99',
+        ];
+
+        $validator = Validator::make($request->all(), $valid_fields, $rules);
+
+        if($validator->fails())
+        {
+            return response()->json($validator->errors(), 200);
+        }
+
+        $endorse_project_id = $request->get('endorse_project_id');
+
         $project = Project::find($request->get('project_id'));
 
         $project_logs = ProjectLog::where('project_id', '=', $project->id)
+                                  ->where('endorse_project_id', '=', null)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->orderBy('id', 'Asc')
                                   ->get();
 
-        $project->template_percent = $request->get('template_percent');
+        // if endorse_project_id has value
+        if($endorse_project_id)
+        {   
+            $project_logs = ProjectLog::where('project_id', '=', $endorse_project_id)
+                                  ->orderBy('remarks_date', 'Asc')
+                                  ->orderBy('remarks_time', 'Asc')
+                                  ->orderBy('id', 'Asc')
+                                  ->get();
+        }
+
+        $first_ongoing_log = null;
+        $first_validation_log = null;
 
         // get the first log remarks of programming and validation date then update the program date and validation date
         if(count($project_logs))
-        {   $first_ongoing_log = null;
-            $first_validation_log = null;
-            
+        {   
             if($project_logs->where('status', '=', 'Ongoing')->first())
             {
-                $project->program_date = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+                $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
             }
             if($project_logs->where('status', '=', 'For Validation')->first())
             {
-                $project->validation_date = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
-            }     
+                $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+            }    
         }
+        // if endorse_project_id has value
+        if($endorse_project_id)
+        {  
+            $endorse_project = EndorseProject::find($endorse_project_id);
+            $endorse_project->date_receive = Carbon::parse($request->get('date_receive'))->format('Y-m-d');
+            $endorse_project->program_date = $first_ongoing_log;
+            $endorse_project->validation_date = $first_validation_log;
+            $endorse_project->save();
+        }
+        else
+        {
+            $project->program_date = $first_ongoing_log;
+            $project->validation_date = $first_validation_log;
+        }
+        
+        $project->template_percent = $request->get('template_percent');
         $project->program_percent = $request->get('program_percent');
         $project->validation_percent = $request->get('validation_percent');
         $project->save();
@@ -425,7 +476,7 @@ class ProjectController extends Controller
             'project_id.required' => 'Project ID is required',
             'project_id.integer' => 'Project ID must be an integer',
             'remarks_date.required' => 'Remarks date is required',
-            'remarks_date.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'remarks_date.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
             'remarks_time.required' => 'Remarks time is required',
             'remarks_time.date_format' => 'Invalid time. Format: (H:i)',
         ];
@@ -433,7 +484,7 @@ class ProjectController extends Controller
         $valid_fields = [
             'programmer_id' => 'required|integer',
             'project_id' => 'required|integer',
-            'remarks_date' => 'required|date_format:Y-m-d',
+            'remarks_date' => 'required|date_format:m/d/Y',
             'remarks_time' => 'required|date_format:H:i',
         ];
         
