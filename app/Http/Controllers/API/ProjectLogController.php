@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Project;
 use App\ProjectLog;
+use App\EndorseProject;
 use Carbon\Carbon;
 use Validator;
 use DB;
@@ -30,8 +31,8 @@ class ProjectLogController extends Controller
                              DB::raw('programmers.name as programmer'), DB::raw('programmers.id as programmer_id'),
                              DB::raw('validators.name as validator'), DB::raw('validators.id as validator_id'),
                              DB::raw("DATE_FORMAT(projects.created_at, '%m/%d/%Y') as date_logged"),
-                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_received"),
-                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approved"),
+                             DB::raw("DATE_FORMAT(projects.date_receive, '%m/%d/%Y') as date_receive"),
+                             DB::raw("DATE_FORMAT(projects.date_approve, '%m/%d/%Y') as date_approve"),
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
                              'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
@@ -44,6 +45,7 @@ class ProjectLogController extends Controller
         if($project->status != 'Accepted')
         {   
             $project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                      ->where('endorse_project_id', '=', $endorse_project_id)
                                       ->orderBy('remarks_date', 'Asc')
                                       ->orderBy('remarks_time', 'Asc')
                                       ->get();
@@ -56,21 +58,11 @@ class ProjectLogController extends Controller
         
         $project_logs = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), DB::raw("TIME_FORMAT(remarks_time, '%H:%i')remarks_time"), 'remarks', 'status', 'turnover', 'mins_diff')
                                   ->where('project_id' , '=', $project_id)
-                                  ->where('endorse_project_id', '=', null)
+                                  ->where('endorse_project_id', '=', $endorse_project_id)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
         
-        // if endorse_project_id has value
-        if($endorse_project_id)
-        {
-            $project_logs = ProjectLog::select('id', 'project_id',DB::raw("DATE_FORMAT(remarks_date, '%m/%d/%Y') as remarks_date"), DB::raw("TIME_FORMAT(remarks_time, '%H:%i')remarks_time"), 'remarks', 'status', 'turnover', 'mins_diff')
-                                  ->where('endorse_project_id' , '=', $endorse_project_id)
-                                  ->orderBy('remarks_date', 'Asc')
-                                  ->orderBy('remarks_time', 'Asc')
-                                  ->get();
-        }
-
         return response()->json([
             'project' => $project, 
             'project_logs' => $project_logs,
@@ -106,20 +98,14 @@ class ProjectLogController extends Controller
         }
 
         $project_id = $request->get('project_id');
-      
-        $status = $request->get('status');
+        $project = Project::find($project_id);
+        $endorse_project_id = $request->get('endorse_project_id');
 
-        if($request->get('turnover') && $status == 'Ongoing')
-        {   
-            $status = 'For Validation';
-        }
-        else if($request->get('turnover') && $status == 'For Validation')
-        {   
-            $status = 'Ongoing';
-        }
+        $status = $request->get('status');
         
         $project_log = new ProjectLog();
         $project_log->project_id = $project_id;
+        $project_log->endorse_project_id = $endorse_project_id;
         $project_log->remarks_date = Carbon::parse($request->get('remarks_date'))->format('Y-m-d');
         $project_log->remarks_time = Carbon::parse($request->get('remarks_time'))->format('H:i');
         $project_log->remarks = $request->get('remarks');
@@ -127,22 +113,60 @@ class ProjectLogController extends Controller
         $project_log->turnover = $request->get('turnover');
         $project_log->save();
 
+        // last log
+        $last_log = ProjectLog::where('project_id', '=', $project_id)
+                              ->where('endorse_project_id', '=', $endorse_project_id)
+                              ->orderBy('remarks_date', 'Desc')
+                              ->orderBy('remarks_time', 'Desc')
+                              ->orderBy('id', 'Desc')
+                              ->first();
+        // last log turnover
+        $last_log_turnover = ProjectLog::where('project_id', '=', $project_id)
+                                       ->where('endorse_project_id', '=', $endorse_project_id)
+                                       ->where('turnover', '=', 'Y')
+                                       ->orderBy('remarks_date', 'Desc')
+                                       ->orderBy('remarks_time', 'Desc')
+                                       ->orderBy('id', 'Desc')
+                                       ->first();
+
+                                   
+        // get the last log turnover status  
+        if($last_log->status == 'For Validation' || $last_log->status == 'Ongoing')
+        {   
+            if($last_log_turnover)
+            {
+                if($last_log_turnover->status == 'For Validation')
+                {
+                    $status = 'Ongoing';
+                }
+                elseif($last_log_turnover->status == 'Ongoing')
+                {
+                    $status = 'For Validation';
+                }
+            }
+            
+        }
+
+        $change_status = false;   
+
+        // check if status was changed
+        if($status != $project->status)
+        {
+            $change_status = true;   
+        }
 
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                  ->where('endorse_project_id', '=', $endorse_project_id)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
 
-        // // if project was endorsed
-        // if()
-        // {
+        $first_ongoing_log = null;
+        $first_validation_log = null;
 
-        // }
-
+        // get the first programming and validation log to update programming date and validation date field   
         if(count($project_logs))
         {   
-            $first_ongoing_log = null;
-            $first_validation_log = null;
             if($project_logs->where('status', '=', 'Ongoing')->first())
             {
                 $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
@@ -151,16 +175,30 @@ class ProjectLogController extends Controller
             {
                 $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
             }
-
-            Project::where('id', '=', $project_id)
-                ->update([
-                    'status' => $status, 
-                    'program_date' => $first_ongoing_log,
-                    'validation_date' => $first_validation_log,
-                ]);
+    
         }
-        
-        
+
+        // if endorse_project_id has value
+        if($endorse_project_id)
+        {  
+            $endorse_project = EndorseProject::find($endorse_project_id);
+            $endorse_project->program_date = $first_ongoing_log;
+            $endorse_project->validation_date = $first_validation_log;
+            $endorse_project->save();
+
+            // update status
+            $project = Project::find($project_id);
+            $project->status = $status;
+            $project->save();
+        }
+        else
+        {
+            $project = Project::find($project_id);
+            $project->status = $status;
+            $project->program_date = $first_ongoing_log;
+            $project->validation_date = $first_validation_log;
+            $project->save();
+        }
 
         // calculate hours difference per remarks log
         $this->calculateHours($project_logs);
@@ -174,6 +212,7 @@ class ProjectLogController extends Controller
             'success' => 'Record has successfully added', 
             'project_log' => $project_log, 
             'status' => $status,
+            'change_status' => $change_status
         ], 200);   
     }
 
@@ -214,19 +253,23 @@ class ProjectLogController extends Controller
         $project_log->turnover = $request->get('turnover');
         $project_log->save();
         
+        $endorse_project_id = $project_log->endorse_project_id;
+
         // last log
         $last_log = ProjectLog::where('project_id', '=', $project_id)
-                                  ->orderBy('remarks_date', 'Desc')
-                                  ->orderBy('remarks_time', 'Desc')
-                                  ->orderBy('id', 'Desc')
-                                  ->first();
+                              ->where('endorse_project_id', '=', $endorse_project_id)
+                              ->orderBy('remarks_date', 'Desc')
+                              ->orderBy('remarks_time', 'Desc')
+                              ->orderBy('id', 'Desc')
+                              ->first();
         // last log turnover
         $last_log_turnover = ProjectLog::where('project_id', '=', $project_id)
-                                  ->where('turnover', '=', 'Y')
-                                  ->orderBy('remarks_date', 'Desc')
-                                  ->orderBy('remarks_time', 'Desc')
-                                  ->orderBy('id', 'Desc')
-                                  ->first();
+                                       ->where('endorse_project_id', '=', $endorse_project_id)
+                                       ->where('turnover', '=', 'Y')
+                                       ->orderBy('remarks_date', 'Desc')
+                                       ->orderBy('remarks_time', 'Desc')
+                                       ->orderBy('id', 'Desc')
+                                       ->first();
 
         // get the last log turnover status  
         if($last_log->status == 'For Validation' || $last_log->status == 'Ongoing')
@@ -244,23 +287,19 @@ class ProjectLogController extends Controller
             }
             
         }
-        
-        // update report status if latest log was updated
-         Project::where('id', '=', $project_id)
-         ->update(['status' => $status]);
-
 
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                  ->where('endorse_project_id', '=', $endorse_project_id)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
                                   ->get();
         
+        $first_ongoing_log = null;
+        $first_validation_log = null;
+
         // get the first programming and validation log to update programming date and validation date field   
         if(count($project_logs))
         {   
-            $first_ongoing_log = null;
-            $first_validation_log = null;
-            
             if($project_logs->where('status', '=', 'Ongoing')->first())
             {
                 $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
@@ -269,15 +308,31 @@ class ProjectLogController extends Controller
             {
                 $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
             }
-
-            Project::where('id', '=', $project_id)
-                ->update([
-                    'status' => $status, 
-                    'program_date' => $first_ongoing_log,
-                    'validation_date' => $first_validation_log,
-                ]);
+    
         }
-                                  
+
+        // if endorse_project_id has value
+        if($endorse_project_id)
+        {  
+            $endorse_project = EndorseProject::find($endorse_project_id);
+            $endorse_project->program_date = $first_ongoing_log;
+            $endorse_project->validation_date = $first_validation_log;
+            $endorse_project->save();
+
+            // update status
+            $project = Project::find($project_id);
+            $project->status = $status;
+            $project->save();
+        }
+        else
+        {
+            $project = Project::find($project_id);
+            $project->status = $status;
+            $project->program_date = $first_ongoing_log;
+            $project->validation_date = $first_validation_log;
+            $project->save();
+        }
+                         
         // calculate hours difference per remarks log
         $this->calculateHours($project_logs);
 
@@ -298,7 +353,11 @@ class ProjectLogController extends Controller
     {
         $project_log = ProjectLog::find($request->get('project_log_id'));
         $project_id = $project_log->project_id;
+        $endorse_project_id = $project_log->endorse_project_id;
         
+        // project status
+        $status = Project::find($project_id)->status;   
+
         //if record is empty then display error page
         if(empty($project_log->id))
         {
@@ -307,18 +366,65 @@ class ProjectLogController extends Controller
 
         $project_log->delete();
         
-        // get latest data
+        // last log
+        $last_log = ProjectLog::where('project_id', '=', $project_id)
+                              ->where('endorse_project_id', '=', $endorse_project_id)
+                              ->orderBy('remarks_date', 'Desc')
+                              ->orderBy('remarks_time', 'Desc')
+                              ->orderBy('id', 'Desc')
+                              ->first();
+        // last log turnover
+        $last_log_turnover = ProjectLog::where('project_id', '=', $project_id)
+                                       ->where('endorse_project_id', '=', $endorse_project_id)
+                                       ->where('turnover', '=', 'Y')
+                                       ->orderBy('remarks_date', 'Desc')
+                                       ->orderBy('remarks_time', 'Desc')
+                                       ->orderBy('id', 'Desc')
+                                       ->first();
+
+        // get the last log turnover status  
+        if($last_log->status == 'For Validation' || $last_log->status == 'Ongoing')
+        {   
+            if($last_log_turnover)
+            {
+                if($last_log_turnover->status == 'For Validation')
+                {
+                    $status = 'Ongoing';
+                }
+                elseif($last_log_turnover->status == 'Ongoing')
+                {
+                    $status = 'For Validation';
+                }
+            }
+            
+        }
+
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
+                                  ->where('endorse_project_id', '=', $endorse_project_id)
                                   ->orderBy('remarks_date', 'Asc')
                                   ->orderBy('remarks_time', 'Asc')
-                                  ->orderBy('id', 'Asc')
                                   ->get();
+        
+        $first_ongoing_log = null;
+        $first_validation_log = null;
 
-        $last_project_logs = ProjectLog::where('project_id', '=', $project_id)
-                                  ->orderBy('remarks_date', 'Desc')
-                                  ->orderBy('remarks_time', 'Desc')
-                                  ->orderBy('id', 'Desc')
-                                  ->first();
+        // get the first programming and validation log to update programming date and validation date field   
+        if(count($project_logs))
+        {   
+            if($project_logs->where('status', '=', 'Ongoing')->first())
+            {
+                $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
+            }
+            if($project_logs->where('status', '=', 'For Validation')->first())
+            {
+                $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
+            }
+    
+        }
+        else
+        {
+            $status = 'Pending';
+        }
 
         if(count($project_logs) > 0)
         {
@@ -326,47 +432,28 @@ class ProjectLogController extends Controller
             $this->calculateHours($project_logs);
         }
         
-        $status = "";
-        if(count($project_logs) > 0)
-        {
-            if($last_project_logs->turnover)
-            {
-                if($last_project_logs->status == "Ongoing")
-                {
-                    $status = "For Validation";
-                }
-                elseif($last_project_logs->status == "For Validation")
-                {
-                    $status = "Ongoing";
-                }
-                else
-                {
-                    $status = $last_project_logs->status;
-                }
-            }
-            else
-            {   
-                $status = $last_project_logs->status;   
-            }
+        
+        // if endorse_project_id has value
+        if($endorse_project_id)
+        {  
+            $endorse_project = EndorseProject::find($endorse_project_id);
+            $endorse_project->program_date = $first_ongoing_log;
+            $endorse_project->validation_date = $first_validation_log;
+            $endorse_project->save();
 
-            $first_ongoing_log = $project_logs->where('status', '=', 'Ongoing')->first()->remarks_date;
-
-            $first_validation_log = $project_logs->where('status', '=', 'For Validation')->first()->remarks_date;
-
-            Project::where('id', '=', $project_id)
-                    ->update([
-                        'status' => $status, 
-                        'program_date' => $first_ongoing_log,
-                        'validation_date' => $first_validation_log,
-                    ]);
-        } 
+            // update status
+            $project = Project::find($project_id);
+            $project->status = $status;
+            $project->save();
+        }
         else
         {
-            $status = "Pending"; 
+            $project = Project::find($project_id);
+            $project->status = $status;
+            $project->program_date = $first_ongoing_log;
+            $project->validation_date = $first_validation_log;
+            $project->save();
         }
-        
-        Project::where('id', '=', $project_id)
-               ->update(['status' => $status]);
 
         return response()->json(['success' => 'Record has been deleted', 'status' => $status,], 200);
     }
@@ -406,7 +493,7 @@ class ProjectLogController extends Controller
                 $project_log->turnover = 'Y';
             }
             
-            // $project_log->save();
+            $project_log->save();
     
             $change_status = true;
         }
@@ -418,7 +505,7 @@ class ProjectLogController extends Controller
         $project_log->remarks_time = Carbon::parse($request->get('remarks_time'))->format('H:i');
         $project_log->remarks = $request->get('remarks');
         $project_log->status = $request->get('status');
-        // $project_log->save();
+        $project_log->save();
         
         // get latest data
         $project_logs = ProjectLog::where('project_id', '=', $project_id)
@@ -433,8 +520,8 @@ class ProjectLogController extends Controller
             $this->calculateHours($project_logs);
         }
 
-        // Project::where('id', '=', $project_id)
-        //         ->update(['status' => $request->get('status')]);
+        Project::where('id', '=', $project_id)
+                ->update(['status' => $request->get('status')]);
 
         return response()->json([
             'success' => 'Record has successfully added', 

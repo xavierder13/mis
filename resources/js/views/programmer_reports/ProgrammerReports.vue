@@ -344,7 +344,7 @@
                                   ></v-text-field>
                                 </template>
                                 <v-date-picker
-                                  v-model="date_receive"
+                                  v-model="editedItem.date_receive"
                                   no-title
                                   @input="input_date_receive = false"
                                 ></v-date-picker>
@@ -530,7 +530,7 @@
                       ></v-text-field>
                     </template>
                     <v-date-picker
-                      v-model="program_date"
+                      v-model="editedItem.program_date"
                       no-title
                       @input="input_program_date = false"
                     ></v-date-picker>
@@ -583,7 +583,7 @@
                       ></v-text-field>
                     </template>
                     <v-date-picker
-                      v-model="validation_date"
+                      v-model="editedItem.validation_date"
                       no-title
                       @input="input_validation_date = false"
                     ></v-date-picker>
@@ -1072,7 +1072,7 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          
           this.printDisabled = false;
           this.projects = response.data.projects;
           this.project_logs = response.data.project_logs;
@@ -1082,6 +1082,8 @@ export default {
           this.validators = response.data.validators;
           this.holidays = response.data.holidays;
           this.loading = false;
+
+          console.log(this.project_execution_hrs);
 
           // if dropdown programmer has no value(first load) then set a value
           if (!this.filter_project_by_programmer) {
@@ -1151,7 +1153,7 @@ export default {
             Authorization: "Bearer " + access_token,
           },
         }).then((response) => {
-          // console.log(response.data);
+          
           let latest_log = response.data.latest_log;
 
           // if last remarks has turnover status then show warning message
@@ -1183,7 +1185,7 @@ export default {
         },
       }).then(
         (response) => {
-          // console.log(response.data);
+          
           if (response.data.success) {
             // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "project-log-create" });
@@ -1276,7 +1278,7 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          
           if (response.data.success) {
             // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "project-edit" });
@@ -1404,6 +1406,7 @@ export default {
     },
 
     endorseProject() {
+      
       this.$v.remarksItem.$touch();
 
       if (!this.$v.remarksItem.$error) {
@@ -1429,7 +1432,7 @@ export default {
               },
             }).then(
               (response) => {
-                console.log(response.data);
+                
                 if (response.data.success) {
                   // send data to Socket.IO Server
                   this.$socket.emit("sendData", { action: "project-edit" });
@@ -1445,7 +1448,7 @@ export default {
                 this.disabledEndorse = false;
               },
               (error) => {
-                console.log(response);
+                console.log(error);
               }
             );
           }
@@ -1471,7 +1474,7 @@ export default {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
-        // console.log(response.data);
+        
         localStorage.removeItem("user_permissions");
         localStorage.removeItem("user_roles");
         localStorage.setItem(
@@ -1682,16 +1685,13 @@ export default {
       return errors;
     },
     computedDateReceiveFormatted() {
-      this.editedItem.date_receive = this.formatDate(this.date_receive);
-      return this.editedItem.date_receive;
+      return this.formatDate(this.editedItem.date_receive);
     },
     computedProgramDateFormatted() {
-      this.editedItem.program_date = this.formatDate(this.program_date);
-      return this.editedItem.program_date;
+      return this.formatDate(this.editedItem.program_date);
     },
     computedValidationDateFormatted() {
-      this.editedItem.validation_date = this.formatDate(this.validation_date);
-      return this.editedItem.validation_date;
+      return this.formatDate(this.editedItem.validation_date);
     },
     computedRemarksDateFormatted() {
       return this.formatDate(this.remarksItem.remarks_date);

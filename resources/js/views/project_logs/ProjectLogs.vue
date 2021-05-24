@@ -532,6 +532,8 @@ export default {
       ],
       editedIndex: -1,
       editedItem: {
+        project_id: "",
+        endorse_project_id: "",
         status: "",
         remarks_date: new Date().toISOString().substr(0, 10),
         remarks_time: "",
@@ -541,6 +543,8 @@ export default {
         turnover: "",
       },
       defaultItem: {
+        project_id: "",
+        endorse_project_id: "",
         status: "",
         remarks_date: new Date().toISOString().substr(0, 10),
         remarks_time: "",
@@ -573,7 +577,7 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data);
+          // console.log(response.data);
           this.project = response.data.project;
           this.project_logs = response.data.project_logs;
           this.loading = false;
@@ -640,7 +644,7 @@ export default {
           );
         } else {
           this.editedItem.project_id = this.project.project_id;
-
+          this.editedItem.endorse_project_id = this.$route.params.endorse_project_id;
           Axios.post("/api/project_log/store", this.editedItem, {
             headers: {
               Authorization: "Bearer " + access_token,
@@ -653,6 +657,13 @@ export default {
 
                 this.project_logs.push(response.data.project_log);
 
+                // check if status was changed
+                if(response.data.change_status)
+                {
+                  this.$socket.emit("sendData", { action: "project-edit" });
+                }
+
+                // assign new status from backend
                 this.project.status = response.data.status;
 
                 this.showAlert();
