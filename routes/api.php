@@ -99,6 +99,11 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
         'as' => 'endorse_project',
     ]);
 
+    Route::post('/project_acceptance', [
+        'uses' => 'API\ProjectController@project_acceptance',
+        'as' => 'project_acceptance',
+    ]);
+
 });
 
 // Projects Logs Routes

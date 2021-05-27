@@ -1083,7 +1083,7 @@ export default {
           this.holidays = response.data.holidays;
           this.loading = false;
 
-          console.log(this.project_execution_hrs);
+          // console.log(this.project_execution_hrs);
 
           // if dropdown programmer has no value(first load) then set a value
           if (!this.filter_project_by_programmer) {

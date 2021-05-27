@@ -12,6 +12,7 @@ import RefNoSetting from './views/ref_no_setting/RefNoSetting.vue';
 import Holiday from './views/holiday/Holiday.vue';
 import Permission from './views/permission/PermissionIndex.vue';
 import Role from './views/role/RoleIndex.vue';
+import ProjectAcceptance from './views/project_acceptance/ProjectAcceptance.vue';
 import PageNotFound from './404/PageNotFound.vue';
 import Unauthorize from './401/Unauthorize.vue';
 
@@ -197,6 +198,23 @@ const routes = [
         path: '/role/index',
         name: 'role.index',
         component: Role,
+        beforeEnter(to, from, next)
+        { 
+          let user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
+          if(user_permissions.includes('role-list') || user_permissions.includes('role-create'))
+          {
+            next();
+          }
+          else
+          {
+            next('/unauthorize');
+          }
+        }
+      },
+      {
+        path: '/project_acceptance/:project_id',
+        name: 'project_acceptance',
+        component: ProjectAcceptance,
         beforeEnter(to, from, next)
         { 
           let user_permissions = JSON.parse(localStorage.getItem("user_permissions"));

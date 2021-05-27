@@ -416,6 +416,15 @@
                 {{ item.status }}
               </v-chip>
             </template>
+
+            <template v-slot:item.turnover="{ item, index }">
+              <v-chip
+                class="cyan darken-1 white--text"
+                v-if="editedIndex != index && item.turnover == 'Y'"
+              >
+                Turn Over
+              </v-chip>
+            </template>
             <template
               v-slot:item.actions="{ item, index }"
               v-if="project.status != 'Accepted'"
@@ -569,7 +578,9 @@ export default {
       this.loading = true;
 
       let project_id = this.$route.params.project_id;
-      const data = { endorse_project_id: this.$route.params.endorse_project_id };
+      const data = {
+        endorse_project_id: this.$route.params.endorse_project_id,
+      };
 
       Axios.post("/api/project_log/index/" + project_id, data, {
         headers: {
@@ -658,8 +669,7 @@ export default {
                 this.project_logs.push(response.data.project_log);
 
                 // check if status was changed
-                if(response.data.change_status)
-                {
+                if (response.data.change_status) {
                   this.$socket.emit("sendData", { action: "project-edit" });
                 }
 
@@ -849,27 +859,18 @@ export default {
 
       if (hasOngoingTurnover) {
         if (this.project.status == "Ongoing") {
-
           // remove index 1 (For Validation)
           this.report_status.splice(1, 1);
-
         } else if (this.project.status == "For Validation") {
-
           // remove index 0 (Ongoing)
           this.report_status.splice(0, 1);
-
         } else if (this.project.status == "Pending") {
-
           if (last_log_status == "Ongoing") {
-
             // remove index 0 (Ongoing)
             this.report_status.splice(0, 1);
-
           } else if (last_log_status == "For Validation") {
-
             // remove index 1 (For Validation)
             this.report_status.splice(1, 1);
-            
           }
         }
       } else {

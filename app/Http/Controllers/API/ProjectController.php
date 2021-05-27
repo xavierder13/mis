@@ -546,6 +546,14 @@ class ProjectController extends Controller
         return response()->json(['success' => 'Record has been deleted'], 200);
     }
 
+
+    public function project_acceptance(Request $request) 
+    {   
+        $data = $request->get('data');
+        return view('acceptance_preview', compact('data'));
+        // return response()->json($data, 200);
+    }
+
     public function getRefNo()
     {
         $setting = RefNoSetting::first();

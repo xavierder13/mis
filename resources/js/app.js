@@ -10,6 +10,8 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 import excel from 'vue-excel-export';
 // import Echo from 'laravel-echo';
 import VueSocketio from 'vue-socket.io';
+import CKEditor from 'ckeditor4-vue';
+
 Vue.use(VueSocketio, 'http://localhost:3000');
 
 Vue.use(excel);
@@ -18,6 +20,7 @@ Vue.use(VueSweetalert2);
 Vue.use(Vuetify);
 Vue.use(Vuelidate);
 Vue.use(DatetimePicker);
+Vue.use( CKEditor );
 
 // window.Pusher = require('pusher-js');
 
