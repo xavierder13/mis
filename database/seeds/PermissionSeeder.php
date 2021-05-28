@@ -57,6 +57,7 @@ class PermissionSeeder extends Seeder
             'edit-program-percentage',
             'edit-validate-percentage',
             'endorse-project',
+            'project-acceptance-overview'
          ];
  
  

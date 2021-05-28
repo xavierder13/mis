@@ -46,7 +46,7 @@
 
                 <v-dialog v-model="dialog" max-width="500px" persistent>
                   <v-card>
-                    <v-card-title>
+                    <v-card-title class="mb-0 pb-0">
                       <span class="headline">{{ formTitle }}</span>
                     </v-card-title>
                     <v-divider></v-divider>

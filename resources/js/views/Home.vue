@@ -223,6 +223,7 @@ export default {
         edit_program_percentage: false,
         edit_validate_percentage: false,
         endorse_project: false,
+        project_acceptance_overview: false,
       },
       roles: {
         administrator: false,
@@ -381,6 +382,9 @@ export default {
       ]);
       this.permissions.endorse_project = this.hasPermission([
         "endorse-project",
+      ]);
+      this.permissions.project_acceptance_overview = this.hasPermission([
+        "project-acceptance-overview",
       ]);
       this.roles.administrator = this.hasRole(["Administrator"]);
     },

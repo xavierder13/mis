@@ -14,6 +14,7 @@ use App\User;
 use App\RefNoSetting;
 use App\Holiday;
 use App\EndorseProject;
+use App\AcceptanceOverview;
 use Carbon\Carbon;
 use App\Events\WebsocketEvent;
 use Excel;
@@ -546,13 +547,6 @@ class ProjectController extends Controller
         return response()->json(['success' => 'Record has been deleted'], 200);
     }
 
-
-    public function project_acceptance(Request $request) 
-    {   
-        $data = $request->get('data');
-        return view('acceptance_preview', compact('data'));
-        // return response()->json($data, 200);
-    }
 
     public function getRefNo()
     {

@@ -46,7 +46,7 @@
                 small
                 v-if="permissions.export_project"
               >
-                <v-icon small> mdi-file-excel </v-icon>
+                <v-icon small> mdi-microsoft-excel </v-icon>
                 export
               </v-btn>
             </export-excel>
@@ -120,7 +120,7 @@
               <v-toolbar flat>
                 <v-dialog v-model="dialog" max-width="700px" persistent>
                   <v-card>
-                    <v-card-title>
+                    <v-card-title class="mb-0 pb-0">
                       <span class="headline">{{ formTitle }}</span>
                     </v-card-title>
                     <v-divider></v-divider>
@@ -314,7 +314,7 @@
                 </v-dialog>
                 <v-dialog v-model="dialog2" max-width="700px">
                   <v-card>
-                    <v-card-title>
+                    <v-card-title class="mb-0 pb-0">
                       <span class="headline">Update Report Percentage</span>
                     </v-card-title>
                     <v-divider></v-divider>
@@ -322,33 +322,33 @@
                       <v-container>
                         <v-row>
                           <v-col v-if="editedItem.endorse_project_id">
-                              <v-menu
-                                v-model="input_date_receive"
-                                :close-on-content-click="false"
-                                transition="scale-transition"
-                                offset-y
-                                max-width="290px"
-                                min-width="290px"
-                              >
-                                <template v-slot:activator="{ on, attrs }">
-                                  <v-text-field
-                                    name="date_receive"
-                                    v-model="computedDateReceiveFormatted"
-                                    label="Date Received"
-                                    hint="MM/DD/YYYY"
-                                    persistent-hint
-                                    prepend-icon="mdi-calendar"
-                                    readonly
-                                    v-bind="attrs"
-                                    v-on="on"
-                                  ></v-text-field>
-                                </template>
-                                <v-date-picker
-                                  v-model="editedItem.date_receive"
-                                  no-title
-                                  @input="input_date_receive = false"
-                                ></v-date-picker>
-                              </v-menu>
+                            <v-menu
+                              v-model="input_date_receive"
+                              :close-on-content-click="false"
+                              transition="scale-transition"
+                              offset-y
+                              max-width="290px"
+                              min-width="290px"
+                            >
+                              <template v-slot:activator="{ on, attrs }">
+                                <v-text-field
+                                  name="date_receive"
+                                  v-model="computedDateReceiveFormatted"
+                                  label="Date Received"
+                                  hint="MM/DD/YYYY"
+                                  persistent-hint
+                                  prepend-icon="mdi-calendar"
+                                  readonly
+                                  v-bind="attrs"
+                                  v-on="on"
+                                ></v-text-field>
+                              </template>
+                              <v-date-picker
+                                v-model="editedItem.date_receive"
+                                no-title
+                                @input="input_date_receive = false"
+                              ></v-date-picker>
+                            </v-menu>
                           </v-col>
                           <v-col v-if="permissions.edit_template_percentage">
                             <v-text-field-money
@@ -736,19 +736,22 @@
                       ></v-divider>
                       <v-list-item
                         style="min-height: 25px"
-                        v-if="permissions.endorse_project"
+                        v-if="
+                          item.status == 'Accepted' &&
+                          permissions.project_acceptance_overview
+                        "
                       >
                         <v-list-item-title>
                           <v-btn
                             x-small
                             width="100px"
                             color="primary"
-                            @click="
-                              createRemarks(item) + (endorse_project = true)
-                            "
+                            @click="createAcceptanceOverview(item)"
                           >
-                            <v-icon small class="mr-2"> mdi-share </v-icon>
-                            Endorse
+                            <v-icon small class="mr-2">
+                              mdi-file-document-edit-outline
+                            </v-icon>
+                            Overview
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
@@ -1072,7 +1075,6 @@ export default {
         },
       }).then(
         (response) => {
-          
           this.printDisabled = false;
           this.projects = response.data.projects;
           this.project_logs = response.data.project_logs;
@@ -1111,7 +1113,6 @@ export default {
     },
 
     editProject(item) {
-     
       this.dialog2 = true;
       let date_receive = "";
       let program_date = "";
@@ -1153,7 +1154,6 @@ export default {
             Authorization: "Bearer " + access_token,
           },
         }).then((response) => {
-          
           let latest_log = response.data.latest_log;
 
           // if last remarks has turnover status then show warning message
@@ -1185,7 +1185,6 @@ export default {
         },
       }).then(
         (response) => {
-          
           if (response.data.success) {
             // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "project-log-create" });
@@ -1278,7 +1277,6 @@ export default {
         },
       }).then(
         (response) => {
-          
           if (response.data.success) {
             // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "project-edit" });
@@ -1406,7 +1404,6 @@ export default {
     },
 
     endorseProject() {
-      
       this.$v.remarksItem.$touch();
 
       if (!this.$v.remarksItem.$error) {
@@ -1432,7 +1429,6 @@ export default {
               },
             }).then(
               (response) => {
-                
                 if (response.data.success) {
                   // send data to Socket.IO Server
                   this.$socket.emit("sendData", { action: "project-edit" });
@@ -1456,6 +1452,11 @@ export default {
       }
     },
 
+    createAcceptanceOverview(item) {
+      let project_id = item.project_id
+      this.$router.push({ name: 'project_acceptance', params: { project_id: project_id} });
+    },
+
     setDropdownTime() {
       for (let hour = 0; hour < 24; hour++) {
         let hr = hour < 10 ? "0" + hour : hour;
@@ -1474,7 +1475,6 @@ export default {
           Authorization: "Bearer " + access_token,
         },
       }).then((response) => {
-        
         localStorage.removeItem("user_permissions");
         localStorage.removeItem("user_roles");
         localStorage.setItem(
@@ -1522,6 +1522,9 @@ export default {
       ]);
       this.permissions.endorse_project = Home.methods.hasPermission([
         "endorse-project",
+      ]);
+      this.permissions.project_acceptance_overview = Home.methods.hasPermission([
+        "project-acceptance-overview",
       ]);
 
       // hide column actions if user has no permission
@@ -1685,16 +1688,20 @@ export default {
       return errors;
     },
     computedDateReceiveFormatted() {
-      return this.formatDate(this.editedItem.date_receive);
+      return this.editedItem.date_receive;
+      // return this.formatDate(this.editedItem.date_receive);
     },
     computedProgramDateFormatted() {
-      return this.formatDate(this.editedItem.program_date);
+      return this.editedItem.program_date;
+      // return this.formatDate(this.editedItem.program_date);
     },
     computedValidationDateFormatted() {
-      return this.formatDate(this.editedItem.validation_date);
+      return this.editedItem.validation_date;
+      // return this.formatDate(this.editedItem.validation_date);
     },
     computedRemarksDateFormatted() {
-      return this.formatDate(this.remarksItem.remarks_date);
+      return this.editedItem.remarks_date;
+      // return this.formatDate(this.remarksItem.remarks_date);
     },
     computedFilterDateFormatted() {
       return this.formatDate(this.filter_date);

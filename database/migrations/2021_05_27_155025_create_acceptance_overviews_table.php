@@ -16,6 +16,7 @@ class CreateAcceptanceOverviewsTable extends Migration
         Schema::create('acceptance_overviews', function (Blueprint $table) {
             $table->id();
             $table->integer('project_id');
+            $table->string('for_delete')->nullable();
             $table->string('intended_users')->nullable();
             $table->string('location1')->nullable();
             $table->string('location2')->nullable();

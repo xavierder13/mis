@@ -18,35 +18,113 @@
           </template>
         </v-breadcrumbs>
         <v-card>
-          <v-card-title> Project Acceptance </v-card-title>
-          <v-card-text>
+          <v-card-title class="mb-0 pb-0">
+            Project Acceptance Overview</v-card-title
+          >
+          <v-divider></v-divider>
+          <v-card-text class="ml-2">
             <v-row>
+              <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                <v-textarea
+                  name="overview"
+                  v-model="editedItem.overview"
+                  :error-messages="overviewErrors"
+                  label="Overview"
+                  rows="3"
+                  required
+                ></v-textarea>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                <v-textarea
+                  name="for_delete"
+                  v-model="editedItem.for_delete"
+                  label="For Delete"
+                  rows="1"
+                ></v-textarea>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                <v-text-field
+                  name="intended_users"
+                  v-model="editedItem.intended_users"
+                  label="Intended Users"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                <v-textarea
+                  name="location1"
+                  v-model="editedItem.location1"
+                  label="Location Inside SAP B1 (if imported)"
+                  rows="1"
+                  required
+                ></v-textarea>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                <v-textarea
+                  name="location2"
+                  v-model="editedItem.location2"
+                  label="Location Outside SAP B1"
+                  rows="1"
+                  required
+                ></v-textarea>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                <v-textarea
+                  name="validator_note"
+                  v-model="editedItem.validator_note"
+                  label="Validator's Acceptance"
+                  rows="2"
+                  required
+                ></v-textarea>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
+                <v-textarea
+                  name="manager_note"
+                  v-model="editedItem.manager_note"
+                  label="Manager's Acceptance"
+                  rows="2"
+                  required
+                ></v-textarea>
+              </v-col>
+            </v-row>
+            <!-- <v-row>
               <v-col>
                 <ckeditor
                   v-model="editorData"
                   :config="editorConfig"
                 ></ckeditor>
               </v-col>
-            </v-row>
+            </v-row> -->
           </v-card-text>
           <v-card-actions>
             <v-btn
-              class="ml-2 mb-2"
+              class="ml-4 mb-4"
               color="primary"
               @click="save()"
               :disabled="disabled"
             >
               save
             </v-btn>
-            <v-btn class="mb-2" color="primary" @click="printPreview()">
-              preview
-            </v-btn>
             <v-btn
-              class="mb-2"
+              class="mb-4"
               color="#E0E0E0"
               @click="$router.push('/programmer_reports')"
             >
               cancel
+            </v-btn>
+            <v-btn class="mb-4 white--text" color="red" @click="deleteOverview()">
+              delete
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -70,7 +148,11 @@ export default {
   },
 
   mixins: [validationMixin],
-
+  validations: {
+    editedItem: {
+      overview: { required },
+    },
+  },
   data() {
     return {
       absolute: true,
@@ -89,12 +171,22 @@ export default {
       holidays: [],
       editedIndex: -1,
       editedItem: {
-        holiday: "",
-        holiday_date: "",
+        project_id: "",
+        intended_users: "",
+        location1: "",
+        location2: "",
+        overview: "",
+        validator_note: "",
+        manager_note: "",
       },
       defaultItem: {
-        holiday: "",
-        holiday_date: "",
+        project_id: "",
+        intended_users: "",
+        location1: "",
+        location2: "",
+        overview: "",
+        validator_note: "",
+        manager_note: "",
       },
       items: [
         {
@@ -103,201 +195,38 @@ export default {
           link: "/dashboard",
         },
         {
-          text: "Holiday Lists",
-          disabled: true,
+          text: "Programmer's Projects",
+          disabled: false,
+          link: "/programmer_reports",
+        },
+        {
+          text: "Project Acceptance Overview",
+          disabled: false,
         },
       ],
       permissions: Home.data().permissions,
       loading: true,
-      editorData: "",
-      editorConfig: {
-        toolbar: [
-          {
-            name: "clipboard",
-            items: ["Undo", "Redo"],
-          },
-          {
-            name: "basicstyles",
-            items: [
-              "Bold",
-              "Italic",
-              "Underline",
-              "Strike",
-              "RemoveFormat",
-              "Subscript",
-              "Superscript",
-            ],
-          },
-          {
-            name: "paragraph",
-            items: [
-              "NumberedList",
-              "BulletedList",
-              "-",
-              "Outdent",
-              "Indent",
-              "-",
-              "Blockquote",
-            ],
-          },
-          {
-            name: "insert",
-            items: ["Table"],
-          },
-          "/",
-
-          {
-            name: "styles",
-            items: ["Format", "Font", "FontSize"],
-          },
-          {
-            name: "colors",
-            items: ["TextColor", "BGColor", "CopyFormatting"],
-          },
-          {
-            name: "align",
-            items: [
-              "JustifyLeft",
-              "JustifyCenter",
-              "JustifyRight",
-              "JustifyBlock",
-            ],
-          },
-          {
-            name: "document",
-            items: ["PageBreak"],
-          },
-        ],
-
-        // Enabling extra plugins, available in the full-all preset: https://ckeditor.com/cke4/presets
-        extraPlugins:
-          "colordialog,copyformatting,colorbutton,font,justify,print,tableresize,uploadimage,pastefromword,liststyle,pagebreak,autogrow",
-        // Make the editing area bigger than default.
-
-        autoGrow_minHeight: 500,
-        autoGrow_maxHeight: 600,
-        autoGrow_bottomSpace: 50,
-        removePlugins: "resize",
-
-        // An array of stylesheets to style the WYSIWYG area.
-        // Note: it is recommended to keep your own styles in a separate file in order to make future updates painless.
-        contentsCss: [
-          "http://cdn.ckeditor.com/4.15.1/full-all/contents.css",
-          "https://ckeditor.com/docs/ckeditor4/4.15.1/examples/assets/css/pastefromword.css",
-        ],
-
-        // This is optional, but will let us define multiple different styles for multiple editors using the same CSS file.
-        bodyClass: "document-editor",
-
-        // Reduce the list of block elements listed in the Format dropdown to the most commonly used.
-        //format_tags: 'p;h1;h2;h3;pre',
-
-        // Simplify the Image and Link dialog windows. The "Advanced" tab is not needed in most cases.
-        removeDialogTabs: "image:advanced;link:advanced",
-
-        // Define the list of styles which should be available in the Styles dropdown list.
-        // If the "class" attribute is used to style an element, make sure to define the style for the class in "mystyles.css"
-        // (and on your website so that it rendered in the same way).
-        // Note: by default CKEditor looks for styles.js file. Defining stylesSet inline (as below) stops CKEditor 4 from loading
-        // that file, which means one HTTP request less (and a faster startup).
-        // For more information see https://ckeditor.com/docs/ckeditor4/latest/features/styles
-        stylesSet: [
-          /* Inline Styles */
-          {
-            name: "Marker",
-            element: "span",
-            attributes: {
-              class: "marker",
-            },
-          },
-          {
-            name: "Cited Work",
-            element: "cite",
-          },
-          {
-            name: "Inline Quotation",
-            element: "q",
-          },
-
-          /* Object Styles */
-          {
-            name: "Special Container",
-            element: "div",
-            styles: {
-              padding: "5px 10px",
-              background: "#eee",
-              border: "1px solid #ccc",
-            },
-          },
-          {
-            name: "Compact table",
-            element: "table",
-            attributes: {
-              cellpadding: "5",
-              cellspacing: "0",
-              border: "1",
-              bordercolor: "#ccc",
-            },
-            styles: {
-              "border-collapse": "collapse",
-            },
-          },
-          {
-            name: "Borderless Table",
-            element: "table",
-            styles: {
-              "border-style": "hidden",
-              "background-color": "#E6E6FA",
-            },
-          },
-          {
-            name: "Square Bulleted List",
-            element: "ul",
-            styles: {
-              "list-style-type": "square",
-            },
-          },
-          {
-            name: "RightInd-nil",
-            element: "div",
-            styles: { "margin-right": "" },
-          },
-          {
-            name: "RightInd-00",
-            element: "div",
-            styles: { "margin-right": "0px" },
-          },
-          {
-            name: "RightInd-20",
-            element: "div",
-            styles: { "margin-right": "20px" },
-          },
-          {
-            name: "RightInd-40",
-            element: "div",
-            styles: { "margin-right": "40px" },
-          },
-          {
-            name: "RightInd-60",
-            element: "div",
-            styles: { "margin-right": "60px" },
-          },
-        ],
-      },
     };
   },
 
   methods: {
-    getTemplate() {
-      this.loading = true;
-      Axios.get("/api/holiday/index", {
+    getAcceptanceOverview() {
+
+      let project_id = this.$route.params.project_id;
+
+      console.log(project_id);
+
+      Axios.get("/api/acceptance_overview/index/" + project_id, {
         headers: {
           Authorization: "Bearer " + access_token,
         },
       }).then(
         (response) => {
-          this.holidays = response.data.holidays;
-          this.loading = false;
+          if(response.data.acceptance_overview)
+          {
+            this.editedItem = response.data.acceptance_overview;
+          }
+          
         },
         (error) => {
           // if unauthenticated (401)
@@ -319,7 +248,55 @@ export default {
       });
     },
 
-    save() {},
+    save() {
+      console.log(this.editedItem);
+    },
+
+    deleteOverview() {
+      this.$swal({
+        title: "Are you sure?",
+        text: "You won't be able to revert this!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Delete record!",
+      }).then((result) => {
+    
+
+        let project_id = this.$route.params.project_id;
+
+        if (result.value) {
+          Axios.post("/api/acceptance_overview/delete", { project_id: project_id }, {
+            headers: {
+              Authorization: "Bearer " + access_token,
+            },
+          }).then(
+            (response) => {
+              console.log(response.data);
+             if(response.data.success)
+             {
+               this.$swal({
+                position: "center",
+                icon: "success",
+                title: "Record has been deleted",
+                showConfirmButton: false,
+                timer: 2500,
+              });
+             }
+            },
+            (error) => {
+              // if unauthenticated (401)
+              if (error.response.status == "401") {
+                localStorage.removeItem("access_token");
+                this.$router.push({ name: "login" });
+              }
+            }
+          );
+          
+        }
+      });
+    },
 
     printPreview() {
       Axios.post(
@@ -332,14 +309,11 @@ export default {
         }
       ).then(
         (response) => {
-          
-
-          var myWindow = window.open("", "", "width=600,height=800"); 
+          var myWindow = window.open("", "", "width=600,height=800");
 
           myWindow.document.write(response.data);
-          
-          console.log(response.data);
 
+          console.log(response.data);
         },
         (error) => {
           // if unauthenticated (401)
@@ -423,7 +397,7 @@ export default {
 
       //   if(action == 'holiday-create' || action == 'holiday-edit' || action == 'holiday-delete')
       //   {
-      //     this.getTemplate();
+      //     this.getAcceptanceOverview();
       //   }
 
       // });
@@ -439,14 +413,26 @@ export default {
         ) {
           this.userRolesPermissions();
         }
+
+        if (action == "overview-delete") {
+          this.$router.push({ name: "programmer_reports" });
+        }
       };
     },
   },
-  computed: {},
+  computed: {
+    overviewErrors() {
+      const errors = [];
+      if (!this.$v.editedItem.overview.$dirty) return errors;
+      !this.$v.editedItem.overview.required &&
+        errors.push("Overview is required.");
+      return errors;
+    },
+  },
   mounted() {
     access_token = localStorage.getItem("access_token");
 
-    this.getTemplate();
+    this.getAcceptanceOverview();
     this.userRolesPermissions();
     this.websocket();
   },

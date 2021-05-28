@@ -19,11 +19,11 @@
         </v-breadcrumbs>
 
         <v-card>
-          <v-card-title class="grey darken-2 text-white">
+          <v-card-title class="mb-0 pb-0">
             <span class="headline">Referrence No. Setting</span>
           </v-card-title>
-
-          <v-card-text class="pa-10">
+          <v-divider></v-divider>
+          <v-card-text class="ml-2">
             <v-row>
               <v-col cols="4">
                 <v-text-field-integer
@@ -43,20 +43,13 @@
                 <v-switch v-model="switch1" :label="activeStatus"></v-switch>
               </v-col>
             </v-row>
-            <v-row>
-              <v-col cols="4">
-                <v-btn
-                  color="primary"
-                  @click="save"
-                  class="mr-4"
-                  :disabled="disabled"
-                >
-                  Save
-                </v-btn>
-                <!-- <v-btn color="#E0E0E0" @click="clear()"> Clear </v-btn> -->
-              </v-col>
-            </v-row>
           </v-card-text>
+          <v-card-actions>
+            <v-btn class="ml-2 mb-2" color="primary" @click="save" :disabled="disabled">
+              Save
+            </v-btn>
+            <!-- <v-btn color="#E0E0E0" @click="clear()"> Clear </v-btn> -->
+          </v-card-actions>
         </v-card>
       </v-main>
     </div>
@@ -70,12 +63,11 @@ let user_roles;
 import Axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
-import Home from '../Home.vue';  
+import Home from "../Home.vue";
 
 export default {
-
   components: {
-    Home
+    Home,
   },
 
   mixins: [validationMixin],
@@ -113,32 +105,33 @@ export default {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-     
-        this.settings = response.data.settings;
+      }).then(
+        (response) => {
+          this.settings = response.data.settings;
 
-        this.start = this.settings.start;
-        this.active = this.settings.active;
-        if (this.settings.active == "Y") {
-          this.switch1 = true;
-        } else {
-          this.switch1 = false;
+          this.start = this.settings.start;
+          this.active = this.settings.active;
+          if (this.settings.active == "Y") {
+            this.switch1 = true;
+          } else {
+            this.switch1 = false;
+          }
+        },
+        (error) => {
+          // if unauthenticated (401)
+          if (error.response.status == "401") {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
+        },
+        (error) => {
+          // if unauthenticated (401)
+          if (error.response.status) {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
         }
-      }, (error) => {
-        // if unauthenticated (401)
-        if(error.response.status == '401')
-        {
-          localStorage.removeItem('access_token');
-          this.$router.push({name: 'login'});
-        }
-      }, (error) => {
-        // if unauthenticated (401)
-        if(error.response.status)
-        {
-          localStorage.removeItem('access_token');
-          this.$router.push({name: 'login'});
-        }
-      });
+      );
     },
 
     showAlert() {
@@ -212,13 +205,14 @@ export default {
     },
 
     getRolesPermissions() {
-      this.permissions.ref_no_setting = Home.methods.hasPermission(['ref-no-setting']);
-      
+      this.permissions.ref_no_setting = Home.methods.hasPermission([
+        "ref-no-setting",
+      ]);
+
       // if user is not authorize
       if (!this.permissions.ref_no_setting) {
         this.$router.push("/unauthorize").catch(() => {});
       }
-      
     },
   },
   computed: {

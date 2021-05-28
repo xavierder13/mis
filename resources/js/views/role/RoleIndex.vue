@@ -36,7 +36,7 @@
                 </v-btn>
                 <v-dialog v-model="dialog" max-width="1200px" persistent>
                   <v-card>
-                    <v-card-title>
+                    <v-card-title class="mb-0 pb-0">
                       <span class="headline">{{ formTitle }}</span>
                     </v-card-title>
                     <v-divider></v-divider>
@@ -451,6 +451,16 @@ export default {
           action == "permission-delete"
         ) {
           this.userRolesPermissions();
+        }
+        
+        if(action == 'permission-create' || action == 'permission-edit' || action == 'permission-delete')
+        {
+          this.getPermission();
+        }
+
+        if(action == 'role-create' || action == 'role-edit' || action == 'role-delete')
+        {
+          this.getRole();
         }
       }
     },

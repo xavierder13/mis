@@ -54,7 +54,7 @@
 
                 <v-dialog v-model="dialog" max-width="700px" persistent>
                   <v-card>
-                    <v-card-title>
+                    <v-card-title class="mb-0 pb-0">
                       <span class="headline">{{ formTitle }}</span>
                     </v-card-title>
                     <v-divider></v-divider>
@@ -283,7 +283,7 @@
                 </v-dialog>
                 <v-dialog v-model="dialog_import" max-width="500px" persistent>
                   <v-card>
-                    <v-card-title>
+                    <v-card-title class="mb-0 pb-0">
                       <span class="headline">Import Projects</span>
                     </v-card-title>
                     <v-divider></v-divider>
@@ -355,7 +355,7 @@
                   persistent
                 >
                   <v-card>
-                    <v-card-title>
+                    <v-card-title class="mb-0 pb-0">
                       <span class="headline">Error List</span>
                       <v-spacer></v-spacer>
                       <v-icon @click="dialog_error_list = false">

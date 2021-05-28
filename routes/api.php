@@ -106,6 +106,26 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
 
 });
 
+// Project Acceptance Overview Routes
+Route::group(['prefix' => 'acceptance_overview', 'middleware' => ['auth:api']], function(){
+
+    Route::get('/index/{id}', [
+        'uses' => 'API\AcceptanceOverviewController@index',
+        'as' => 'acceptance_overview.index',
+    ]);
+
+    Route::post('/create', [
+        'uses' => 'API\AcceptanceOverviewController@create',
+        'as' => 'acceptance_overview.create',
+    ]);
+
+    Route::post('/delete', [
+        'uses' => 'API\AcceptanceOverviewController@delete',
+        'as' => 'acceptance_overview.delete',
+    ]);
+
+});  
+
 // Projects Logs Routes
 Route::group(['prefix' => 'project_log', 'middleware' => ['auth:api']], function(){
     Route::post('/index/{id}', [
