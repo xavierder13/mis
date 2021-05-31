@@ -104,6 +104,10 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
         'as' => 'project_acceptance',
     ]);
 
+    Route::get('/reports_preview', 'ReportsPreviewController@preview');
+
+    Route::get('/acceptance_preview', 'API\ProjectController@project_acceptance');
+
 });
 
 // Project Acceptance Overview Routes

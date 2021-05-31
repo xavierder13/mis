@@ -9,6 +9,7 @@ use App\Project;
 use App\ProjectLog;
 use App\User;
 use App\Holiday;
+use App\AcceptanceOveriew;
 use Carbon\Carbon;
 
 class ReportsPreviewController extends Controller
@@ -153,6 +154,12 @@ class ReportsPreviewController extends Controller
         );
 
     }
+
+    public function project_acceptance()
+    {
+        return view('acceptance_preview');
+    }
+
     public function calculateHours($project_logs)
     {   
         $holidays = $this->holidays();

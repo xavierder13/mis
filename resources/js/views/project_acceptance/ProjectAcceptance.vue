@@ -19,7 +19,10 @@
         </v-breadcrumbs>
         <v-card>
           <v-card-title class="mb-0 pb-0">
-            Project Acceptance Overview</v-card-title
+            Project Acceptance Overview
+            <v-btn class="ml-4" color="info" small>
+              <v-icon class="mr-1" small>mdi-eye</v-icon> Preview</v-btn
+            ></v-card-title
           >
           <v-divider></v-divider>
           <v-card-text class="ml-2">
@@ -108,24 +111,34 @@
             </v-row> -->
           </v-card-text>
           <v-card-actions>
-            <v-btn
-              class="ml-4 mb-4"
-              color="primary"
-              @click="save()"
-              :disabled="disabled"
-            >
-              save
-            </v-btn>
-            <v-btn
-              class="mb-4"
-              color="#E0E0E0"
-              @click="$router.push('/programmer_reports')"
-            >
-              cancel
-            </v-btn>
-            <v-btn class="mb-4 white--text" color="red" @click="deleteOverview()">
-              delete
-            </v-btn>
+            <v-row>
+              <v-col>
+                <v-btn
+                  class="ml-4 mb-4 mr-1"
+                  color="primary"
+                  @click="save()"
+                  :disabled="disabled"
+                >
+                  save
+                </v-btn>
+                <v-btn
+                  class="mb-4"
+                  color="#E0E0E0"
+                  @click="$router.push('/programmer_reports')"
+                >
+                  cancel
+                </v-btn>
+              </v-col>
+              <v-col>
+                <v-btn
+                  class="mb-4 white--text float-right mr-4"
+                  color="red"
+                  @click="deleteOverview()"
+                >
+                  delete
+                </v-btn>
+              </v-col>
+            </v-row>
           </v-card-actions>
         </v-card>
       </v-main>
@@ -206,15 +219,13 @@ export default {
       ],
       permissions: Home.data().permissions,
       loading: true,
+      overviewHasRecord: false,
     };
   },
 
   methods: {
     getAcceptanceOverview() {
-
       let project_id = this.$route.params.project_id;
-
-      console.log(project_id);
 
       Axios.get("/api/acceptance_overview/index/" + project_id, {
         headers: {
@@ -222,11 +233,10 @@ export default {
         },
       }).then(
         (response) => {
-          if(response.data.acceptance_overview)
-          {
+          if (response.data.acceptance_overview) {
             this.editedItem = response.data.acceptance_overview;
+            this.overviewHasRecord = true;
           }
-          
         },
         (error) => {
           // if unauthenticated (401)
@@ -249,7 +259,36 @@ export default {
     },
 
     save() {
-      console.log(this.editedItem);
+      let project_id = this.$route.params.project_id;
+      this.editedItem.project_id = project_id;
+      const data = this.editedItem;
+
+      this.$v.$touch();
+
+      if (!this.$v.editedItem.$error) {
+        this.overlay = true;
+        this.disabled = true;
+
+        Axios.post("/api/acceptance_overview/create", data, {
+          headers: {
+            Authorization: "Bearer " + access_token,
+          },
+        }).then(
+          (response) => {
+            // console.log(response);
+            if (response.data.success) {
+              this.showAlert();
+            }
+            this.overlay = false;
+            this.disabled = false;
+          },
+          (errors) => {
+            console.log(errors);
+            this.overlay = false;
+            this.disabled = false;
+          }
+        );
+      }
     },
 
     deleteOverview() {
@@ -262,28 +301,32 @@ export default {
         cancelButtonColor: "#6c757d",
         confirmButtonText: "Delete record!",
       }).then((result) => {
-    
-
         let project_id = this.$route.params.project_id;
 
         if (result.value) {
-          Axios.post("/api/acceptance_overview/delete", { project_id: project_id }, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post(
+            "/api/acceptance_overview/delete",
+            { project_id: project_id },
+            {
+              headers: {
+                Authorization: "Bearer " + access_token,
+              },
+            }
+          ).then(
             (response) => {
               console.log(response.data);
-             if(response.data.success)
-             {
-               this.$swal({
-                position: "center",
-                icon: "success",
-                title: "Record has been deleted",
-                showConfirmButton: false,
-                timer: 2500,
-              });
-             }
+              if (response.data.success) {
+                this.$swal({
+                  position: "center",
+                  icon: "success",
+                  title: "Record has been deleted",
+                  showConfirmButton: false,
+                  timer: 2500,
+                });
+
+                this.overviewHasRecord = false;
+
+              }
             },
             (error) => {
               // if unauthenticated (401)
@@ -293,7 +336,6 @@ export default {
               }
             }
           );
-          
         }
       });
     },
@@ -435,6 +477,7 @@ export default {
     this.getAcceptanceOverview();
     this.userRolesPermissions();
     this.websocket();
+
   },
 };
 </script>

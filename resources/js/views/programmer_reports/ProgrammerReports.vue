@@ -27,8 +27,8 @@
               @click="printPreview()"
               v-if="permissions.print_preview"
             >
-              <v-icon class="mr-1" small> mdi-printer </v-icon>
-              print
+              <v-icon class="mr-1" small> mdi-eye </v-icon>
+              Preview
             </v-btn>
           </div>
           <div>
@@ -46,7 +46,7 @@
                 small
                 v-if="permissions.export_project"
               >
-                <v-icon small> mdi-microsoft-excel </v-icon>
+                <v-icon class="mr-1" small> mdi-microsoft-excel </v-icon>
                 export
               </v-btn>
             </export-excel>
@@ -993,26 +993,8 @@ export default {
         { text: "Change Order", value: "Change Order" },
       ],
       editedIndex: -1,
-      editedItem: {
-        ref_no: "",
-        report_title: "",
-        template_percent: "",
-        date_receive: "",
-        program_date: "",
-        program_percent: "",
-        validation_date: "",
-        validation_percent: "",
-      },
-      defaultItem: {
-        ref_no: "",
-        report_title: "",
-        template_percent: "",
-        date_receive: "",
-        program_date: "",
-        program_percent: "",
-        validation_date: "",
-        validation_percent: "",
-      },
+      editedItem: {},
+      defaultItem: {},
       remarksItem: {
         project_id: "",
         programmer_id: "",
@@ -1155,10 +1137,15 @@ export default {
           },
         }).then((response) => {
           let latest_log = response.data.latest_log;
+          let latest_log_turnover = null;
 
           // if last remarks has turnover status then show warning message
+          if (latest_log) {
+            latest_log_turnover = latest_log.turnover;
+          }
+
           if (
-            latest_log.turnover &&
+            latest_log_turnover &&
             this.remarksItem.status != this.editedItem.status
           ) {
             this.showConfirmAlert(this.remarksItem.status);
@@ -1170,10 +1157,13 @@ export default {
     },
     storeRemarks() {
       let project_id = this.editedItem.project_id;
+      let endorse_project_id = this.editedItem.endorse_project_id;
+
       this.overlay = true;
       this.disabled = true;
 
       this.remarksItem.project_id = project_id;
+      this.remarksItem.endorse_project_id = endorse_project_id;
       this.remarksItem.remarks_time =
         this.remarksItem.hour + ":" + this.remarksItem.minute;
 
@@ -1188,10 +1178,10 @@ export default {
           if (response.data.success) {
             // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "project-log-create" });
-            let change_status = response.data.change_status;
+            let hasChanges = response.data.hasChanges;
 
             // if changed status is true
-            if (change_status == true) {
+            if (hasChanges == true) {
               this.$socket.emit("sendData", { action: "project-edit" });
             }
 
@@ -1327,8 +1317,8 @@ export default {
     setStatusSelectItems(item) {
       let hasOngoingTurnover = false;
       let last_log_status = "";
-      // if logs has Ongoing and Turnover status
 
+      // if logs has Ongoing and Turnover status
       this.logs_per_project.forEach((val, i) => {
         if (val.status == "Ongoing" && val.turnover == "Y") {
           hasOngoingTurnover = true;
@@ -1346,35 +1336,22 @@ export default {
       if (hasOngoingTurnover) {
         if (item.status == "Pending") {
           if (last_log_status == "Ongoing") {
-            this.report_status = [
-              { text: "For Validation", value: "For Validation" },
-              { text: "Pending", value: "Pending" },
-              { text: "Accepted", value: "Accepted" },
-              { text: "Cancelled", value: "Cancelled" },
-            ];
+
+            //Ongoing item from array report_status
+            this.report_status.splice(1, 1);
+
           } else if (last_log_status == "For Validation") {
-            this.report_status = [
-              { text: "Ongoing", value: "Ongoing" },
-              { text: "Pending", value: "Pending" },
-              { text: "Accepted", value: "Accepted" },
-              { text: "Cancelled", value: "Cancelled" },
-            ];
+
+            //For Validation item from array report_status
+            this.report_status.splice(0, 1);
+
           }
-        } else {
-          this.report_status = [
-            { text: "For Validation", value: "For Validation" },
-            { text: "Ongoing", value: "Ongoing" },
-            { text: "Pending", value: "Pending" },
-            { text: "Accepted", value: "Accepted" },
-            { text: "Cancelled", value: "Cancelled" },
-          ];
         }
       } else {
-        this.report_status = [
-          { text: "Ongoing", value: "Ongoing" },
-          { text: "Pending", value: "Pending" },
-          { text: "Cancelled", value: "Cancelled" },
-        ];
+
+        //Accepted item from array report_status
+        this.report_status.splice(3, 1);
+        
       }
     },
     showConfirmAlert(status) {
@@ -1453,8 +1430,11 @@ export default {
     },
 
     createAcceptanceOverview(item) {
-      let project_id = item.project_id
-      this.$router.push({ name: 'project_acceptance', params: { project_id: project_id} });
+      let project_id = item.project_id;
+      this.$router.push({
+        name: "project_acceptance",
+        params: { project_id: project_id, data: item },
+      });
     },
 
     setDropdownTime() {
@@ -1523,9 +1503,9 @@ export default {
       this.permissions.endorse_project = Home.methods.hasPermission([
         "endorse-project",
       ]);
-      this.permissions.project_acceptance_overview = Home.methods.hasPermission([
-        "project-acceptance-overview",
-      ]);
+      this.permissions.project_acceptance_overview = Home.methods.hasPermission(
+        ["project-acceptance-overview"]
+      );
 
       // hide column actions if user has no permission
       if (
@@ -1700,8 +1680,7 @@ export default {
       // return this.formatDate(this.editedItem.validation_date);
     },
     computedRemarksDateFormatted() {
-      return this.editedItem.remarks_date;
-      // return this.formatDate(this.remarksItem.remarks_date);
+      return this.formatDate(this.remarksItem.remarks_date);
     },
     computedFilterDateFormatted() {
       return this.formatDate(this.filter_date);

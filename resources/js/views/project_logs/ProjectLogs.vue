@@ -630,6 +630,12 @@ export default {
           ).then(
             (response) => {
               if (response.data.success) {
+                // if hasChanges is true - changes in status, program date or validation date
+                if (response.data.hasChanges) {
+                  // send data to Socket.IO Server
+                  this.$socket.emit("sendData", { action: "project-edit" });
+                }
+
                 // send data to Socket.IO Server
                 this.$socket.emit("sendData", { action: "project-log-edit" });
 
@@ -668,8 +674,9 @@ export default {
 
                 this.project_logs.push(response.data.project_log);
 
-                // check if status was changed
-                if (response.data.change_status) {
+                // if hasChanges is true - changes in status, program date or validation date
+                if (response.data.hasChanges) {
+                  // send data to Socket.IO Server
                   this.$socket.emit("sendData", { action: "project-edit" });
                 }
 
@@ -736,6 +743,12 @@ export default {
           if (response.data.success) {
             // send data to Socket.IO Server
             this.$socket.emit("sendData", { action: "project-log-delete" });
+
+            // if hasChanges is true - changes in status, program date or validation date
+            if (response.data.hasChanges) {
+              // send data to Socket.IO Server
+              this.$socket.emit("sendData", { action: "project-edit" });
+            }
           }
         },
         (error) => {
@@ -831,8 +844,8 @@ export default {
       let last_log_status = "";
 
       this.report_status = [
-        { text: "Ongoing", value: "Ongoing" },
         { text: "For Validation", value: "For Validation" },
+        { text: "Ongoing", value: "Ongoing" },
         { text: "Pending", value: "Pending" },
         { text: "Accepted", value: "Accepted" },
         { text: "Cancelled", value: "Cancelled" },
@@ -859,18 +872,18 @@ export default {
 
       if (hasOngoingTurnover) {
         if (this.project.status == "Ongoing") {
-          // remove index 1 (For Validation)
-          this.report_status.splice(1, 1);
-        } else if (this.project.status == "For Validation") {
-          // remove index 0 (Ongoing)
+          // remove index 0 (For Validation)
           this.report_status.splice(0, 1);
+        } else if (this.project.status == "For Validation") {
+          // remove index 1 (Ongoing)
+          this.report_status.splice(1, 1);
         } else if (this.project.status == "Pending") {
           if (last_log_status == "Ongoing") {
-            // remove index 0 (Ongoing)
-            this.report_status.splice(0, 1);
-          } else if (last_log_status == "For Validation") {
-            // remove index 1 (For Validation)
+            // remove index 1 (Ongoing)
             this.report_status.splice(1, 1);
+          } else if (last_log_status == "For Validation") {
+            // remove index 0 (For Validation)
+            this.report_status.splice(0, 1);
           }
         }
       } else {

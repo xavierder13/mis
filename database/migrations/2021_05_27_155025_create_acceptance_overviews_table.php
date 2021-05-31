@@ -21,8 +21,8 @@ class CreateAcceptanceOverviewsTable extends Migration
             $table->string('location1')->nullable();
             $table->string('location2')->nullable();
             $table->text('overview', 65,535);
-            $table->text('validator_note', 65,535);
-            $table->text('manager_note', 65,535);
+            $table->text('validator_note', 65,535)->nullable();
+            $table->text('manager_note', 65,535)->nullable();
             $table->timestamps();
         });
     }

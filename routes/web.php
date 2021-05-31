@@ -31,5 +31,5 @@ Route::get('run_websocket_serve', function () {
 
 Route::get('/reports_preview', 'ReportsPreviewController@preview');
 
-Route::get('/acceptance_preview', 'API\ProjectController@project_acceptance');
+Route::get('/acceptance_preview', 'ReportsPreviewController@project_acceptance');
 

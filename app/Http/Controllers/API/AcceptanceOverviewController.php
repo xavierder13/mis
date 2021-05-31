@@ -19,26 +19,36 @@ class AcceptanceOverviewController extends Controller
 
     public function create(Request $request) 
     {   
-        $validator = Validator::make(
-            $request->all(), 
-            ['overview' => 'required'],
-            ['overview.required' => 'Overview is required']
-        );
+
+        $rules = [
+            'project_id.required' => 'Project ID is required',
+            'project_id.integer' => 'Project ID must be an integer',
+            'overview.required' => 'Overview is required'
+        ];
+
+        $valid_fields = [
+            'project_id' => 'required|integer',
+            'overview' => 'required',
+        ];
+
+        $validator = Validator::make($request->all(), $valid_fields, $rules);
 
         if($validator->fails())
         {
-            return response()->json($validator->errors(), 200);
+            return response()->json([$validator->errors(), $request->all()], 200);
         }
+
+        $project_id = $request->get('project_id');
 
         $acceptance_overview = AcceptanceOverview::find($project_id);
 
-        // if acceptance_overview not exist
+        // if acceptance_overview not exist then create new
         if(!$acceptance_overview)
         {
             $acceptance_overview = new AcceptanceOverview();             
         }
 
-        $acceptance_overview->project_id = $request->get('project_id');
+        $acceptance_overview->project_id = $project_id;
         $acceptance_overview->for_delete = $request->get('for_delete');
         $acceptance_overview->intended_users = $request->get('intended_users');
         $acceptance_overview->location1 = $request->get('location1');
