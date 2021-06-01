@@ -116,7 +116,7 @@ class ProjectController extends Controller
                                             (SELECT validation_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as validation_date,
                                             (SELECT endorse_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as endorse_date
                                      FROM endorse_projects a 
-                                     WHERE a.endorse_date <= "'.$filter_date.'" OR a.endorse_date IS NULL
+                                     WHERE a.created_at <= "'.$filter_date.'"
                                      group by a.project_id
                                     ) as endorse_projects'
                             ), 'projects.id', '=', 'endorse_projects.project_id')
@@ -530,8 +530,47 @@ class ProjectController extends Controller
         return response()->json(['success' => 'Record has been updated'], 200);
     }
 
+    public function endorse_history(Request $request)
+    {
+        $validator = Validator::make($request->all(), 
+            ['project_id' => 'required'],
+            ['project_id.required' => 'Project ID is required']
+        );
+
+        if($validator->fails())
+        {
+            return response()->json($validator->errors(), 200);
+        }
+
+        $project_id = $request->get('project_id');
+
+        $endorse_history = DB::table('projects')
+                              ->join('endorse_projects', 'projects.id', '=', 'endorse_projects.project_id')
+                              ->leftJoin(DB::raw('users as programmers'), 'endorse_projects.programmer_id', '=', 'programmers.id')
+                              ->select('projects.report_title', DB::raw('programmers.name as programmer'), 
+                                       DB::raw("DATE_FORMAT(endorse_projects.created_at, '%m/%d/%Y') as endorse_date"),
+                                       DB::raw("DATE_FORMAT(endorse_projects.date_receive, '%m/%d/%Y') as date_receive"),
+                                       DB::raw("DATE_FORMAT(endorse_projects.program_date, '%m/%d/%Y') as program_date"),
+                                       DB::raw("DATE_FORMAT(endorse_projects.validation_date, '%m/%d/%Y') as validation_date"))
+                              ->where('projects.id', '=', $project_id)
+                              ->get();
+
+        return response()->json(['endorse_history' => $endorse_history], 200);
+    }
+
     public function delete(Request $request)
     {   
+
+        $validator = Validator::make($request->all(), 
+            ['project_id' => 'required'],
+            ['project_id.required' => 'Project ID is required']
+        );
+
+        if($validator->fails())
+        {
+            return response()->json($validator->errors(), 200);
+        }
+
         $project = Project::find($request->get('project_id'));
 
         //if record is empty then display error page

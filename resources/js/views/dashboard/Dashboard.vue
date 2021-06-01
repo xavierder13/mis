@@ -389,6 +389,37 @@
                     </v-card-text>
                   </v-card>
                 </v-dialog>
+                <v-dialog
+                  v-model="dialog_endorse_history"
+                  max-width="1000px"
+                  persistent
+                >
+                  <v-card>
+                    <v-card-title class="mb-0 pb-0">
+                      <span class="headline">Endorse History</span>
+                      <v-spacer></v-spacer>
+                      <v-icon @click="dialog_endorse_history = false">
+                        mdi-close
+                      </v-icon>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-col>
+                            <v-data-table
+                              :headers="endorse_history_headers"
+                              :items="endorse_history"
+                              :loading="loading_endorse_history"
+                              loading-text="Loading... Please wait"
+                            >
+                            </v-data-table>
+                          </v-col>
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
+                  </v-card>
+                </v-dialog>
               </v-toolbar>
             </template>
           </v-card-title>
@@ -431,7 +462,15 @@
                 <template v-slot:item.actions="{ item }">
                   <v-icon
                     small
-                    class="mr-2"
+                    class="mr-1"
+                    color="info"
+                    @click="viewEndorseHistory(item)"
+                  >
+                    mdi-eye
+                  </v-icon>
+                  <v-icon
+                    small
+                    class="mr-1"
                     color="green"
                     @click="editProject(item)"
                     v-if="permissions.project_edit"
@@ -500,7 +539,14 @@ export default {
         { text: "Ideal Valid Hrs.", value: "ideal_valid_hrs" },
         { text: "Template %", value: "template_percent" },
         { text: "Status", value: "status" },
-        { text: "Actions", value: "actions", width: "80px", sortable: false },
+        { text: "Actions", value: "actions", width: "100px", sortable: false },
+      ],
+      endorse_history_headers: [
+        { text: "Endorse To", value: "programmer" },
+        { text: "Endorsed Date", value: "endorse_date" },
+        { text: "Date Received", value: "date_receive" },
+        { text: "Program Date", value: "program_date" },
+        { text: "Validation Date", value: "validation_date" },
       ],
       input_date_receive: false,
       input_date_approve: false,
@@ -512,6 +558,7 @@ export default {
       dialog: false,
       dialog_import: false,
       dialog_error_list: false,
+      dialog_endorse_history: false,
       file: [],
       fileIsEmpty: false,
       fileIsInvalid: false,
@@ -520,6 +567,7 @@ export default {
       programmers: [],
       validators: [],
       errors_array: [],
+      endorse_history: [],
       types: [
         { text: "New", value: "New" },
         { text: "Change Order", value: "Change Order" },
@@ -561,6 +609,7 @@ export default {
       },
       permissions: Home.data().permissions,
       loading: true,
+      loading_endorse_history: true,
       user: localStorage.getItem("user"),
       user_type: localStorage.getItem("user_type"),
       user_id: localStorage.getItem("user_id"),
@@ -625,14 +674,40 @@ export default {
       }).then(
         (response) => {
           // console.log(response.data);
-          if(response.data.success)
-          {
+          if (response.data.success) {
             // send data to Socket.IO Server
-            this.$socket.emit("sendData", {action: 'project-delete'});
+            this.$socket.emit("sendData", { action: "project-delete" });
           }
         },
         (error) => {
           console.log(error);
+        }
+      );
+    },
+
+    viewEndorseHistory(item) {
+
+      this.dialog_endorse_history = true;
+      this.loading_endorse_history = true;
+      this.endorse_history = [];
+      Axios.post(
+        "/api/project/endorse_history",
+        { project_id: item.project_id },
+        {
+          headers: {
+            Authorization: "Bearer " + access_token,
+          },
+        }
+      ).then(
+        (response) => {
+          if(response.data.endorse_history)
+          {
+            this.endorse_history = response.data.endorse_history;
+            this.loading_endorse_history = false;
+          }
+        },
+        (errors) => {
+          console.log(errors);
         }
       );
     },
@@ -693,7 +768,7 @@ export default {
 
     save() {
       this.$v.$touch();
-      
+
       if (!this.$v.editedItem.$error) {
         this.overlay = true;
         this.disabled = true;
@@ -709,9 +784,8 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
-
                 // send data to Socket.IO Server
-                this.$socket.emit("sendData", {action: 'project-edit'});
+                this.$socket.emit("sendData", { action: "project-edit" });
 
                 Object.assign(this.projects[this.editedIndex], this.editedItem);
                 this.showAlert();
@@ -736,9 +810,8 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
-
                 // send data to Socket.IO Server
-                this.$socket.emit("sendData", {action: 'project-create'});
+                this.$socket.emit("sendData", { action: "project-create" });
 
                 this.showAlert();
                 this.close();
@@ -843,13 +916,11 @@ export default {
           },
         }).then(
           (response) => {
-
             this.errors_array = [];
 
             if (response.data.success) {
-
               // send data to Socket.IO Server
-              this.$socket.emit("sendData", {action: 'import-project'});
+              this.$socket.emit("sendData", { action: "import-project" });
 
               this.$swal({
                 position: "center",
@@ -1001,7 +1072,7 @@ export default {
         ) {
           this.getProject();
         }
-      }
+      };
     },
   },
   computed: {

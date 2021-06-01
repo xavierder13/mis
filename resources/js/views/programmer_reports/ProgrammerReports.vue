@@ -661,8 +661,9 @@
                         <v-icon small> mdi-menu-down </v-icon>
                       </v-btn>
                     </template>
-                    <v-list>
+                    <v-list class="pa-1">
                       <v-list-item
+                        class="ma-0 pa-0"
                         style="min-height: 25px"
                         v-if="
                           permissions.edit_program_percentage ||
@@ -673,6 +674,7 @@
                       >
                         <v-list-item-title>
                           <v-btn
+                            class="ma-1"
                             x-small
                             width="100px"
                             color="primary"
@@ -683,15 +685,9 @@
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
-                      <v-divider
-                        class="ma-0"
-                        v-if="
-                          permissions.edit_program_percentage ||
-                          permissions.edit_template_percentage ||
-                          permissions.edit_validate_percentage
-                        "
-                      ></v-divider>
+
                       <v-list-item
+                        class="ma-0 pa-0"
                         style="min-height: 25px"
                         v-if="
                           item.status != 'Accepted' &&
@@ -700,6 +696,7 @@
                       >
                         <v-list-item-title>
                           <v-btn
+                            class="ma-1"
                             x-small
                             width="100px"
                             color="primary"
@@ -710,16 +707,15 @@
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
-                      <v-divider
-                        class="ma-0"
-                        v-if="permissions.project_log_create"
-                      ></v-divider>
+
                       <v-list-item
+                        class="ma-0 pa-0"
                         style="min-height: 25px"
                         v-if="permissions.project_log_list"
                       >
                         <v-list-item-title>
                           <v-btn
+                            class="ma-1"
                             x-small
                             width="100px"
                             color="primary"
@@ -730,11 +726,31 @@
                           </v-btn>
                         </v-list-item-title>
                       </v-list-item>
-                      <v-divider
-                        class="ma-0"
-                        v-if="permissions.project_log_list"
-                      ></v-divider>
+
                       <v-list-item
+                        class="ma-0 pa-0"
+                        style="min-height: 25px"
+                        v-if="
+                          item.status != 'Accepted' &&
+                          permissions.project_acceptance_overview
+                        "
+                      >
+                        <v-list-item-title>
+                          <v-btn
+                            class="ma-1"
+                            x-small
+                            width="100px"
+                            color="primary"
+                            @click="createRemarks(item) + (endorse_project = true)"
+                          >
+                            <v-icon small class="mr-2"> mdi-folder-move </v-icon>
+                            Endorse
+                          </v-btn>
+                        </v-list-item-title>
+                      </v-list-item>
+
+                      <v-list-item
+                        class="ma-0 pa-0"
                         style="min-height: 25px"
                         v-if="
                           item.status == 'Accepted' &&
@@ -743,6 +759,7 @@
                       >
                         <v-list-item-title>
                           <v-btn
+                            class="ma-1"
                             x-small
                             width="100px"
                             color="primary"
@@ -1318,6 +1335,14 @@ export default {
       let hasOngoingTurnover = false;
       let last_log_status = "";
 
+      this.report_status = [
+        { text: "For Validation", value: "For Validation" },
+        { text: "Ongoing", value: "Ongoing" },
+        { text: "Pending", value: "Pending" },
+        { text: "Accepted", value: "Accepted" },
+        { text: "Cancelled", value: "Cancelled" },
+      ];
+
       // if logs has Ongoing and Turnover status
       this.logs_per_project.forEach((val, i) => {
         if (val.status == "Ongoing" && val.turnover == "Y") {
@@ -1369,6 +1394,7 @@ export default {
         }
       });
     },
+
     printPreview() {
       window.open(
         location.origin +
@@ -1379,6 +1405,8 @@ export default {
         "_blank"
       );
     },
+
+
 
     endorseProject() {
       this.$v.remarksItem.$touch();

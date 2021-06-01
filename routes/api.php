@@ -104,31 +104,12 @@ Route::group(['prefix' => 'project', 'middleware' => ['auth:api']], function(){
         'as' => 'project_acceptance',
     ]);
 
-    Route::get('/reports_preview', 'ReportsPreviewController@preview');
-
-    Route::get('/acceptance_preview', 'API\ProjectController@project_acceptance');
+    Route::post('/endorse_history', [
+        'uses' => 'API\ProjectController@endorse_history',
+        'as' => 'endorse_history',
+    ]);
 
 });
-
-// Project Acceptance Overview Routes
-Route::group(['prefix' => 'acceptance_overview', 'middleware' => ['auth:api']], function(){
-
-    Route::get('/index/{id}', [
-        'uses' => 'API\AcceptanceOverviewController@index',
-        'as' => 'acceptance_overview.index',
-    ]);
-
-    Route::post('/create', [
-        'uses' => 'API\AcceptanceOverviewController@create',
-        'as' => 'acceptance_overview.create',
-    ]);
-
-    Route::post('/delete', [
-        'uses' => 'API\AcceptanceOverviewController@delete',
-        'as' => 'acceptance_overview.delete',
-    ]);
-
-});  
 
 // Projects Logs Routes
 Route::group(['prefix' => 'project_log', 'middleware' => ['auth:api']], function(){
@@ -178,6 +159,26 @@ Route::group(['prefix' => 'project_log', 'middleware' => ['auth:api']], function
     ]);
 
 });
+
+// Project Acceptance Overview Routes
+Route::group(['prefix' => 'acceptance_overview', 'middleware' => ['auth:api']], function(){
+
+    Route::get('/index/{id}', [
+        'uses' => 'API\AcceptanceOverviewController@index',
+        'as' => 'acceptance_overview.index',
+    ]);
+
+    Route::post('/create', [
+        'uses' => 'API\AcceptanceOverviewController@create',
+        'as' => 'acceptance_overview.create',
+    ]);
+
+    Route::post('/delete', [
+        'uses' => 'API\AcceptanceOverviewController@delete',
+        'as' => 'acceptance_overview.delete',
+    ]);
+
+});  
 
 // User Routes
 Route::group(['prefix' => 'user', 'middleware' => ['auth:api']], function(){
