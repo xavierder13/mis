@@ -312,7 +312,7 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-dialog v-model="dialog2" max-width="700px">
+                <v-dialog v-model="dialog2" max-width="700px" persistent>
                   <v-card>
                     <v-card-title class="mb-0 pb-0">
                       <span class="headline">Update Report Percentage</span>
@@ -341,6 +341,7 @@
                                   readonly
                                   v-bind="attrs"
                                   v-on="on"
+                                  :error="date_receive_invalid"
                                 ></v-text-field>
                               </template>
                               <v-date-picker
@@ -930,6 +931,7 @@ export default {
         { text: "Ideal Valid Hrs.", value: "ideal_valid_hrs", sortable: false },
         { text: "Department", value: "department", sortable: false },
         { text: "Manager", value: "manager", sortable: false },
+        { text: "Date Endored", value: "endorse_date", sortable: false },
         { text: "Date Received", value: "date_receive", sortable: false },
         {
           text: "Template %",
@@ -996,6 +998,7 @@ export default {
       dialog: false,
       dialog2: false,
       dialog_endorse: false,
+      date_receive_invalid : false,
       projects: [],
       project: {},
       project_logs: [],
@@ -1112,6 +1115,7 @@ export default {
     },
 
     editProject(item) {
+      
       this.dialog2 = true;
       let date_receive = "";
       let program_date = "";
@@ -1124,17 +1128,17 @@ export default {
 
       if (item.date_receive) {
         date_receive = item.date_receive.split("/");
-        this.date_receive =
+        this.editedItem.date_receive =
           date_receive[2] + "-" + date_receive[0] + "-" + date_receive[1];
       }
       if (item.program_date) {
         program_date = item.program_date.split("/");
-        this.program_date =
+        this.editedItem.program_date =
           program_date[2] + "-" + program_date[0] + "-" + program_date[1];
       }
       if (item.validation_date) {
         validation_date = item.validation_date.split("/");
-        this.validation_date =
+        this.editedItem.validation_date =
           validation_date[2] +
           "-" +
           validation_date[0] +
@@ -1274,35 +1278,63 @@ export default {
         turnover: "",
       };
       this.endorse_project = false;
+      this.date_receive_invalid = false;
     },
 
     updateReportPercentage() {
-      this.overlay = true;
-      Axios.post("/api/project/update_status", this.editedItem, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
-        (response) => {
-          if (response.data.success) {
-            // send data to Socket.IO Server
-            this.$socket.emit("sendData", { action: "project-edit" });
 
+      console.log(this.editedItem);
+
+      let endorse_date = moment(new Date(this.editedItem.endorse_date), "YYYY-MM-DD");
+      let date_receive = moment(new Date(this.editedItem.date_receive), "YYYY-MM-DD");
+      
+      // date_receive must be equal or greater than endorse_date
+      if(date_receive < endorse_date)
+      {
+        this.date_receive_invalid = true;
+      }
+
+      if(this.date_receive_invalid)
+      {
+        this.$swal({
+          position: "center",
+          title: "Invalid Date",
+          text: "Date Received must be greater than or equal to Date Endorsed",
+          icon: "warning",
+          showConfirmButton: true,
+        });
+      }
+      else
+      {
+        this.overlay = true;
+        Axios.post("/api/project/update_status", this.editedItem, {
+          headers: {
+            Authorization: "Bearer " + access_token,
+          },
+        }).then(
+          (response) => {
+            if (response.data.success) {
+              // send data to Socket.IO Server
+              this.$socket.emit("sendData", { action: "project-edit" });
+
+              this.overlay = false;
+              Object.assign(
+                this.filteredProjects[this.editedIndex],
+                this.editedItem
+              );
+              this.showAlert();
+              this.clear();
+              this.dialog2 = false;
+            }
+          },
+          (error) => {
             this.overlay = false;
-            Object.assign(
-              this.filteredProjects[this.editedIndex],
-              this.editedItem
-            );
-            this.showAlert();
-            this.clear();
-            this.dialog2 = false;
+            console.log(error);
           }
-        },
-        (error) => {
-          this.overlay = false;
-          console.log(error);
-        }
-      );
+        );
+      }
+
+      
     },
     formatDate(date) {
       if (!date) return null;
@@ -1696,8 +1728,8 @@ export default {
       return errors;
     },
     computedDateReceiveFormatted() {
-      return this.editedItem.date_receive;
-      // return this.formatDate(this.editedItem.date_receive);
+      // return this.editedItem.date_receive;
+      return this.formatDate(this.editedItem.date_receive);
     },
     computedProgramDateFormatted() {
       return this.editedItem.program_date;

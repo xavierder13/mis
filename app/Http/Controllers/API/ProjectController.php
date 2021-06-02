@@ -114,7 +114,7 @@ class ProjectController extends Controller
                                             (SELECT date_receive FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as date_receive,
                                             (SELECT program_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as program_date,
                                             (SELECT validation_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as validation_date,
-                                            (SELECT endorse_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as endorse_date
+                                            (SELECT created_at FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as endorse_date
                                      FROM endorse_projects a 
                                      WHERE a.created_at <= "'.$filter_date.'"
                                      group by a.project_id
@@ -145,8 +145,8 @@ class ProjectController extends Controller
                              'projects.program_percent', 'projects.validation_percent', 'projects.program_hrs', 'projects.validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
                     // ->where('projects.ref_no', '=', '1')
-                    ->where(function($query) use ($firstOfMonth, $filter_date) {
-                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
+                    ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
+                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
                               ->orWhereNull('projects.accepted_date');       
                     })
                     ->whereDate('projects.endorse_date', '<=', $filter_date);
@@ -162,8 +162,9 @@ class ProjectController extends Controller
                     ->join('project_logs', 'endorse_projects.id', '=', 'project_logs.endorse_project_id')
                     ->select(DB::raw('projects.status as project_status, project_logs.*'))
                     ->where('projects.status', '!=', 'Cancelled')
-                    ->where(function($query) use ($firstOfMonth, $filter_date) {
-                              $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
+                    ->whereDate('project_logs.remarks_date', '<=', $filter_date)
+                    ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
+                              $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
                                     ->orWhereNull('projects.accepted_date');
                     })
                     ->whereDate('projects.endorse_date', '<=', $filter_date);           
@@ -189,13 +190,13 @@ class ProjectController extends Controller
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
                              DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"),
-                             DB::raw("DATE_FORMAT(projects.endorse_date, '%m/%d/%Y') as endorse_date"),
+                             DB::raw("null as endorse_date"),
                              'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
                              'projects.program_percent', 'projects.validation_percent', 'projects.program_hrs', 'projects.validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
                     // ->where('projects.ref_no', '=', '1')
-                    ->where(function($query) use ($firstOfMonth, $filter_date) {
-                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
+                    ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
+                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
                               ->orWhereNull('projects.accepted_date');       
                     })
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
@@ -211,9 +212,11 @@ class ProjectController extends Controller
         $project_logs = DB::table('projects')
                     ->join('project_logs', 'projects.id', '=', 'project_logs.project_id')
                     ->select(DB::raw('projects.status as project_status, project_logs.*'))
+                    ->where('project_logs.endorse_project_id', '=', null)
                     ->where('projects.status', '!=', 'Cancelled')
-                    ->where(function($query) use ($firstOfMonth, $filter_date) {
-                              $query->whereBetween('projects.accepted_date', [$firstOfMonth, $filter_date])
+                    ->whereDate('project_logs.remarks_date', '<=', $filter_date)
+                    ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
+                              $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
                                     ->orWhereNull('projects.accepted_date');
                     })
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
@@ -243,7 +246,10 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {   
-      
+        $date_now = Carbon::now()->format('Y-m-d');
+        $time_now = Carbon::now()->format('H:i');   
+        $date_receive = $date_now; 
+
         $rules = [
             'report_title.required' => 'Report Title is required',
             'department_id.required' => 'Department is required',
@@ -283,8 +289,9 @@ class ProjectController extends Controller
         $project->programmer_id = $request->get('programmer_id');
         $project->validator_id = $request->get('validator_id');
         if($request->get('date_receive'))
-        {
-            $project->date_receive = Carbon::parse($request->get('date_receive'))->format('Y-m-d');
+        {   
+            $date_receive = Carbon::parse($request->get('date_receive'))->format('Y-m-d')
+            $project->date_receive = $date_receive;
         }
         if($request->get('date_approve'))
         {
@@ -297,10 +304,27 @@ class ProjectController extends Controller
         $project->status = "Pending";
         $project->save();
 
-        if($project->id)
+        $project_log = new ProjectLog();
+        $project_log->project_id = $project->id;
+        $project_log->endorse_project_id = null;
+        $project_log->remarks_date = $date_receive;
+        $project_log->remarks_time = $time_now;
+        $project_log->remarks = 'Received';
+        $project_log->status = 'Pending';
+        $project_log->turnover = null;
+        $project_log->save();
+
+        $ref_no_setting = RefNoSetting::first();
+
+        // if ref_no_setting has value
+        if($ref_no_setting)
         {
-            RefNoSetting::first()->update(['active' => 'N']);
+            if($ref_no_setting->active == 'Y')
+            {
+                RefNoSetting::first()->update(['active' => 'N']);
+            }
         }
+        
 
         $project = DB::table('projects')
                     ->leftJoin('departments', 'projects.department_id', '=','departments.id')
