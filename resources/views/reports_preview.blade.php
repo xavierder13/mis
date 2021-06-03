@@ -63,14 +63,14 @@
         @foreach($projects as $i => $project)
           @if($project->status == 'For Validation')
           <tr>
-            <td>{{ $project->date_approved }}</td>
+            <td>{{ $project->date_approve }}</td>
             <td>{{ $project->ref_no }}</td>
             <td class="table-condensed">{{ $project->report_title }}</td>
             <td>{{ $project->ideal_prog_hrs }}</td>
             <td>{{ $project->ideal_valid_hrs }}</td>
             <td>{{ $project->department }}</td>
             <td>{{ $project->manager }}</td>
-            <td>{{ $project->date_received }}</td>
+            <td>{{ $project->date_receive }}</td>
             <td>{{ $i }}</td>
             <td>{{ $project->template_percent }}</td>
             <td>{{ $project->program_date }}</td>
@@ -102,14 +102,14 @@
         @foreach($projects as $i => $project)
           @if($project->status == 'Ongoing')
           <tr>
-            <td>{{ $project->date_approved }}</td>
+            <td>{{ $project->date_approve }}</td>
             <td>{{ $project->ref_no }}</td>
             <td class="table-condensed">{{ $project->report_title }}</td>
             <td>{{ $project->ideal_prog_hrs }}</td>
             <td>{{ $project->ideal_valid_hrs }}</td>
             <td>{{ $project->department }}</td>
             <td>{{ $project->manager }}</td>
-            <td>{{ $project->date_received }}</td>
+            <td>{{ $project->date_receive }}</td>
             <td>{{ $i }}</td>
             <td>{{ $project->template_percent }}</td>
             <td>{{ $project->program_date }}</td>
@@ -141,14 +141,14 @@
         @foreach($projects as $i => $project)
           @if($project->status == 'Pending')
           <tr>
-            <td>{{ $project->date_approved }}</td>
+            <td>{{ $project->date_approve }}</td>
             <td>{{ $project->ref_no }}</td>
             <td class="table-condensed">{{ $project->report_title }}</td>
             <td>{{ $project->ideal_prog_hrs }}</td>
             <td>{{ $project->ideal_valid_hrs }}</td>
             <td>{{ $project->department }}</td>
             <td>{{ $project->manager }}</td>
-            <td>{{ $project->date_received }}</td>
+            <td>{{ $project->date_receive }}</td>
             <td>{{ $i }}</td>
             <td>{{ $project->template_percent }}</td>
             <td>{{ $project->program_date }}</td>
@@ -187,7 +187,7 @@
             <td>{{ $project->ideal_valid_hrs }}</td>
             <td>{{ $project->department }}</td>
             <td>{{ $project->manager }}</td>
-            <td>{{ $project->date_received }}</td>
+            <td>{{ $project->date_receive }}</td>
             <td>{{ $i }}</td>
             <td>{{ $project->template_percent }}</td>
             <td>{{ $project->program_date }}</td>

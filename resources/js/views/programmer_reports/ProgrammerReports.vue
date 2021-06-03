@@ -1086,7 +1086,7 @@ export default {
           this.validators = response.data.validators;
           this.holidays = response.data.holidays;
           this.loading = false;
-
+          console.log(this.projects = response.data.projects);
           // console.log(this.project_execution_hrs);
 
           // if dropdown programmer has no value(first load) then set a value
@@ -1282,8 +1282,6 @@ export default {
     },
 
     updateReportPercentage() {
-
-      console.log(this.editedItem);
 
       let endorse_date = moment(new Date(this.editedItem.endorse_date), "YYYY-MM-DD");
       let date_receive = moment(new Date(this.editedItem.date_receive), "YYYY-MM-DD");
@@ -1678,15 +1676,15 @@ export default {
       }
 
       // filter accepted report based on parameter date
-      filteredProjects.forEach((value, index) => {
-        let accepted_date = new Date(value.accepted_date);
-        if (
-          (accepted_date >= firstDay && accepted_date <= lastDay) ||
-          !value.accepted_date
-        ) {
-          filteredAcceptedProjects.push(value);
-        }
-      });
+      // filteredProjects.forEach((value, index) => {
+      //   let accepted_date = new Date(value.accepted_date);
+      //   if (
+      //     (accepted_date >= firstDay && accepted_date <= lastDay) ||
+      //     !value.accepted_date
+      //   ) {
+      //     filteredAcceptedProjects.push(value);
+      //   }
+      // });
 
       this.report_status = [
         { text: "For Validation", value: "For Validation" },
@@ -1697,24 +1695,24 @@ export default {
       ];
 
       this.project_execution_hrs.forEach((value, index) => {
-        filteredAcceptedProjects.forEach((val, i) => {
+        filteredProjects.forEach((val, i) => {
           if (value.project_id == val.project_id) {
             // execution hrs overall
-            filteredAcceptedProjects[i].program_hrs =
+            filteredProjects[i].program_hrs =
               value.execution_hrs.program_hrs;
-            filteredAcceptedProjects[i].validate_hrs =
+            filteredProjects[i].validate_hrs =
               value.execution_hrs.validate_hrs;
 
             // execution hrs this month
-            filteredAcceptedProjects[i].program_hrs_tm =
+            filteredProjects[i].program_hrs_tm =
               value.execution_hrs_tm.program_hrs;
-            filteredAcceptedProjects[i].validate_hrs_tm =
+            filteredProjects[i].validate_hrs_tm =
               value.execution_hrs_tm.validate_hrs;
           }
         });
       });
 
-      return filteredAcceptedProjects;
+      return filteredProjects;
     },
 
     formTitle() {
