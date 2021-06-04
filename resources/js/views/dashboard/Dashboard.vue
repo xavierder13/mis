@@ -18,15 +18,15 @@
               class="ml-3"
               v-if="permissions.import_project"
             ></v-divider>
-
-            <v-icon
+            <v-btn
               color="primary"
+              small
               class="ml-2"
               @click="importExcel()"
               v-if="permissions.import_project"
             >
-              mdi-import
-            </v-icon>
+              <v-icon small class="mr-1"> mdi-import </v-icon> Import
+            </v-btn>
 
             <v-spacer></v-spacer>
             <v-text-field
@@ -686,7 +686,6 @@ export default {
     },
 
     viewEndorseHistory(item) {
-
       this.dialog_endorse_history = true;
       this.loading_endorse_history = true;
       this.endorse_history = [];
@@ -700,8 +699,7 @@ export default {
         }
       ).then(
         (response) => {
-          if(response.data.endorse_history)
-          {
+          if (response.data.endorse_history) {
             this.endorse_history = response.data.endorse_history;
             this.loading_endorse_history = false;
           }

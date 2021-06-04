@@ -36,7 +36,7 @@ class ProjectLogController extends Controller
                              DB::raw("DATE_FORMAT(projects.program_date, '%m/%d/%Y') as program_date"),
                              DB::raw("DATE_FORMAT(projects.validation_date, '%m/%d/%Y') as validation_date"),
                              'projects.type', 'projects.ideal_prog_hrs', 'projects.ideal_valid_hrs', 'projects.template_percent', 'projects.status',
-                             'projects.program_percent', 'projects.validation_percent')
+                             'projects.program_percent', 'projects.validation_percent', 'projects.program_hrs', 'projects.validate_hrs')
                     ->where('projects.status', '!=', 'Cancelled')
                     ->where('projects.id', '=', $project_id)
                     ->orderBy('projects.id', 'Desc')
@@ -261,9 +261,9 @@ class ProjectLogController extends Controller
         }
 
         $project_id = $request->get('project_id');
-
+        $project = Project::find($project_id);
         // project status
-        $status = Project::find($project_id)->status;          
+        $status = $project->status;          
 
         $project_log = ProjectLog::find($project_log_id);
         $project_log->remarks_date = Carbon::parse($request->get('remarks_date'))->format('Y-m-d');

@@ -166,9 +166,12 @@ class ProjectController extends Controller
                     // ->where('projects.ref_no', '=', '1')
                     ->where(function($query) use ($firstOfMonth, $lastOfMonth, $filter_date) {
                         $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
-                              ->orWhereDate('endorse_projects.endorse_date', '<=', $filter_date)
-                              ->orWhereDate('endorse_projects.date_receive', '<=', $filter_date)   
-                              ->orWhereDate('endorse_projects.program_date', '<=', $filter_date);        
+                              ->orWhere('projects.accepted_date', null)
+                              ->where(function($query2) use ($firstOfMonth, $lastOfMonth, $filter_date) {
+                                    $query2->whereDate('endorse_projects.endorse_date', '<=', $filter_date)
+                                           ->orWhereDate('endorse_projects.date_receive', '<=', $filter_date)   
+                                           ->orWhereDate('endorse_projects.program_date', '<=', $filter_date);
+                              });        
                     });
                     
 
@@ -235,9 +238,12 @@ class ProjectController extends Controller
                     // ->where('projects.ref_no', '=', '1')
                     ->where(function($query) use ($firstOfMonth, $lastOfMonth, $filter_date) {
                         $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
-                              ->orWhereDate(DB::raw('DATE_FORMAT(projects.created_at, "%Y-%m-%d")'), '<=', $filter_date)
-                              ->orWhereDate('projects.date_receive', '<=', $filter_date)   
-                              ->orWhereDate('projects.program_date', '<=', $filter_date);       
+                              ->orWhere('projects.accepted_date', null)
+                              ->where(function($query2) use ($firstOfMonth, $lastOfMonth, $filter_date) {
+                                    $query2->whereDate(DB::raw('DATE_FORMAT(projects.created_at, "%Y-%m-%d")'), '<=', $filter_date)
+                                           ->orWhereDate('projects.date_receive', '<=', $filter_date)   
+                                           ->orWhereDate('projects.program_date', '<=', $filter_date);
+                              });       
                     })
                     ->where(function($query) use ($firstOfMonth, $filter_date) {
                         $query->whereDate('projects.endorse_date', '>', $filter_date)

@@ -179,7 +179,7 @@ class ReportsPreviewController extends Controller
                               ->orWhereNull('projects.endorse_date');       
                     })
                     ->where('projects.programmer_id', '=', $programmer_id)
-                    ->union($endorse_projects)
+                    // ->union($endorse_projects)
                     ->orderBy('report_grp', 'Desc')
                     ->orderBy('project_id', 'Desc')
                     ->get();

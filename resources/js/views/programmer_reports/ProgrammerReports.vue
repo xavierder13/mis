@@ -1086,9 +1086,7 @@ export default {
           this.validators = response.data.validators;
           this.holidays = response.data.holidays;
           this.loading = false;
-          console.log(this.projects = response.data.projects);
-          // console.log(this.project_execution_hrs);
-
+          
           // if dropdown programmer has no value(first load) then set a value
           if (!this.filter_project_by_programmer) {
             if (
@@ -1102,7 +1100,7 @@ export default {
               this.filter_project_by_programmer = parseInt(this.user_id);
             }
           }
-          // console.log(this.filteredProjects);
+   
         },
         (error) => {
           // if unauthenticated (401)

@@ -68,16 +68,22 @@
             <v-divider
               vertical
               class="ml-3"
-              v-if="permissions.import_project_log"
+              v-if="
+                permissions.import_project_log && project.status != 'Accepted'
+              "
             ></v-divider>
-            <v-icon
+            <v-btn
               color="primary"
+              small
               class="ml-2"
               @click="importExcel()"
-              v-if="permissions.import_project_log"
+              v-if="
+                permissions.import_project_log && project.status != 'Accepted'
+              "
             >
-              mdi-import
-            </v-icon>
+              <v-icon small class="mr-1"> mdi-import </v-icon> Import
+            </v-btn>
+
             <v-spacer></v-spacer>
 
             <template>
@@ -135,6 +141,7 @@
                                   readonly
                                   v-bind="attrs"
                                   v-on="on"
+                                  :error="remarks_datetime_invalid"
                                   :error-messages="remarks_dateErrors"
                                   @input="$v.editedItem.remarks_date.$touch()"
                                   @blur="$v.editedItem.remarks_date.$touch()"
@@ -227,8 +234,10 @@
                               :items="hour"
                               label="Hour"
                               @blur="$v.editedItem.hour.$touch()"
+                              @change="validateRemarksDatetime()"
                               :hint="'24 Hr Format'"
                               persistent-hint
+                              :error="remarks_datetime_invalid"
                             ></v-autocomplete>
                           </v-col>
                           <v-col cols="2">
@@ -237,6 +246,8 @@
                               :items="minute"
                               label="Minute"
                               @blur="$v.editedItem.minute.$touch()"
+                              @change="validateRemarksDatetime()"
+                              :error="remarks_datetime_invalid"
                             ></v-autocomplete>
                           </v-col>
                         </v-row>
@@ -442,6 +453,28 @@
               </v-icon>
             </template>
           </v-data-table>
+          <v-card-actions class="pa-4 pb-6">
+            <v-row>
+              <v-col>
+                <v-row>
+                  <v-col>
+                    <span class="title">Total Programming Hours: </span
+                    ><v-chip color="grey darken-4 white--text" class="title font-weight-bold">{{
+                      project.program_hrs
+                    }}</v-chip>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col>
+                    <span class="title">Total Validation Hours: </span>
+                    <v-chip color="grey darken-4 white--text" class="title font-weight-bold">
+                      {{ project.validate_hrs }}
+                    </v-chip>
+                  </v-col>
+                </v-row>
+              </v-col>
+            </v-row>
+          </v-card-actions>
         </v-card>
       </v-main>
     </div>
@@ -570,6 +603,7 @@ export default {
       time_modal: false,
       error_status: null,
       timeHasError: false,
+      remarks_datetime_invalid: false,
     };
   },
 
@@ -616,86 +650,100 @@ export default {
         this.editedItem.remarks_time =
           this.editedItem.hour + ":" + this.editedItem.minute;
 
-        if (this.editedIndex > -1) {
-          let project_log_id = this.editedItem.id;
+        // if remarks_datetime is valid then proceed
+        if (!this.remarks_datetime_invalid) {
+          // if this.editedIndex > -1 then update else store
+          if (this.editedIndex > -1) {
+            let project_log_id = this.editedItem.id;
 
-          Axios.post(
-            "/api/project_log/update/" + project_log_id,
-            this.editedItem,
-            {
+            Axios.post(
+              "/api/project_log/update/" + project_log_id,
+              this.editedItem,
+              {
+                headers: {
+                  Authorization: "Bearer " + access_token,
+                },
+              }
+            ).then(
+              (response) => {
+                if (response.data.success) {
+                  // if hasChanges is true - changes in status, program date or validation date
+                  if (response.data.hasChanges) {
+                    // send data to Socket.IO Server
+                    this.$socket.emit("sendData", { action: "project-edit" });
+                  }
+
+                  // send data to Socket.IO Server
+                  this.$socket.emit("sendData", { action: "project-log-edit" });
+
+                  Object.assign(
+                    this.project_logs[this.editedIndex],
+                    response.data.project_log
+                  );
+
+                  this.project.status = response.data.status;
+
+                  this.showAlert();
+                  this.close();
+                  this.getProjectLogs();
+                }
+                this.overlay = false;
+                this.disabled = false;
+              },
+              (error) => {
+                console.log(error);
+                this.overlay = false;
+                this.disabled = false;
+              }
+            );
+          } else {
+            this.editedItem.project_id = this.project.project_id;
+            this.editedItem.endorse_project_id = this.$route.params.endorse_project_id;
+            Axios.post("/api/project_log/store", this.editedItem, {
               headers: {
                 Authorization: "Bearer " + access_token,
               },
-            }
-          ).then(
-            (response) => {
-              if (response.data.success) {
-                // if hasChanges is true - changes in status, program date or validation date
-                if (response.data.hasChanges) {
+            }).then(
+              (response) => {
+                if (response.data.success) {
                   // send data to Socket.IO Server
-                  this.$socket.emit("sendData", { action: "project-edit" });
+                  this.$socket.emit("sendData", {
+                    action: "project-log-create",
+                  });
+
+                  this.project_logs.push(response.data.project_log);
+
+                  // if hasChanges is true - changes in status, program date or validation date
+                  if (response.data.hasChanges) {
+                    // send data to Socket.IO Server
+                    this.$socket.emit("sendData", { action: "project-edit" });
+                  }
+
+                  // assign new status from backend
+                  this.project.status = response.data.status;
+
+                  this.showAlert();
+                  this.close();
+                  this.getProjectLogs();
                 }
-
-                // send data to Socket.IO Server
-                this.$socket.emit("sendData", { action: "project-log-edit" });
-
-                Object.assign(
-                  this.project_logs[this.editedIndex],
-                  response.data.project_log
-                );
-
-                this.project.status = response.data.status;
-
-                this.showAlert();
-                this.close();
-                this.getProjectLogs();
+                this.overlay = false;
+                this.disabled = false;
+              },
+              (error) => {
+                console.log(error);
+                this.overlay = false;
+                this.disabled = false;
               }
-              this.overlay = false;
-              this.disabled = false;
-            },
-            (error) => {
-              console.log(error);
-              this.overlay = false;
-              this.disabled = false;
-            }
-          );
+            );
+          }
         } else {
-          this.editedItem.project_id = this.project.project_id;
-          this.editedItem.endorse_project_id = this.$route.params.endorse_project_id;
-          Axios.post("/api/project_log/store", this.editedItem, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
-            (response) => {
-              if (response.data.success) {
-                // send data to Socket.IO Server
-                this.$socket.emit("sendData", { action: "project-log-create" });
-
-                this.project_logs.push(response.data.project_log);
-
-                // if hasChanges is true - changes in status, program date or validation date
-                if (response.data.hasChanges) {
-                  // send data to Socket.IO Server
-                  this.$socket.emit("sendData", { action: "project-edit" });
-                }
-
-                // assign new status from backend
-                this.project.status = response.data.status;
-
-                this.showAlert();
-                this.close();
-                this.getProjectLogs();
-              }
-              this.overlay = false;
-              this.disabled = false;
-            },
-            (error) => {
-              console.log(error);
-              this.overlay = false;
-              this.disabled = false;
-            }
-          );
+          this.$swal({
+            position: "center",
+            title: "Invalid Date",
+            text: "You are entering future date",
+            icon: "warning",
+            showConfirmButton: true,
+          });
         }
       }
     },
@@ -1018,6 +1066,24 @@ export default {
       }
     },
 
+    validateRemarksDatetime() {
+      let remarks_date = this.editedItem.remarks_date;
+      let remarks_hour = this.editedItem.hour;
+      let remarks_minute = this.editedItem.minute;
+      let remarks_datetime = moment(
+        new Date(remarks_date + " " + remarks_hour + ":" + remarks_minute),
+        "YYYY-MM-DD"
+      );
+      let now_datetime = moment(new Date(), "YYYY-MM-DD");
+
+      this.remarks_datetime_invalid = false;
+
+      // date_receive must be equal or greater than endorse_date
+      if (remarks_datetime > now_datetime) {
+        this.remarks_datetime_invalid = true;
+      }
+    },
+
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {
         headers: {
@@ -1128,6 +1194,8 @@ export default {
       return this.editedIndex === -1 ? "New Project Log" : "Edit Project Log";
     },
     computedRemarksDateFormatted() {
+      this.validateRemarksDatetime();
+
       return this.formatDate(this.editedItem.remarks_date);
     },
     remarks_dateErrors() {
