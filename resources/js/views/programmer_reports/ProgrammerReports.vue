@@ -1086,6 +1086,8 @@ export default {
           this.validators = response.data.validators;
           this.holidays = response.data.holidays;
           this.loading = false;
+
+          // console.log(response.data);
           
           // if dropdown programmer has no value(first load) then set a value
           if (!this.filter_project_by_programmer) {

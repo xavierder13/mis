@@ -102,43 +102,47 @@ class ProjectController extends Controller
             ];
 
         }    
+        
+        // string only - used to join using DB::raw
+        $endorseProjects = '(SELECT MAX(a.id) as id, 
+                                   a.project_id,
+                                   (SELECT t1.Name 
+                                    FROM endorse_projects t0 
+                                    INNER JOIN (SELECT id, name FROM users WHERE type = "programmer") t1 ON t0.programmer_id = t1.id 
+                                    WHERE t0.id = MAX(a.id)) as programmer,
+                                   (SELECT t0.programmer_id FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as programmer_id,
+                                   (SELECT date_receive FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as date_receive,
+                                   (SELECT program_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as program_date,
+                                   (SELECT validation_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as validation_date,
+                                   (SELECT DATE_FORMAT(t0.created_at, "%Y-%m-%d") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as endorse_date
+                                    FROM endorse_projects a 
+                                    WHERE DATE_FORMAT(a.created_at, "%Y-%m-%d") <= "'.$filter_date.'"
+                                    GROUP BY a.project_id
+                                   ) as endorse_projects';
+                                   
+        // string only - used to join using DB::raw
+        $projectStatus = '(SELECT a.project_id,
+                                  (SELECT CASE WHEN x.turnover = "Y" and x.status = "Ongoing" THEN "For Validation" 
+                                               WHEN x.turnover = "Y" and x.status = "For Validation" THEN "Ongoing"
+                                          ELSE x.status END as status
+                                   FROM project_logs x 
+                                   WHERE x.id = (SELECT MAX(y.id) 
+                                                 FROM project_logs y 
+                                                 WHERE y.remarks_time = (SELECT MAX(z.remarks_time) 
+                                                                         FROM project_logs z 
+                                                                         WHERE z.remarks_date = (SELECT MAX(i.remarks_date) FROM project_logs i WHERE i.remarks_date <= "'.$filter_date.'" and i.project_id = a.project_id)
+                                                                         AND z.project_id = a.project_id) 
+                                                 AND Y.remarks_date = (SELECT MAX(i.remarks_date) FROM project_logs i WHERE i.remarks_date <= "'.$filter_date.'" and i.project_id = a.project_id)
+                                                 AND y.project_id = a.project_id)
+                                   ) AS status
+                            FROM project_logs a 
+                            WHERE a.remarks_date <= "'.$filter_date.'"  and a.endorse_project_id IS NULL
+                            GROUP BY a.project_id
+                           ) as project_status';
 
         $endorse_projects = DB::table('projects')
-                    ->leftJoin(DB::raw('(SELECT MAX(a.id) as id, 
-                                            a.project_id,
-                                            (SELECT t1.Name 
-                                             FROM endorse_projects t0 
-                                             INNER JOIN (SELECT id, name FROM users WHERE type = "programmer") t1 ON t0.programmer_id = t1.id 
-                                             WHERE t0.id = MAX(a.id)) as programmer,
-                                            (SELECT t0.programmer_id FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as programmer_id,
-                                            (SELECT date_receive FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as date_receive,
-                                            (SELECT program_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as program_date,
-                                            (SELECT validation_date FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as validation_date,
-                                            (SELECT DATE_FORMAT(t0.created_at, "%Y-%m-%d") FROM endorse_projects t0 WHERE t0.id = MAX(a.id)) as endorse_date
-                                     FROM endorse_projects a 
-                                     WHERE DATE_FORMAT(a.created_at, "%Y-%m-%d") <= "'.$filter_date.'"
-                                     GROUP BY a.project_id
-                                    ) as endorse_projects'
-                            ), 'projects.id', '=', 'endorse_projects.project_id')
-                    ->leftJoin(DB::raw('(SELECT a.project_id,
-                                                (SELECT CASE WHEN x.turnover = "Y" and x.status = "Ongoing" THEN "For Validation" 
-                                                             WHEN x.turnover = "Y" and x.status = "For Validation" THEN "Ongoing"
-                                                        ELSE x.status END as status
-                                                 FROM project_logs x 
-                                                 WHERE x.id = (SELECT MAX(y.id) 
-                                                               FROM project_logs y 
-                                                               WHERE y.remarks_time = (SELECT MAX(z.remarks_time) 
-                                                                                       FROM project_logs z 
-                                                                                       WHERE z.remarks_date = (SELECT MAX(i.remarks_date) FROM project_logs i WHERE i.remarks_date <= "'.$filter_date.'" and i.project_id = a.project_id)
-                                                                                       AND z.project_id = a.project_id) 
-                                                               AND Y.remarks_date = (SELECT MAX(i.remarks_date) FROM project_logs i WHERE i.remarks_date <= "'.$filter_date.'" and i.project_id = a.project_id)
-                                                               AND y.project_id = a.project_id)
-                                                ) AS status
-                                        FROM project_logs a 
-                                        WHERE a.remarks_date <= "'.$filter_date.'"  and a.endorse_project_id IS NULL
-                                        GROUP BY a.project_id
-                                        ) as project_status'
-                            ), 'projects.id', '=', 'project_status.project_id')
+                    ->leftJoin(DB::raw($endorseProjects), 'projects.id', '=', 'endorse_projects.project_id')
+                    ->leftJoin(DB::raw($projectStatus), 'projects.id', '=', 'project_status.project_id')
                     ->leftJoin('departments', 'projects.department_id', '=','departments.id')
                     ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
                     ->leftJoin(DB::raw('users as programmers'), 'endorse_projects.programmer_id', '=', 'programmers.id')
@@ -176,19 +180,19 @@ class ProjectController extends Controller
                     
 
         $endorse_project_logs = DB::table('projects')
-                    ->join(DB::raw('(SELECT MAX(a.id) as id, a.project_id
-                                            FROM endorse_projects a 
-                                            WHERE a.endorse_date <= "'.$filter_date.'" OR a.endorse_date IS NULL
-                                            GROUP BY a.project_id
-                                            ) as endorse_projects'
-                            ), 'projects.id', '=', 'endorse_projects.project_id')
+                    ->join(DB::raw($endorseProjects), 'projects.id', '=', 'endorse_projects.project_id')
                     ->join('project_logs', 'endorse_projects.id', '=', 'project_logs.endorse_project_id')
                     ->select(DB::raw('projects.status as project_status, project_logs.*'))
                     ->where('projects.status', '!=', 'Cancelled')
                     ->whereDate('project_logs.remarks_date', '<=', $filter_date)
-                    ->where(function($query) use ($firstOfMonth, $lastOfMonth) {
-                              $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
-                                    ->orWhereNull('projects.accepted_date');
+                    ->where(function($query) use ($firstOfMonth, $lastOfMonth, $filter_date) {
+                        $query->whereBetween('projects.accepted_date', [$firstOfMonth, $lastOfMonth])
+                              ->orWhere('projects.accepted_date', null)
+                              ->where(function($query2) use ($firstOfMonth, $lastOfMonth, $filter_date) {
+                                    $query2->whereDate('endorse_projects.endorse_date', '<=', $filter_date)
+                                           ->orWhereDate('endorse_projects.date_receive', '<=', $filter_date)   
+                                           ->orWhereDate('endorse_projects.program_date', '<=', $filter_date);
+                              });      
                     })
                     ->whereDate('projects.endorse_date', '<=', $filter_date);           
 
@@ -197,25 +201,7 @@ class ProjectController extends Controller
                     ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
                     ->leftJoin(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
                     ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
-                    ->leftJoin(DB::raw('(SELECT a.project_id,
-                                                (SELECT CASE WHEN x.turnover = "Y" and x.status = "Ongoing" THEN "For Validation" 
-                                                             WHEN x.turnover = "Y" and x.status = "For Validation" THEN "Ongoing"
-                                                        ELSE x.status END as status
-                                                 FROM project_logs x 
-                                                 WHERE x.id = (SELECT MAX(y.id) 
-                                                               FROM project_logs y 
-                                                               WHERE y.remarks_time = (SELECT MAX(z.remarks_time) 
-                                                                                       FROM project_logs z 
-                                                                                       WHERE z.remarks_date = (SELECT MAX(i.remarks_date) FROM project_logs i WHERE i.remarks_date <= "'.$filter_date.'" and i.project_id = a.project_id)
-                                                                                       AND z.project_id = a.project_id) 
-                                                               AND y.remarks_date = (SELECT MAX(i.remarks_date) FROM project_logs i WHERE i.remarks_date <= "'.$filter_date.'" and i.project_id = a.project_id)
-                                                               AND y.project_id = a.project_id)
-                                                ) AS status
-                                        FROM project_logs a 
-                                        WHERE a.remarks_date <= "'.$filter_date.'"  and a.endorse_project_id IS NULL
-                                        GROUP BY a.project_id
-                                        ) as project_status'
-                            ), 'projects.id', '=', 'project_status.project_id')
+                    ->leftJoin(DB::raw($projectStatus), 'projects.id', '=', 'project_status.project_id')
                     ->select(DB::raw('CASE WHEN IFNULL(project_status.status, "Pending") = "For Validation" THEN "01" 
                                            WHEN IFNULL(project_status.status, "Pending") = "Ongoing" THEN "02"
                                            WHEN IFNULL(project_status.status, "Pending") = "Accepted" THEN "04"
