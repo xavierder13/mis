@@ -9,7 +9,7 @@ use App\Project;
 use App\ProjectLog;
 use App\User;
 use App\Holiday;
-use App\AcceptanceOveriew;
+use App\AcceptanceOverview;
 use Carbon\Carbon;
 
 class ReportsPreviewController extends Controller
@@ -187,9 +187,37 @@ class ReportsPreviewController extends Controller
 
     }
 
-    public function project_acceptance()
-    {
-        return view('acceptance_preview');
+    public function project_acceptance($project_id)
+    {   
+        $project = Project::find($project_id);
+        $accepted_date = $project->accepted_date;
+        $programmer = Project::with('programmer')->find($project_id)->programmer->name;
+
+        // if this project was endorsed then get the programmer from endorse_projects table
+        if($project->endorsed)
+        {
+            $programmer = DB::table('endorse_projects')
+                            ->join('users', 'endorse_projects.programmer_id', '=', 'users.id')
+                            ->select('users.name')
+                            ->where(DB::raw('DATE_FORMAT(created_at, "%Y-%m-%d")'), '<=', $accepted_date)
+                            ->where('project_id', '=', $project_id)
+                            ->first()->name;
+                                        
+        }
+
+        $acceptance_overview = DB::table('projects')
+                                 ->leftJoin('departments', 'projects.department_id', '=','departments.id')
+                                 ->leftJoin('managers', 'departments.id', '=', 'managers.department_id')
+                                 ->leftJoin(DB::raw('users as programmers'), 'projects.programmer_id', '=', 'programmers.id')
+                                 ->leftJoin(DB::raw('users as validators'), 'projects.validator_id', '=', 'validators.id')
+                                 ->join('acceptance_overviews', 'projects.id', '=', 'acceptance_overviews.project_id')
+                                 ->select('acceptance_overviews.*', 'projects.ref_no', 'projects.report_title', 
+                                           DB::raw('departments.name as department'), DB::raw('departments.id as department_id'), 
+                                           DB::raw('managers.name as manager'), DB::raw('programmers.name as programmer'),
+                                           DB::raw('validators.name as validator'), DB::raw("DATE_FORMAT(projects.accepted_date, '%m/%d/%Y') as accepted_date"))
+                                 ->first();
+
+        return view('acceptance_preview', compact('acceptance_overview'));
     }
 
     public function calculateHours($project_logs)

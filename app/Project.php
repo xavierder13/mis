@@ -20,6 +20,12 @@ class Project extends Model
         'status',
     ];
 
+    public function programmer()
+    {
+        return $this->hasOne('App\User', 'id', 'programmer_id');
+        //                 ( <Model>, <id_of_specified_Model>, <id_of_this_model> )
+    }
+
     public function departments()
     {
         return $this->hasOne('App\Department', 'id', 'department_id');

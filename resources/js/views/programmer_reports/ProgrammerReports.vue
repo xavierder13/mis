@@ -1436,8 +1436,6 @@ export default {
       );
     },
 
-
-
     endorseProject() {
       this.$v.remarksItem.$touch();
 
@@ -1489,9 +1487,10 @@ export default {
 
     createAcceptanceOverview(item) {
       let project_id = item.project_id;
+      
       this.$router.push({
         name: "project_acceptance",
-        params: { project_id: project_id, data: item },
+        params: { project_id: project_id },
       });
     },
 

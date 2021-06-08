@@ -61,7 +61,7 @@
           <span style="font-family:Arial,sans-serif; font-size:small"><strong>Accepted By</strong></span>
         </td>
         <td colspan="3">
-          <span style="font-family:Arial,sans-serif; font-size:small">Rosalie Jumawan</span>
+          <span style="font-family:Arial,sans-serif; font-size:small">{{ $acceptance_overview->validator }}</span>
         </td>
       </tr>
       <tr>
@@ -69,7 +69,7 @@
           <span style="font-family:Arial,sans-serif; font-size:small"><strong>Department</strong></span>
         </td>
         <td colspan="3">
-          <span style="font-family:Arial,sans-serif; font-size:small">C&amp;C</span>
+          <span style="font-family:Arial,sans-serif; font-size:small">{{ $acceptance_overview->department }}</span>
         </td>
       </tr>
       <tr>
@@ -77,12 +77,12 @@
           <span style="font-family:Arial,sans-serif; font-size:small"><strong>Reference #</strong></span>
         </td>
         <td>
-          <span style="font-family:Arial,sans-serif; font-size:small">786</span>
+          <span style="font-family:Arial,sans-serif; font-size:small">{{ $acceptance_overview->ref_no }}</span>
         </td>
         <td>
           <div class="d-flex justify-content-end mr-4">
             <span style="font-family:Arial,sans-serif; font-size:small"><strong>Date Accepted: &nbsp;</strong></span>
-            <span style="font-family:Arial,sans-serif; font-size:small">February 24, 2020</span>
+            <span style="font-family:Arial,sans-serif; font-size:small">{{ $acceptance_overview->accepted_date }}</span>
           </div>
         </td>
       </tr>
@@ -91,7 +91,7 @@
           <span style="font-family:Arial,sans-serif; font-size:small"><strong>Project Name</strong></span>
         </td>
         <td colspan="3">
-          <span style="font-family:Arial,sans-serif; font-size:small">Summary of 4-5-6 Overdue Accounts per Cluster - CC-20</span>
+          <span style="font-family:Arial,sans-serif; font-size:small">{{ $acceptance_overview->report_title }}</span>
         </td>
       </tr>
     </tbody>
@@ -103,13 +103,13 @@
       <tr height="300px">
         <td colspan="2" style="vertical-align:TOP">
           <span class="ml-4" style="font-family:Arial,sans-serif; font-size:small">
-            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+            {{ $acceptance_overview->overview }}
           </span>
         </td>
       </tr>
       <tr>
         <td colspan="2" style="vertical-align:TOP">
-          <span style="font-family:Arial,sans-serif; font-size:small"><strong>Intended Users: </strong></span>
+          <span style="font-family:Arial,sans-serif; font-size:small"><strong>Intended Users: {{ $acceptance_overview->validator }}</strong></span>
         </td>
       </tr>
       <tr>
@@ -120,7 +120,7 @@
       <tr height="50px">
         <td colspan="2" style="vertical-align:TOP">
           <span class="ml-4" style="font-family:Arial,sans-serif; font-size:small">
-            
+            {{ $acceptance_overview->for_delete }}
           </span>
         </td>
       </tr>
@@ -132,7 +132,7 @@
       <tr height="50px">
         <td colspan="2" style="vertical-align:TOP">
           <span class="ml-4" style="font-family:Arial,sans-serif; font-size:small">
-            
+            {{ $acceptance_overview->location1 }}
           </span>
         </td>
       </tr>
@@ -144,14 +144,14 @@
       <tr height="50px">
         <td colspan="2" style="vertical-align:TOP">
           <span class="ml-4" style="font-family:Arial,sans-serif; font-size:small">
-            
+            {{ $acceptance_overview->location2 }}
           </span>
         </td>
       </tr>
       <tr>
         <td>
           <div style="margin-left: 500px">
-            <span style="font-family:Arial,sans-serif; font-size:small;"><strong>Name &amp; Signature: </strong>Xavier De Guzman</span>
+            <span style="font-family:Arial,sans-serif; font-size:small;"><strong>Name &amp; Signature: </strong>{{ $acceptance_overview->programmer }}</span>
           </div>
         </td>
       </tr>
@@ -165,14 +165,14 @@
       <tr height="130px">
         <td colspan="2" style="vertical-align:TOP">
           <span class="ml-4" style="font-family:Arial,sans-serif; font-size:small">
-            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+            {{ $acceptance_overview->validator_note }}
           </span>
         </td>
       </tr>
       <tr>
         <td>
           <div style="margin-left: 500px">
-            <span style="font-family:Arial,sans-serif; font-size:small;"><strong>Name &amp; Signature: </strong>Rosalie Jumawan</span>
+            <span style="font-family:Arial,sans-serif; font-size:small;"><strong>Name &amp; Signature: </strong>{{ $acceptance_overview->validator }}</span>
           </div>
         </td>
       </tr>
@@ -186,14 +186,14 @@
       <tr height="100px">
         <td colspan="2" style="vertical-align:TOP">
           <span class="ml-4" style="font-family:Arial,sans-serif; font-size:small">
-            
+            {{ $acceptance_overview->manager_note }}
           </span>
         </td>
       </tr>
       <tr>
         <td>
           <div style="margin-left: 500px">
-            <span style="font-family:Arial,sans-serif; font-size:small;"><strong>Name &amp; Signature: </strong>Manager</span>
+            <span style="font-family:Arial,sans-serif; font-size:small;"><strong>Name &amp; Signature: </strong>{{ $acceptance_overview->manager }}</span>
           </div>
         </td>
       </tr>

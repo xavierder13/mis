@@ -20,7 +20,7 @@
         <v-card>
           <v-card-title class="mb-0 pb-0">
             Project Acceptance Overview
-            <v-btn class="ml-4" color="info" small>
+            <v-btn class="ml-4" color="info" small @click="printPreview()">
               <v-icon class="mr-1" small>mdi-eye</v-icon> Preview</v-btn
             ></v-card-title
           >
@@ -233,6 +233,7 @@ export default {
         },
       }).then(
         (response) => {
+          console.log(response.data.acceptance_overview);
           if (response.data.acceptance_overview) {
             this.editedItem = response.data.acceptance_overview;
             this.overviewHasRecord = true;
@@ -341,29 +342,11 @@ export default {
     },
 
     printPreview() {
-      Axios.post(
-        "/api/project/project_acceptance",
-        { data: this.editorData },
-        {
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-        }
-      ).then(
-        (response) => {
-          var myWindow = window.open("", "", "width=600,height=800");
-
-          myWindow.document.write(response.data);
-
-          console.log(response.data);
-        },
-        (error) => {
-          // if unauthenticated (401)
-          if (error.response.status == "401") {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
-        }
+      window.open(
+        location.origin +
+          "/acceptance_preview/" +
+          this.$route.params.project_id,
+        "_blank"
       );
     },
     clear() {
@@ -424,25 +407,6 @@ export default {
       }
     },
     websocket() {
-      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-      //   let action = e.data.action;
-
-      //   if (
-      //     action == "user-edit" ||
-      //     action == "role-edit" ||
-      //     action == "role-delete" ||
-      //     action == "permission-delete"
-      //   ) {
-
-      //     this.userRolesPermissions();
-      //   }
-
-      //   if(action == 'holiday-create' || action == 'holiday-edit' || action == 'holiday-delete')
-      //   {
-      //     this.getAcceptanceOverview();
-      //   }
-
-      // });
 
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
