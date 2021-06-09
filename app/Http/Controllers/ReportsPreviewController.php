@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Validator;
 use DB;
 use App\Project;
+use App\EndorseProject;
 use App\ProjectLog;
 use App\User;
 use App\Holiday;
@@ -196,13 +197,12 @@ class ReportsPreviewController extends Controller
         // if this project was endorsed then get the programmer from endorse_projects table
         if($project->endorsed)
         {
-            $programmer = DB::table('endorse_projects')
-                            ->join('users', 'endorse_projects.programmer_id', '=', 'users.id')
-                            ->select('users.name')
-                            ->where(DB::raw('DATE_FORMAT(created_at, "%Y-%m-%d")'), '<=', $accepted_date)
-                            ->where('project_id', '=', $project_id)
-                            ->first()->name;
-                                        
+            $programmer = EndorseProject::with('programmer')
+                                        ->where('project_id', '=', $project_id)
+                                        ->get()
+                                        ->last()
+                                        ->programmer
+                                        ->name;                       
         }
 
         $acceptance_overview = DB::table('projects')

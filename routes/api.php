@@ -380,3 +380,12 @@ Route::group(['prefix' => 'role', 'middleware' => ['auth:api']], function(){
 
 });
 
+//Activity Logs
+Route::group(['prefix' => 'activity_logs', 'middleware' => ['auth:api']], function(){
+    Route::get('/index', [
+        'uses' => 'API\ActivityLogController@activity_logs',
+        'as' => 'activity_logs.index',
+    ]);
+    
+});
+

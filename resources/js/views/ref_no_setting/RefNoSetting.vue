@@ -214,6 +214,28 @@ export default {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },
+
+    websocket() {
+
+      // Socket.IO fetch data
+      this.$options.sockets.sendData = (data) => {
+        let action = data.action;
+        if (
+          action == "user-edit" ||
+          action == "role-edit" ||
+          action == "role-delete" ||
+          action == "permission-create" ||
+          action == "permission-delete"
+        ) {
+          this.userRolesPermissions();
+        }
+
+        if(action == 'user-create' || action == 'user-edit' || action == 'user-delete' || action == 'login')
+        {
+          this.getUser();
+        }
+      }
+    },
   },
   computed: {
     startErrors() {
@@ -236,6 +258,7 @@ export default {
     access_token = localStorage.getItem("access_token");
     this.getSettings();
     this.userRolesPermissions();
+    this.websocket();
   },
 };
 </script>

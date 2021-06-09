@@ -13,6 +13,7 @@ import Holiday from './views/holiday/Holiday.vue';
 import Permission from './views/permission/PermissionIndex.vue';
 import Role from './views/role/RoleIndex.vue';
 import ProjectAcceptance from './views/project_acceptance/ProjectAcceptance.vue';
+import ActivityLogs from './views/activity_logs/ActivityLogs.vue';
 import PageNotFound from './404/PageNotFound.vue';
 import Unauthorize from './401/Unauthorize.vue';
 
@@ -219,6 +220,23 @@ const routes = [
         { 
           let user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
           if(user_permissions.includes('role-list') || user_permissions.includes('role-create'))
+          {
+            next();
+          }
+          else
+          {
+            next('/unauthorize');
+          }
+        }
+      },
+      {
+        path: '/activity_logs',
+        name: 'activity_logs',
+        component: ActivityLogs,
+        beforeEnter(to, from, next)
+        { 
+          let user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
+          if(user_permissions.includes('activity-logs'))
           {
             next();
           }

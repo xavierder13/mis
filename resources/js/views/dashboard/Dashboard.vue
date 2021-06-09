@@ -1057,6 +1057,7 @@ export default {
           action == "user-edit" ||
           action == "role-edit" ||
           action == "role-delete" ||
+          action == "permission-create" ||
           action == "permission-delete"
         ) {
           this.userRolesPermissions();

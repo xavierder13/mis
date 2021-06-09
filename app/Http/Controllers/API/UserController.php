@@ -164,7 +164,8 @@ class UserController extends Controller
             return abort(404, 'Not Found');
         }
 
-        if($user->email == 'admin@mis.ac')
+        // administrator
+        if($user->id == 1)
         {
             return abort(403, 'Forbidden');
         }

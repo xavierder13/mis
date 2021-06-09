@@ -6,15 +6,17 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Validator;
 use App\AcceptanceOverview;
+use App\Project;
 
 class AcceptanceOverviewController extends Controller
 {   
 
     public function index($project_id)
-    {
+    {   
+        $project = Project::find($project_id);
         $acceptance_overview = AcceptanceOverview::find($project_id);
 
-        return response()->json(['acceptance_overview' => $acceptance_overview], 200);
+        return response()->json(['acceptance_overview' => $acceptance_overview, 'project' => $project], 200);
     }
 
     public function create(Request $request) 
@@ -65,7 +67,7 @@ class AcceptanceOverviewController extends Controller
     public function delete(Request $request)
     {
         $acceptance_overview = AcceptanceOverview::find($request->get('project_id'));
-        // $acceptance_overview->delete();
+        $acceptance_overview->delete();
 
         return response()->json(['success' => 'Record has been deleted'], 200);
     }

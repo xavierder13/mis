@@ -15,4 +15,10 @@ class EndorseProject extends Model
         'program_date',
         'validation_date'
     ];
+
+    public function programmer()
+    {
+        return $this->hasOne('App\User', 'id', 'programmer_id');
+        //                 ( <Model>, <id_of_specified_Model>, <id_of_this_model> )
+    }
 }

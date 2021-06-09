@@ -180,8 +180,6 @@ export default {
         { text: "Actions", value: "actions", sortable: false },
       ],
       disabled: false,
-      dialog: false,
-      holidays: [],
       editedIndex: -1,
       editedItem: {
         project_id: "",
@@ -218,7 +216,6 @@ export default {
         },
       ],
       permissions: Home.data().permissions,
-      loading: true,
       overviewHasRecord: false,
     };
   },
@@ -233,7 +230,15 @@ export default {
         },
       }).then(
         (response) => {
-          console.log(response.data.acceptance_overview);
+
+          let project = response.data.project;
+
+          // if project is null or accepted date is null then redirect user to unauthorize page
+          if(!project || !project.accepted_date)
+          {
+            this.$router.push({ name: 'unauthorize' });
+          }
+
           if (response.data.acceptance_overview) {
             this.editedItem = response.data.acceptance_overview;
             this.overviewHasRecord = true;
@@ -415,6 +420,7 @@ export default {
           action == "user-edit" ||
           action == "role-edit" ||
           action == "role-delete" ||
+          action == "permission-create" ||
           action == "permission-delete"
         ) {
           this.userRolesPermissions();

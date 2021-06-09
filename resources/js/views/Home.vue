@@ -142,6 +142,16 @@
             </v-list-item-content>
           </v-list-item>
         </v-list-group>
+        <v-list-item
+          link
+          to="/activity_logs"
+          v-if="permissions.activity_logs"
+        >
+          <v-list-item-icon>
+            <v-icon>mdi-history</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>Activity Logs</v-list-item-title>
+        </v-list-item>
       </v-list>
     </v-navigation-drawer>
     <v-overlay :absolute="absolute" :value="overlay">
@@ -224,6 +234,7 @@ export default {
         edit_validate_percentage: false,
         endorse_project: false,
         project_acceptance_overview: false,
+        activity_logs: false,
       },
       roles: {
         administrator: false,
@@ -386,6 +397,9 @@ export default {
       this.permissions.project_acceptance_overview = this.hasPermission([
         "project-acceptance-overview",
       ]);
+      this.permissions.activity_logs = this.hasPermission([
+        "activity-logs",
+      ]);
       this.roles.administrator = this.hasRole(["Administrator"]);
     },
 
@@ -435,6 +449,7 @@ export default {
           action == "user-edit" ||
           action == "role-edit" ||
           action == "role-delete" ||
+          action == "permission-create" ||
           action == "permission-delete"
         ) {
           this.userRolesPermissions();
@@ -442,13 +457,12 @@ export default {
       };
     },
   },
-
+  
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getUser();
     this.userRolesPermissions();
     this.websocket();
-    
   },
 };
 </script>
