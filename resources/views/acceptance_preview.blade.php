@@ -129,7 +129,7 @@
           <span style="font-family:Arial,sans-serif; font-size:20px"><strong>Location Inside SAP B1: </strong></span>
         </td>
       </tr>
-      <tr  height="50px">
+      <tr height="50px">
         <td colspan="2" style="vertical-align:TOP">
           <span class="ml-4" style="font-family:Arial,sans-serif; font-size:20px">
             {{ $acceptance_overview->location1 }}

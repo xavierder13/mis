@@ -164,6 +164,8 @@ export default {
           (response) => {
             console.log(response.data);
             if (response.data.success) {
+              // send data to Sockot.IO Server
+              this.$socket.emit("sendData", {action: 'ref_no_settings'});
               this.showAlert();
             }
             this.overlay = false;

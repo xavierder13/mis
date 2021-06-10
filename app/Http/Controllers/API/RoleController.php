@@ -18,7 +18,7 @@ class RoleController extends Controller
     {   
         // $user_permissions =  Auth::user()->with('roles', 'roles.permissions')->get();
         // return view('pages.diagnosis.create', compact('patient_service', 'ps_item_id', 'file_no', 'user_permissions'));
-        $roles = Role::orderBy('id', 'Asc')->get();
+        $roles = Role::with('permissions')->orderBy('id', 'Asc')->get();
         $permissions = Permission::all();
         return response()->json(['roles' => $roles], 200);
     }
@@ -28,7 +28,6 @@ class RoleController extends Controller
         $permissions = Permission::all();
         return view('pages.roles.create', compact('permissions'));
     }
-
 
     public function store(Request $request)
     {   
@@ -74,9 +73,9 @@ class RoleController extends Controller
         }
 
         $permission = Permission::get();
-        $rolePermissions = DB::table("role_has_permissions")->where("role_has_permissions.role_id",$roleid)
-            ->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
-            ->all();
+        $rolePermissions = DB::table("role_has_permissions")->where("role_id", $roleid)
+                             ->pluck('permission_id','permission_id')
+                             ->all();
         // return view('pages.service.edit', compact('service'));
         return response()->json(['role' => $role, 'permission' => $permission, 'rolePermissions' => $rolePermissions], 200);
 

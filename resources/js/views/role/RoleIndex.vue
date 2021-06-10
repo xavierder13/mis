@@ -34,10 +34,12 @@
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
-                <v-dialog v-model="dialog" max-width="1200px" persistent>
+                <v-dialog v-model="dialog" max-width="700px" persistent>
                   <v-card>
-                    <v-card-title>
-                      <span class="headline">{{ formTitle }}</span>
+                    <v-card-title class="mb-0 pb-0">
+                      <span class="headline"
+                        >{{ formTitle }} {{ role.id }}</span
+                      >
                     </v-card-title>
                     <v-divider></v-divider>
                     <v-card-text>
@@ -52,11 +54,11 @@
                               :error-messages="roleErrors"
                               @input="$v.editedRole.name.$touch()"
                               @blur="$v.editedRole.name.$touch()"
-                              :readonly="role.id != 1 ? true : ''"
+                              :readonly="role.id == 1 ? true : false"
                             ></v-text-field>
                           </v-col>
                         </v-row>
-                        <v-row class="pa-2">
+                        <!-- <v-row class="pa-2">
                           <template v-for="item in permissions">
                             <v-col cols="2" class="pa-0 ma-0">
                               <v-checkbox
@@ -64,10 +66,25 @@
                                 :label="item.name"
                                 :value="item.id"
                                 class="pa-0 ma-0"
-                                :readonly="role.id != 1 ? true : ''"
+                                :readonly="role.id == 1 ? true : false"
                               ></v-checkbox>
                             </v-col>
                           </template>
+                        </v-row> -->
+                        <v-row>
+                          <v-col>
+                            <v-combobox
+                              v-model="permission"
+                              :items="permissions"
+                              item-text="name"
+                              item-value="id"
+                              label="Permissions"
+                              multiple
+                              chips
+                              :readonly="role.id == 1 ? true : false"
+                            >
+                            </v-combobox>
+                          </v-col>
                         </v-row>
                       </v-container>
                     </v-card-text>
@@ -89,6 +106,41 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
+                <v-dialog
+                  v-model="dialogPermission"
+                  max-width="700px"
+                  persistent
+                >
+                  <v-card>
+                    <v-card-title class="mb-0 pb-0">
+                      <span class="headline">{{ role.name }}</span>
+                      <v-spacer></v-spacer>
+                      <v-icon @click="dialogPermission = false"
+                        >mdi-close</v-icon
+                      >
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text>
+                      <v-container>
+                        <v-row>
+                          <v-col class="mt-0 mb-0 pt-0 pb-0">
+                            <v-chip
+                              color="secondary"
+                              v-for="(permission, i) in role.permissions"
+                              :key="i"
+                              class="ma-1"
+                            >
+                              {{ permission.name }}
+                            </v-chip>
+                          </v-col>
+                        </v-row>
+                      </v-container>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
               </v-toolbar>
             </template>
           </v-card-title>
@@ -101,14 +153,34 @@
             v-if="user_permissions.role_list"
           >
             <template v-slot:item.actions="{ item }">
-              <v-icon small class="mr-2" color="green" @click="editRole(item)" v-if="user_permissions.role_edit && item.name != 'Administrator'">
+              <v-icon
+                small
+                class="mr-1"
+                color="info"
+                @click="viewPermission(item)"
+              >
+                mdi-eye
+              </v-icon>
+              <v-icon
+                small
+                class="mr-1"
+                color="green"
+                @click="editRole(item)"
+                v-if="
+                  user_permissions.role_delete && item.name != 'Administrator'
+                "
+              >
                 mdi-pencil
               </v-icon>
-              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="user_permissions.role_delete && item.name != 'Administrator'">
+              <v-icon
+                small
+                color="red"
+                @click="showConfirmAlert(item)"
+                v-if="
+                  user_permissions.role_delete && item.name != 'Administrator'
+                "
+              >
                 mdi-delete
-              </v-icon>
-              <v-icon small color="info" @click="editRole(item)" v-if="item.name == 'Administrator'">
-                mdi-eye
               </v-icon>
             </template>
           </v-data-table>
@@ -175,6 +247,7 @@ export default {
         },
       ],
       loading: true,
+      dialogPermission: false,
     };
   },
 
@@ -203,24 +276,17 @@ export default {
 
     editRole(item) {
       const data = { roleid: item.id };
-
+      let rolePermissions = item.permissions;
       this.role = item;
+      this.permission = [];
 
-      Axios.post("/api/role/edit", data, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
-        (response) => {
-          this.permission = Object.values(response.data.rolePermissions);
-          this.editedIndex = this.roles.indexOf(item);
-          this.editedRole = Object.assign({}, item);
-          this.dialog = true;
-        },
-        (error) => {
-          console.log(error);
-        }
-      );
+      rolePermissions.forEach((value, index) => {
+        this.permission.push(value);
+      });
+
+      this.editedIndex = this.roles.indexOf(item);
+      this.editedRole = Object.assign({}, item);
+      this.dialog = true;
     },
 
     deleteRole(roleid) {
@@ -314,9 +380,8 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
-
                 // send data to Sockot.IO Server
-                this.$socket.emit("sendData", {action: 'role-edit'});
+                this.$socket.emit("sendData", { action: "role-edit" });
 
                 Object.assign(this.roles[this.editedIndex], this.editedRole);
                 this.showAlert();
@@ -355,9 +420,8 @@ export default {
           }).then(
             (response) => {
               if (response.data.success) {
-
                 // send data to Sockot.IO Server
-                this.$socket.emit("sendData", {action: 'role-create'});
+                this.$socket.emit("sendData", { action: "role-create" });
 
                 this.disabled = false;
                 this.showAlert();
@@ -378,6 +442,12 @@ export default {
       this.$v.$reset();
       this.editedRole.name = "";
       this.permission = [];
+      this.role = [];
+    },
+
+    viewPermission(item) {
+      this.dialogPermission = true;
+      this.role = item;
     },
 
     userRolesPermissions() {
@@ -423,9 +493,7 @@ export default {
         !this.user_permissions.role_delete
       ) {
         this.headers[1].align = " d-none";
-      }
-      else
-      {
+      } else {
         this.headers[1].align = "";
       }
 
@@ -438,7 +506,6 @@ export default {
       }
     },
     websocket() {
-
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -451,7 +518,7 @@ export default {
         ) {
           this.userRolesPermissions();
         }
-      }
+      };
     },
   },
   computed: {

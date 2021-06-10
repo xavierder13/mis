@@ -453,8 +453,8 @@
               </v-icon>
             </template>
           </v-data-table>
-          <v-card-actions class="pa-4 pb-6">
-            <v-row>
+          <v-card-actions class="ml-6">
+            <v-row class="mb-6">
               <v-col>
                 <v-row>
                   <v-col>

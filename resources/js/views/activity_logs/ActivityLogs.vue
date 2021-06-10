@@ -78,7 +78,7 @@ export default {
         { text: "Event", value: "description" },
         { text: "Date", value: "log_date" },
         { text: "Subject ID", value: "subject_id" },
-        { text: "Data", value: "properties", width: "150px" },
+        { text: "Data", value: "properties", width: "450px" },
         { text: "User Name", value: "name" },
         { text: "User Email", value: "email" },
       ],
