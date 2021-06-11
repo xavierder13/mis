@@ -134,6 +134,7 @@
                   class="mb-4 white--text float-right mr-4"
                   color="red"
                   @click="deleteOverview()"
+                  v-if="permissions.project_acceptance_overview_delete"
                 >
                   delete
                 </v-btn>
@@ -283,6 +284,9 @@ export default {
           (response) => {
             // console.log(response);
             if (response.data.success) {
+              // send data to Socket.IO Server
+              this.$socket.emit("sendData", {action: 'project-acceptance-overview'});
+
               this.showAlert();
             }
             this.overlay = false;
@@ -322,6 +326,9 @@ export default {
             (response) => {
               console.log(response.data);
               if (response.data.success) {
+                // send data to Socket.IO Server
+                this.$socket.emit("sendData", {action: 'project-acceptance-overview-delete'});
+
                 this.$swal({
                   position: "center",
                   icon: "success",
@@ -386,28 +393,15 @@ export default {
     },
 
     getRolesPermissions() {
-      this.permissions.holiday_list = Home.methods.hasPermission([
-        "holiday-list",
+      this.permissions.project_acceptance_overview = Home.methods.hasPermission([
+        "project-acceptance-overview",
       ]);
-      this.permissions.holiday_create = Home.methods.hasPermission([
-        "holiday-create",
+      this.permissions.project_acceptance_overview_delete = Home.methods.hasPermission([
+        "project-acceptance-overview-delete",
       ]);
-      this.permissions.holiday_edit = Home.methods.hasPermission([
-        "holiday-edit",
-      ]);
-      this.permissions.holiday_delete = Home.methods.hasPermission([
-        "holiday-delete",
-      ]);
-
-      // hide column actions if user has no permission
-      if (!this.permissions.holiday_edit && !this.permissions.holiday_delete) {
-        this.headers[2].align = " d-none";
-      } else {
-        this.headers[2].align = "";
-      }
-
+      
       // if user is not authorize
-      if (!this.permissions.holiday_list && !this.permissions.holiday_create) {
+      if (!this.permissions.project_acceptance_overview) {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },

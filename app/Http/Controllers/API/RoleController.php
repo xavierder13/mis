@@ -46,7 +46,7 @@ class RoleController extends Controller
         {
             return response()->json($validator->errors(), 200);
         }
-
+        
         $role = new Role();
         $role->name = $request->get('name');
         $role->guard_name = 'web';

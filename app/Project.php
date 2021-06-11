@@ -3,9 +3,32 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Project extends Model
 {   
+    use LogsActivity;
+    
+    /* Start - Activity Logs */
+    protected static $logAttributes = [
+        'ref_no',
+        'report_title',
+        'programmer_id',
+        'validator_id',
+        'date_receive',
+        'date_approve',
+        'type',
+        'department_id',
+        'ideal',
+        'template_percent',
+        'status',
+    ];
+    protected static $logOnlyDirty = true;
+    protected static $submitEmptyLogs = false;
+    protected static $logName = 'projects';
+    /* End - Activity Logs */
+
     protected $fillable = [
         'ref_no',
         'report_title',

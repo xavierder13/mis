@@ -305,6 +305,7 @@ export default {
             },
             (error) => {
               console.log(error);
+              this.disabled = false;
             }
           );
         } else {
@@ -322,16 +323,17 @@ export default {
                 // send data to Socket.IO Server
                 this.$socket.emit("sendData", {action: 'permission-create'});
 
-                this.disabled = false;
                 this.showAlert();
                 this.close();
 
                 //push recently added data from database
                 this.permissions.push(response.data.permission);
               }
+              this.disabled = false;
             },
             (error) => {
               console.log(error);
+              this.disabled = false;
             }
           );
         }

@@ -234,6 +234,7 @@ export default {
         edit_validate_percentage: false,
         endorse_project: false,
         project_acceptance_overview: false,
+        project_acceptance_overview_delete: false,
         activity_logs: false,
       },
       roles: {
@@ -396,6 +397,9 @@ export default {
       ]);
       this.permissions.project_acceptance_overview = this.hasPermission([
         "project-acceptance-overview",
+      ]);
+      this.permissions.project_acceptance_overview_delete = this.hasPermission([
+        "project-acceptance-overview-delete",
       ]);
       this.permissions.activity_logs = this.hasPermission([
         "activity-logs",

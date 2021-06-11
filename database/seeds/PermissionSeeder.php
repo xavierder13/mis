@@ -58,6 +58,7 @@ class PermissionSeeder extends Seeder
             'edit-validate-percentage',
             'endorse-project',
             'project-acceptance-overview',
+            'project-acceptance-overview-delete',
             'activity-logs'
          ];
  

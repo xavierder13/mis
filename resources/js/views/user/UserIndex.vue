@@ -73,7 +73,11 @@
                               label="E-mail"
                               @input="$v.editedItem.email.$touch()"
                               @blur="$v.editedItem.email.$touch()"
-                              :readonly="emailReadonly || editedItem.id == 1 ? true : false"
+                              :readonly="
+                                emailReadonly || editedItem.id == 1
+                                  ? true
+                                  : false
+                              "
                             ></v-text-field>
                           </v-col>
                         </v-row>
@@ -148,7 +152,19 @@
                               multiple
                               chips
                               :readonly="editedItem.id == 1 ? true : false"
-                            ></v-combobox>
+                              :clearable="editedItem.id != 1 ? true : false"
+                            >
+                              <template v-slot:selection="data">
+                                <v-chip
+                                  color="secondary"
+                                  v-bind="data.attrs"
+                                  :input-value="data.selected"
+                                  @click="data.select"
+                                >
+                                  {{ data.item.name }}
+                                </v-chip>
+                              </template>
+                            </v-combobox>
                           </v-col>
                         </v-row>
                         <v-row>
@@ -282,7 +298,12 @@
               >
                 mdi-delete
               </v-icon>
-              <v-icon small color="info" @click="editUser(item)" v-if="item.id == 1">
+              <v-icon
+                small
+                color="info"
+                @click="editUser(item)"
+                v-if="item.id == 1"
+              >
                 mdi-eye
               </v-icon>
             </template>
@@ -364,20 +385,10 @@ export default {
       ],
       editedIndex: -1,
       editedItem: {
-        name: "",
-        email: "",
-        type: "",
-        roles: [],
-        active: "Y",
+        
       },
       defaultItem: {
-        name: "",
-        email: "",
-        password: "",
-        confirm_password: "",
-        type: "",
-        roles: [],
-        active: "Y",
+        
       },
       password: "",
       confirm_password: "",
@@ -543,6 +554,7 @@ export default {
             },
           }).then(
             (response) => {
+              console.log(response.data);
               if (response.data.success) {
                 // send data to Socket.IO Server
                 this.$socket.emit("sendData", { action: "user-edit" });
@@ -624,6 +636,7 @@ export default {
       this.dialogPermission = true;
       this.roles_permissions = roles;
     },
+
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {
         headers: {
