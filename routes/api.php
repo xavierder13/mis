@@ -207,7 +207,7 @@ Route::group(['prefix' => 'user', 'middleware' => ['auth:api']], function(){
         'as' => 'user.delete',
     ]);
 
-    Route::get('roles_permissions', [
+    Route::get('/roles_permissions', [
         'uses' => 'API\UserController@userRolesPermissions',
         'as' => 'user.roles_permissions',
     ]);

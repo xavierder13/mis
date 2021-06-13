@@ -143,7 +143,7 @@
                         </v-row>
                         <v-row>
                           <v-col class="mt-0 mb-0 pt-0 pb-0">
-                            <v-combobox
+                            <v-autocomplete
                               v-model="editedItem.roles"
                               :items="roles"
                               item-text="name"
@@ -164,7 +164,7 @@
                                   {{ data.item.name }}
                                 </v-chip>
                               </template>
-                            </v-combobox>
+                            </v-autocomplete>
                           </v-col>
                         </v-row>
                         <v-row>
@@ -554,14 +554,15 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
+             
               if (response.data.success) {
                 // send data to Socket.IO Server
                 this.$socket.emit("sendData", { action: "user-edit" });
 
                 Object.assign(this.users[this.editedIndex], response.data.user);
-                this.showAlert();
                 this.close();
+                this.showAlert();
+                
               }
               this.overlay = false;
               this.disabled = false;

@@ -288,8 +288,8 @@ class ProjectController extends Controller
             'programmer_id.required' => 'Programmer is required',
             'programmer_id.integer' => 'Programmer must be an integer',
             'validator.integer' => 'Validator must be an integer',
-            'date_receive.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
-            'date_approve.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'date_receive.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
+            'date_approve.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
             'type.required' => 'Report Type is required'
         ];
 
@@ -298,8 +298,8 @@ class ProjectController extends Controller
             'department_id' => 'required|integer',
             'programmer_id' => 'required|integer',
             'validator_id' => 'nullable|integer',
-            'date_receive' => 'nullable|date_format:Y-m-d',
-            'date_approve' => 'nullable|date_format:Y-m-d',
+            'date_receive' => 'nullable|date_format:m/d/Y',
+            'date_approve' => 'nullable|date_format:m/d/Y',
             'type' => 'required',
         ];
 
@@ -390,8 +390,8 @@ class ProjectController extends Controller
             'programmer_id.required' => 'Programmer is required',
             'programmer_id.integer' => 'Programmer must be an integer',
             'validator.integer' => 'Validator must be an integer',
-            'date_receive.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
-            'date_approve.date_format' => 'Invalid date. Format: (YYYY-MM-DD)',
+            'date_receive.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
+            'date_approve.date_format' => 'Invalid date. Format: (MM/DD/YYYY)',
             'type.required' => 'Report Type is required'
         ];
 
@@ -400,8 +400,8 @@ class ProjectController extends Controller
             'department_id' => 'required|integer',
             'programmer_id' => 'required|integer',
             'validator_id' => 'nullable|integer',
-            'date_receive' => 'nullable|date_format:Y-m-d',
-            'date_approve' => 'nullable|date_format:Y-m-d',
+            'date_receive' => 'nullable|date_format:m/d/Y',
+            'date_approve' => 'nullable|date_format:m/d/Y',
             'type' => 'required',
         ];
 

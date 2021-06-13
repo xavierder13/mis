@@ -71,7 +71,7 @@
                         </v-row> -->
                         <v-row>
                           <v-col>
-                            <v-combobox
+                            <v-autocomplete
                               v-model="permission"
                               :items="permissions"
                               item-text="name"
@@ -94,7 +94,7 @@
                                   {{ data.item.name }}
                                 </v-chip>
                               </template>
-                            </v-combobox>
+                            </v-autocomplete>
                           </v-col>
                         </v-row>
                       </v-container>
@@ -260,7 +260,7 @@ export default {
       this.permission = [];
 
       rolePermissions.forEach((value, index) => {
-        this.permission.push(value);
+        this.permission.push(value.id);
       });
 
       this.editedIndex = this.roles.indexOf(item);
@@ -340,23 +340,19 @@ export default {
     },
 
     save() {
+
       this.$v.$touch();
 
       if (!this.$v.$error) {
         this.disabled = true;
         let permission = [];
 
-        // get the permission id only
-        this.permission.forEach((value, index) => {
-          permission.push(value.id);
-        });
-
+        const data = {
+          name: this.editedRole.name,
+          permission: this.permission,
+        };
 
         if (this.editedIndex > -1) {
-          const data = {
-            name: this.editedRole.name,
-            permission: permission,
-          };
           const roleid = this.editedRole.id;
 
           Axios.post("/api/role/update/" + roleid, data, {
@@ -368,8 +364,8 @@ export default {
               if (response.data.success) {
                 // send data to Sockot.IO Server
                 this.$socket.emit("sendData", { action: "role-edit" });
-
-                Object.assign(this.roles[this.editedIndex], this.editedRole);
+          
+                Object.assign(this.roles[this.editedIndex], response.data.role);
                 this.showAlert();
                 this.close();
 
@@ -395,10 +391,6 @@ export default {
             }
           );
         } else {
-          const data = {
-            name: this.editedRole.name,
-            permission: permission,
-          };
 
           Axios.post("/api/role/store", data, {
             headers: {
@@ -438,12 +430,13 @@ export default {
     },
 
     removePermission(item) {
-      const index = this.permission.indexOf(item);
+      const index = this.permission.indexOf(item.id);
       if (index >= 0) this.permission.splice(index, 1);
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
+      
+      Axios.get("/api/user/roles_permissions", {
         headers: {
           Authorization: "Bearer " + access_token,
         },
@@ -460,6 +453,8 @@ export default {
           JSON.stringify(response.data.user_roles)
         );
         this.getRolesPermissions();
+      }, (errors) => {
+        console.log(errors);
       });
     },
 
@@ -508,7 +503,7 @@ export default {
           action == "permission-create" ||
           action == "permission-delete"
         ) {
-          this.userRolesPermissions();
+          this.userRolesPermissions();A
         }
       };
     },

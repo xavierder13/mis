@@ -128,7 +128,8 @@ class RoleController extends Controller
         return response()->json([
             'success' => 'Record has been updated', 
             'user_roles' => $user_roles, 
-            'user_permissions' => $user_permissions
+            'user_permissions' => $user_permissions,
+            'role' => $role
         ], 200);
     }
 

@@ -307,6 +307,8 @@ export default {
           JSON.stringify(response.data.user_roles)
         );
         this.getRolesPermissions();
+      }, (errors) => {
+        console.log(errors);
       });
     },
 
