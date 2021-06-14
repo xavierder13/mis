@@ -25,7 +25,7 @@
             ></v-card-title
           >
           <v-divider></v-divider>
-          <v-card-text class="ml-2">
+          <v-card-text class="ml-4">
             <v-row>
               <v-col cols="6" class="mt-0 mb-0 pt-0 pb-0">
                 <v-textarea
@@ -114,7 +114,7 @@
             <v-row>
               <v-col>
                 <v-btn
-                  class="ml-4 mb-4 mr-1"
+                  class="ml-6 mb-4 mr-1"
                   color="primary"
                   @click="save()"
                   :disabled="disabled"

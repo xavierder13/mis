@@ -503,7 +503,7 @@ export default {
           action == "permission-create" ||
           action == "permission-delete"
         ) {
-          this.userRolesPermissions();A
+          this.userRolesPermissions();
         }
       };
     },

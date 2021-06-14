@@ -147,7 +147,7 @@
                               v-model="editedItem.roles"
                               :items="roles"
                               item-text="name"
-                              item-value="id"
+                              item-value="name"
                               label="Roles"
                               multiple
                               chips
@@ -531,11 +531,19 @@ export default {
         this.overlay = true;
         let roles = [];
 
-        if (this.editedItem.roles.length) {
-          this.editedItem.roles.forEach((value, index) => {
+        this.editedItem.roles.forEach((value) => {
+
+          // if value is object with role name
+          if(value.name)
+          {
             roles.push(value.name);
-          });
-        }
+          }
+          else
+          { 
+            // else get the array of role name
+            roles.push(value);
+          }
+        });
 
         this.editedItem.roles = roles;
 
