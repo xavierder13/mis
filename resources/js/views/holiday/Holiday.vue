@@ -225,12 +225,7 @@ export default {
         this.holidays = response.data.holidays;
         this.loading = false;
       }, (error) => {
-        // if unauthenticated (401)
-        if(error.response.status == '401')
-        {
-          localStorage.removeItem('access_token');
-          this.$router.push({name: 'login'});
-        }
+        this.isUnauthorized(error);
       });
     },
 
@@ -267,7 +262,7 @@ export default {
           }
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
         }
       );
     },
@@ -360,7 +355,7 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
               this.overlay = false;
               this.disabled = false;
             }
@@ -390,7 +385,7 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
               this.overlay = false;
               this.disabled = false;
             }
@@ -407,6 +402,12 @@ export default {
 
       const [year, month, day] = date.split("-");
       return `${month}/${day}/${year}`;
+    },
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
+      }
     },
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {

@@ -119,7 +119,6 @@ import { required, maxLength, email } from "vuelidate/lib/validators";
 import Home from "../Home.vue";
 
 export default {
-  
   components: {
     Home,
   },
@@ -171,10 +170,15 @@ export default {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-        this.permissions = response.data.permissions;
-        this.loading = false;
-      });
+      }).then(
+        (response) => {
+          this.permissions = response.data.permissions;
+          this.loading = false;
+        },
+        (error) => {
+          this.isUnauthorized(error);
+        }
+      );
     },
 
     editPermission(item) {
@@ -192,16 +196,14 @@ export default {
         },
       }).then(
         (response) => {
-
-          if(response.data.success)
-          {
+          if (response.data.success) {
             // send data to Socket.IO Server
-            this.$socket.emit("sendData", {action: 'permission-delete'});
+            this.$socket.emit("sendData", { action: "permission-delete" });
           }
           this.loading = false;
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
         }
       );
     },
@@ -276,11 +278,9 @@ export default {
             },
           }).then(
             (response) => {
-
               if (response.data.success) {
-
                 // send data to Socket.IO Server
-                this.$socket.emit("sendData", {action: 'permission-edit'});
+                this.$socket.emit("sendData", { action: "permission-edit" });
 
                 Object.assign(
                   this.permissions[this.editedIndex],
@@ -304,7 +304,7 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
               this.disabled = false;
             }
           );
@@ -317,11 +317,9 @@ export default {
             },
           }).then(
             (response) => {
-
               if (response.data.success) {
-
                 // send data to Socket.IO Server
-                this.$socket.emit("sendData", {action: 'permission-create'});
+                this.$socket.emit("sendData", { action: "permission-create" });
 
                 this.showAlert();
                 this.close();
@@ -332,7 +330,7 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
               this.disabled = false;
             }
           );
@@ -343,6 +341,12 @@ export default {
     clear() {
       this.$v.$reset();
       this.editedPermission.name = "";
+    },
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
+      }
     },
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {
@@ -385,9 +389,7 @@ export default {
         !this.user_permissions.permission_delete
       ) {
         this.headers[1].align = " d-none";
-      }
-      else
-      {
+      } else {
         this.headers[1].align = "";
       }
 
@@ -402,7 +404,7 @@ export default {
     websocket() {
       // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
       //   let action = e.data.action;
-  
+
       //   if (
       //     action == "user-edit" ||
       //     action == "role-edit" ||
@@ -430,15 +432,17 @@ export default {
           action == "permission-create" ||
           action == "permission-delete"
         ) {
-
           this.userRolesPermissions();
         }
 
-        if(action == 'permission-create' || action == 'permission-edit' || action == 'permission-delete')
-        {
+        if (
+          action == "permission-create" ||
+          action == "permission-edit" ||
+          action == "permission-delete"
+        ) {
           this.getPermission();
         }
-      }
+      };
     },
   },
   computed: {

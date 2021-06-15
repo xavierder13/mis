@@ -6,6 +6,7 @@ import Dashboard from './views/dashboard/Dashboard.vue';
 import ProgrammerReports from './views/programmer_reports/ProgrammerReports.vue';
 import ProjectLogs from './views/project_logs/ProjectLogs.vue';
 import UserIndex from './views/user/UserIndex.vue';
+import UserCreate from './views/user/UserCreate.vue';
 import DepartmentIndex from './views/department/DepartmentIndex.vue';
 import ManagerIndex from './views/manager/ManagerIndex.vue';
 import RefNoSetting from './views/ref_no_setting/RefNoSetting.vue';
@@ -100,7 +101,24 @@ const routes = [
         beforeEnter(to, from, next)
         { 
           let user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
-          if(user_permissions.includes('user-list') || user_permissions.includes('user-create'))
+          if(user_permissions.includes('user-list'))
+          {
+            next();
+          }
+          else
+          {
+            next('/unauthorize');
+          }
+        }
+      },
+      {
+        path: '/user/create',
+        name: 'user.create',
+        component: UserCreate,
+        beforeEnter(to, from, next)
+        { 
+          let user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
+          if(user_permissions.includes('user-create'))
           {
             next();
           }

@@ -1105,11 +1105,7 @@ export default {
    
         },
         (error) => {
-          // if unauthenticated (401)
-          if (error.response.status == "401") {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
+          this.isUnauthorized(error);
         }
       );
     },
@@ -1173,6 +1169,8 @@ export default {
           } else {
             this.storeRemarks();
           }
+        }, (error) => {
+          this.isUnauthorized(error);
         });
       }
     },
@@ -1214,7 +1212,7 @@ export default {
           this.disabled = false;
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
           this.overlay = false;
           this.disabled = false;
         }
@@ -1327,7 +1325,7 @@ export default {
           },
           (error) => {
             this.overlay = false;
-            console.log(error);
+            this.isUnauthorized(error);
           }
         );
       }
@@ -1477,7 +1475,7 @@ export default {
                 this.disabledEndorse = false;
               },
               (error) => {
-                console.log(error);
+                this.isUnauthorized(error);
               }
             );
           }
@@ -1503,6 +1501,13 @@ export default {
       for (let minute = 0; minute < 60; minute++) {
         let min = minute < 10 ? "0" + minute : minute;
         this.minute.push(String(min));
+      }
+    },
+
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
       }
     },
 

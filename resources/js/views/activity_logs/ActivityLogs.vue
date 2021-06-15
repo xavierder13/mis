@@ -107,23 +107,16 @@ export default {
           this.loading = false;
         },
         (error) => {
-          // if unauthenticated (401)
-          if (error.response.status == "401") {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
+          this.isUnauthorized(error);
         }
       );
     },
 
-    getRole() {
-      Axios.get("/api/role/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        this.roles = response.data.roles;
-      });
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
+      }
     },
 
     userRolesPermissions() {
@@ -179,7 +172,6 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getActivityLogs();
-    this.getRole();
     this.userRolesPermissions();
     this.websocket();
   },

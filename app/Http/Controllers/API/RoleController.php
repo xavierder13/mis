@@ -20,7 +20,7 @@ class RoleController extends Controller
         // return view('pages.diagnosis.create', compact('patient_service', 'ps_item_id', 'file_no', 'user_permissions'));
         $roles = Role::with('permissions')->orderBy('id', 'Asc')->get();
         $permissions = Permission::all();
-        return response()->json(['roles' => $roles], 200);
+        return response()->json(['roles' => $roles, 'permissions' => $permissions], 200);
     }
 
     public function create()

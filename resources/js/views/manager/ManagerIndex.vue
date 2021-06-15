@@ -223,12 +223,7 @@ export default {
         this.managers = response.data.managers;
         this.loading = false;
       }, (error) => {
-        // if unauthenticated (401)
-        if(error.response.status == '401')
-        {
-          localStorage.removeItem('access_token');
-          this.$router.push({name: 'login'});
-        }
+        this.isUnauthorized(error);
       });
     },
 
@@ -260,7 +255,7 @@ export default {
           }
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
         }
       );
     },
@@ -352,7 +347,7 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
               this.overlay = false;
               this.disabled = false;
             }
@@ -383,7 +378,7 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
               this.overlay = false;
               this.disabled = false;
             }
@@ -406,6 +401,12 @@ export default {
         if (department_id == val.id) {
           this.editedItem.department = val.name;
         }
+      }
+    },
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
       }
     },
     userRolesPermissions() {

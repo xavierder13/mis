@@ -181,10 +181,15 @@ Route::group(['prefix' => 'acceptance_overview', 'middleware' => ['auth:api']], 
 });  
 
 // User Routes
-Route::group(['prefix' => 'user', 'middleware' => ['auth:api']], function(){
+Route::group(['prefix' => 'user', 'middleware' => ['auth:api', 'user.maintenance']], function(){
     Route::get('/index', [
         'uses' => 'API\UserController@index',
         'as' => 'user.index',
+    ]);
+
+    Route::get('/create', [
+        'uses' => 'API\UserController@create',
+        'as' => 'user.create',
     ]);
 
     Route::post('/store', [

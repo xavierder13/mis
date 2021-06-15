@@ -118,18 +118,7 @@ export default {
           }
         },
         (error) => {
-          // if unauthenticated (401)
-          if (error.response.status == "401") {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
-        },
-        (error) => {
-          // if unauthenticated (401)
-          if (error.response.status) {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
+          this.isUnauthorized(error);
         }
       );
     },
@@ -184,6 +173,12 @@ export default {
       this.start = "";
       this.active = "N";
       this.switch1 = false;
+    },
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
+      }
     },
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {

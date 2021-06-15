@@ -632,11 +632,7 @@ export default {
           // this.setStatusSelectItems();
         },
         (error) => {
-          // if unauthenticated (401)
-          if (error.response.status == "401") {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
+          this.isUnauthorized(error);
         }
       );
     },
@@ -691,7 +687,7 @@ export default {
                 this.disabled = false;
               },
               (error) => {
-                console.log(error);
+                this.isUnauthorized(error);
                 this.overlay = false;
                 this.disabled = false;
               }
@@ -730,7 +726,7 @@ export default {
                 this.disabled = false;
               },
               (error) => {
-                console.log(error);
+                this.isUnauthorized(error);
                 this.overlay = false;
                 this.disabled = false;
               }
@@ -800,7 +796,7 @@ export default {
           }
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
         }
       );
     },
@@ -1036,7 +1032,7 @@ export default {
             this.uploading = false;
           },
           (error) => {
-            console.log(error);
+            this.isUnauthorized(error);
             this.uploadDisabled = false;
           }
         );
@@ -1081,6 +1077,13 @@ export default {
       // date_receive must be equal or greater than endorse_date
       if (remarks_datetime > now_datetime) {
         this.remarks_datetime_invalid = true;
+      }
+    },
+
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
       }
     },
 

@@ -51,16 +51,42 @@
           </v-list-item-icon>
           <v-list-item-title>Projects</v-list-item-title>
         </v-list-item>
-        <v-list-item
-          link
-          :to="{ name: 'user.index' }"
-          v-if="permissions.user_list || permissions.user_create"
+        <v-list-group
+          no-action
+          v-if="
+            permissions.user_list ||
+            permissions.user_create
+          "
         >
-          <v-list-item-icon>
-            <v-icon>mdi-account-arrow-right-outline</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>User</v-list-item-title>
-        </v-list-item>
+          <!-- List Group Icon-->
+          <v-icon slot="prependIcon">mdi-account-arrow-right-outline</v-icon>
+          <!-- List Group Title -->
+          <template v-slot:activator>
+            <v-list-item-content>
+              <v-list-item-title>User</v-list-item-title>
+            </v-list-item-content>
+          </template>
+          <!-- List Group Items -->
+          <v-list-item
+            link
+            to="/user/index"
+            v-if="permissions.user_list"
+          >
+            <v-list-item-content>
+              <v-list-item-title>User Record</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+          <v-list-item
+            link
+            to="/user/create"
+            v-if="permissions.user_create"
+          >
+            <v-list-item-content>
+              <v-list-item-title>Create New</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+          
+        </v-list-group>
 
         <v-list-group
           no-action
@@ -233,6 +259,7 @@ export default {
         edit_program_percentage: false,
         edit_validate_percentage: false,
         endorse_project: false,
+        endorse_history: false,
         project_acceptance_overview: false,
         project_acceptance_overview_delete: false,
         activity_logs: false,
@@ -396,6 +423,9 @@ export default {
       ]);
       this.permissions.endorse_project = this.hasPermission([
         "endorse-project",
+      ]);
+      this.permissions.endorse_history = this.hasPermission([
+        "endorse-history",
       ]);
       this.permissions.project_acceptance_overview = this.hasPermission([
         "project-acceptance-overview",

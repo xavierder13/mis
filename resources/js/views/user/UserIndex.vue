@@ -152,7 +152,6 @@
                               multiple
                               chips
                               :readonly="editedItem.id == 1 ? true : false"
-                              :clearable="editedItem.id != 1 ? true : false"
                             >
                               <template v-slot:selection="data">
                                 <v-chip
@@ -294,7 +293,7 @@
                 small
                 color="red"
                 @click="showConfirmAlert(item)"
-                v-if="permissions.user_delete && item.email != 'admin@mis.ac'"
+                v-if="permissions.user_delete && item.id != 1"
               >
                 mdi-delete
               </v-icon>
@@ -340,7 +339,7 @@ export default {
     editedItem: {
       name: { required },
       email: { required, email },
-      type: { required },
+      type: { required }
     },
     password: { required, minLength: minLength(8) },
     confirm_password: { required, sameAsPassword: sameAs("password") },
@@ -378,17 +377,25 @@ export default {
       users: [],
       roles: [],
       roles_permissions: [],
-      permissions: Home.data().permissions,
       types: [
         { text: "Programmer", value: "Programmer" },
         { text: "Validator", value: "Validator" },
       ],
+      permissions: Home.data().permissions,
       editedIndex: -1,
       editedItem: {
-        
+        name: "",
+        email: "",
+        roles: [],
+        active: "Y",
       },
       defaultItem: {
-        
+        name: "",
+        email: "",
+        password: "",
+        confirm_password: "",
+        roles: [],
+        active: "Y",
       },
       password: "",
       confirm_password: "",
@@ -413,26 +420,13 @@ export default {
       }).then(
         (response) => {
           this.users = response.data.users;
+          this.roles = response.data.roles;
           this.loading = false;
         },
         (error) => {
-          // if unauthenticated (401)
-          if (error.response.status == "401") {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
+          this.isUnauthorized(error);
         }
       );
-    },
-
-    getRole() {
-      Axios.get("/api/role/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        this.roles = response.data.roles;
-      });
     },
 
     editUser(item) {
@@ -459,12 +453,12 @@ export default {
       }).then(
         (response) => {
           if (response.data.success) {
-            // send data to Socket.IO Server
+            // send data to Sockot.IO Server
             this.$socket.emit("sendData", { action: "user-delete" });
           }
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
         }
       );
     },
@@ -532,14 +526,10 @@ export default {
         let roles = [];
 
         this.editedItem.roles.forEach((value) => {
-
           // if value is object with role name
-          if(value.name)
-          {
+          if (value.name) {
             roles.push(value.name);
-          }
-          else
-          { 
+          } else {
             // else get the array of role name
             roles.push(value);
           }
@@ -562,21 +552,20 @@ export default {
             },
           }).then(
             (response) => {
-             
               if (response.data.success) {
-                // send data to Socket.IO Server
+                // send data to Sockot.IO Server
                 this.$socket.emit("sendData", { action: "user-edit" });
 
                 Object.assign(this.users[this.editedIndex], response.data.user);
-                this.close();
                 this.showAlert();
-                
+                this.close();
               }
               this.overlay = false;
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
+
               this.overlay = false;
               this.disabled = false;
             }
@@ -593,9 +582,8 @@ export default {
             },
           }).then(
             (response) => {
-              console.log(response.data);
               if (response.data.success) {
-                // send data to Socket.IO Server
+                // send data to Sockot.IO Server
                 this.$socket.emit("sendData", { action: "user-create" });
 
                 this.showAlert();
@@ -608,7 +596,8 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
+
               this.overlay = false;
               this.disabled = false;
             }
@@ -645,26 +634,37 @@ export default {
       this.dialogPermission = true;
       this.roles_permissions = roles;
     },
-
     userRolesPermissions() {
       Axios.get("api/user/roles_permissions", {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
-        this.getRolesPermissions();
-      });
+      }).then(
+        (response) => {
+          // console.log(response.data);
+          localStorage.removeItem("user_permissions");
+          localStorage.removeItem("user_roles");
+          localStorage.setItem(
+            "user_permissions",
+            JSON.stringify(response.data.user_permissions)
+          );
+          localStorage.setItem(
+            "user_roles",
+            JSON.stringify(response.data.user_roles)
+          );
+          this.getRolesPermissions();
+        },
+        (error) => {
+          this.isUnauthorized(error);
+        }
+      );
+    },
+
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
+      }
     },
 
     getRolesPermissions() {
@@ -690,24 +690,6 @@ export default {
       }
     },
     websocket() {
-      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-      //   let action = e.data.action;
-      //   if (
-      //     action == "user-edit" ||
-      //     action == "role-edit" ||
-      //     action == "role-delete" ||
-      //     action == "permission-delete"
-      //   ) {
-      //     this.userRolesPermissions();
-      //   }
-
-      //   if(action == 'user-create' || action == 'user-edit' || action == 'user-delete' || action == 'login')
-      //   {
-      //     this.getUser();
-      //   }
-
-      // });
-
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -734,7 +716,9 @@ export default {
   },
   computed: {
     formTitle() {
-      return this.editedIndex === -1 ? "New User" : "Edit User";
+      return (this.editedItem == this.editedIndex) === -1
+        ? "New User"
+        : "Edit User";
     },
     nameErrors() {
       const errors = [];
@@ -775,6 +759,7 @@ export default {
         errors.push("User type is required.");
       return errors;
     },
+
     activeStatus() {
       if (this.switch1) {
         this.editedItem.active = "Y";
@@ -796,7 +781,7 @@ export default {
   mounted() {
     access_token = localStorage.getItem("access_token");
     this.getUser();
-    this.getRole();
+
     this.userRolesPermissions();
     this.websocket();
   },

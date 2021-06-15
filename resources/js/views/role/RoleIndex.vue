@@ -231,26 +231,22 @@ export default {
   },
 
   methods: {
-    getPermission() {
-      Axios.get("/api/permission/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        this.permissions = response.data.permissions;
-      });
-    },
-
     getRole() {
       this.loading = true;
       Axios.get("/api/role/index", {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-        this.roles = response.data.roles;
-        this.loading = false;
-      });
+      }).then(
+        (response) => {
+          this.roles = response.data.roles;
+          this.permissions = response.data.permissions;
+          this.loading = false;
+        },
+        (error) => {
+          this.isUnauthorized(error);
+        }
+      );
     },
 
     editRole(item) {
@@ -280,7 +276,7 @@ export default {
           this.loading = false;
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
         }
       );
     },
@@ -340,7 +336,6 @@ export default {
     },
 
     save() {
-
       this.$v.$touch();
 
       if (!this.$v.$error) {
@@ -364,7 +359,7 @@ export default {
               if (response.data.success) {
                 // send data to Sockot.IO Server
                 this.$socket.emit("sendData", { action: "role-edit" });
-          
+
                 Object.assign(this.roles[this.editedIndex], response.data.role);
                 this.showAlert();
                 this.close();
@@ -386,12 +381,12 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
+
               this.disabled = false;
             }
           );
         } else {
-
           Axios.post("/api/role/store", data, {
             headers: {
               Authorization: "Bearer " + access_token,
@@ -410,7 +405,8 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
+
               this.disabled = false;
             }
           );
@@ -434,28 +430,37 @@ export default {
       if (index >= 0) this.permission.splice(index, 1);
     },
 
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
+      }
+    },
+
     userRolesPermissions() {
-      
       Axios.get("/api/user/roles_permissions", {
         headers: {
           Authorization: "Bearer " + access_token,
         },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
-        this.getRolesPermissions();
-      }, (errors) => {
-        console.log(errors);
-      });
+      }).then(
+        (response) => {
+          // console.log(response.data);
+          localStorage.removeItem("user_permissions");
+          localStorage.removeItem("user_roles");
+          localStorage.setItem(
+            "user_permissions",
+            JSON.stringify(response.data.user_permissions)
+          );
+          localStorage.setItem(
+            "user_roles",
+            JSON.stringify(response.data.user_roles)
+          );
+          this.getRolesPermissions();
+        },
+        (errors) => {
+          console.log(errors);
+        }
+      );
     },
 
     getRolesPermissions() {
@@ -525,7 +530,6 @@ export default {
   },
   mounted() {
     access_token = localStorage.getItem("access_token");
-    this.getPermission();
     this.getRole();
     this.userRolesPermissions();
     this.websocket();

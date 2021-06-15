@@ -634,11 +634,7 @@ export default {
           // console.log(this.projects);
         },
         (error) => {
-          // if unauthenticated (401)
-          if (error.response.status == "401") {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
+          this.isUnauthorized(error);
         }
       );
     },
@@ -680,7 +676,7 @@ export default {
           }
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
         }
       );
     },
@@ -704,8 +700,8 @@ export default {
             this.loading_endorse_history = false;
           }
         },
-        (errors) => {
-          console.log(errors);
+        (error) => {
+          this.isUnauthorized(error);
         }
       );
     },
@@ -793,7 +789,7 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
               this.overlay = false;
               this.disabled = false;
             }
@@ -821,7 +817,7 @@ export default {
               this.disabled = false;
             },
             (error) => {
-              console.log(error);
+              this.isUnauthorized(error);
               this.overlay = false;
               this.disabled = false;
             }
@@ -851,7 +847,7 @@ export default {
           this.editedItem.ref_no = ref_no;
         },
         (error) => {
-          console.log(error);
+          this.isUnauthorized(error);
         }
       );
     },
@@ -970,10 +966,17 @@ export default {
             this.uploading = false;
           },
           (error) => {
-            console.log(error);
+            this.isUnauthorized(error)
             this.uploadDisabled = false;
           }
         );
+      }
+    },
+
+    isUnauthorized(error) {
+      // if unauthenticated (401)
+      if (error.response.status == "401") {
+        this.$router.push({ name: "unauthorize" });
       }
     },
 
