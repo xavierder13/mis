@@ -91,17 +91,15 @@ export default {
         activity_logs: false,
       },
       loading: true,
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
   methods: {
     getActivityLogs() {
       this.loading = true;
-      Axios.get("/api/activity_logs/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/activity_logs/index").then(
         (response) => {
           this.activity_logs = response.data.activity_logs;
           this.loading = false;
@@ -120,28 +118,15 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
       });
     },
 
     getRolesPermissions() {
-      this.permissions.activity_logs = Home.methods.hasPermission([
+      this.permissions.activity_logs = this.hasPermission([
         "activity-logs",
       ]);
 
@@ -149,6 +134,25 @@ export default {
       if (!this.permissions.activity_logs) {
         this.$router.push("/unauthorize").catch(() => {});
       }
+    },
+     hasRole(roles) {
+      let hasRole = false;
+
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
     },
     websocket() {
       // Socket.IO fetch data
@@ -170,7 +174,8 @@ export default {
   },
   computed: {},
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
     this.getActivityLogs();
     this.userRolesPermissions();
     this.websocket();

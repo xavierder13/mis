@@ -19,7 +19,7 @@
               label="Search"
               single-line
               hide-details
-              v-if="user_permissions.permission_list"
+              v-if="userPermissions.permission_list"
             ></v-text-field>
             <template>
               <v-toolbar flat>
@@ -30,13 +30,13 @@
                   dark
                   class="mb-2"
                   @click="clear() + (dialog = true)"
-                  v-if="user_permissions.permission_create"
+                  v-if="userPermissions.permission_create"
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
                 <v-dialog v-model="dialog" max-width="500px" persistent>
                   <v-card>
-                    <v-card-title class="mb-0 pb-0">
+                    <v-card-title>
                       <span class="headline">{{ formTitle }}</span>
                     </v-card-title>
                     <v-divider></v-divider>
@@ -83,7 +83,7 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
-            v-if="user_permissions.permission_list"
+            v-if="userPermissions.permission_list"
           >
             <template v-slot:item.actions="{ item }">
               <v-icon
@@ -91,7 +91,7 @@
                 class="mr-2"
                 color="green"
                 @click="editPermission(item)"
-                v-if="user_permissions.permission_edit"
+                v-if="userPermissions.permission_edit"
               >
                 mdi-pencil
               </v-icon>
@@ -99,7 +99,7 @@
                 small
                 color="red"
                 @click="showConfirmAlert(item)"
-                v-if="user_permissions.permission_delete"
+                v-if="userPermissions.permission_delete"
               >
                 mdi-delete
               </v-icon>
@@ -140,7 +140,7 @@ export default {
       disabled: false,
       dialog: false,
       permissions: [],
-      user_permissions: Home.data().permissions,
+      userPermissions: Home.data().permissions,
       editedIndex: -1,
       editedPermission: {
         name: "",
@@ -160,17 +160,15 @@ export default {
         },
       ],
       loading: true,
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
   methods: {
     getPermission() {
       this.loading = true;
-      Axios.get("/api/permission/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/permission/index").then(
         (response) => {
           this.permissions = response.data.permissions;
           this.loading = false;
@@ -190,14 +188,10 @@ export default {
     deletePermission(permissionid) {
       const data = { permissionid: permissionid };
       this.loading = true;
-      Axios.post("/api/permission/delete", data, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.post("/api/permission/delete", data).then(
         (response) => {
           if (response.data.success) {
-            // send data to Socket.IO Server
+            // send data to Sockot.IO Server
             this.$socket.emit("sendData", { action: "permission-delete" });
           }
           this.loading = false;
@@ -236,7 +230,7 @@ export default {
           const permissionid = item.id;
           const index = this.permissions.indexOf(item);
 
-          //Call delete Patient function
+          //Call delete Permission function
           this.deletePermission(permissionid);
 
           //Remove item from array permissions
@@ -272,15 +266,11 @@ export default {
           const data = this.editedPermission;
           const permissionid = this.editedPermission.id;
 
-          Axios.post("/api/permission/update/" + permissionid, data, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post("/api/permission/update/" + permissionid, data).then(
             (response) => {
               if (response.data.success) {
-                // send data to Socket.IO Server
-                this.$socket.emit("sendData", { action: "permission-edit" });
+                // send data to Sockot.IO Server
+                // this.$socket.emit("sendData", { action: "permission-edit" });
 
                 Object.assign(
                   this.permissions[this.editedIndex],
@@ -289,16 +279,9 @@ export default {
                 this.showAlert();
                 this.close();
 
-                localStorage.removeItem("user_permissions");
-                localStorage.removeItem("user_roles");
-                localStorage.setItem(
-                  "user_permissions",
-                  JSON.stringify(response.data.user_permissions)
-                );
-                localStorage.setItem(
-                  "user_roles",
-                  JSON.stringify(response.data.user_roles)
-                );
+                this.user_permissions = response.data.user_permissions;
+                this.user_roles = response.data.user_roles;
+                this.getRolesPermissions();
               }
 
               this.disabled = false;
@@ -311,15 +294,11 @@ export default {
         } else {
           const data = this.editedPermission;
 
-          Axios.post("/api/permission/store", data, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post("/api/permission/store", data).then(
             (response) => {
               if (response.data.success) {
-                // send data to Socket.IO Server
-                this.$socket.emit("sendData", { action: "permission-create" });
+                // send data to Sockot.IO Server
+                // this.$socket.emit("sendData", { action: "permission-create" });
 
                 this.showAlert();
                 this.close();
@@ -342,51 +321,39 @@ export default {
       this.$v.$reset();
       this.editedPermission.name = "";
     },
+    userRolesPermissions() {
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
+        this.getRolesPermissions();
+      });
+    },
+
     isUnauthorized(error) {
       // if unauthenticated (401)
       if (error.response.status == "401") {
         this.$router.push({ name: "unauthorize" });
       }
     },
-    userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
-        this.getRolesPermissions();
-      });
-    },
 
     getRolesPermissions() {
-      this.user_permissions.permission_list = Home.methods.hasPermission([
+      this.userPermissions.permission_list = this.hasPermission([
         "permission-list",
       ]);
-      this.user_permissions.permission_create = Home.methods.hasPermission([
+      this.userPermissions.permission_create = this.hasPermission([
         "permission-create",
       ]);
-      this.user_permissions.permission_edit = Home.methods.hasPermission([
+      this.userPermissions.permission_edit = this.hasPermission([
         "permission-edit",
       ]);
-      this.user_permissions.permission_delete = Home.methods.hasPermission([
+      this.userPermissions.permission_delete = this.hasPermission([
         "permission-delete",
       ]);
 
       // hide column actions if user has no permission
       if (
-        !this.user_permissions.permission_edit &&
-        !this.user_permissions.permission_delete
+        !this.userPermissions.permission_edit &&
+        !this.userPermissions.permission_delete
       ) {
         this.headers[1].align = " d-none";
       } else {
@@ -395,33 +362,32 @@ export default {
 
       // if user is not authorize
       if (
-        !this.user_permissions.permission_list &&
-        !this.user_permissions.permission_create
+        !this.userPermissions.permission_list &&
+        !this.userPermissions.permission_create
       ) {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },
+    hasRole(roles) {
+      let hasRole = false;
+
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
+    },
     websocket() {
-      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-      //   let action = e.data.action;
-
-      //   if (
-      //     action == "user-edit" ||
-      //     action == "role-edit" ||
-      //     action == "role-delete" ||
-      //     action == "permission-delete"
-      //   ) {
-
-      //     this.userRolesPermissions();
-      //   }
-
-      //   if(action == 'permission-create' || action == 'permission-edit' || action == 'permission-delete')
-      //   {
-      //     this.getPermission();
-      //   }
-
-      // });
-
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -458,10 +424,11 @@ export default {
     },
   },
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
     this.getPermission();
     this.userRolesPermissions();
-    this.websocket();
+    // this.websocket();
   },
 };
 </script>

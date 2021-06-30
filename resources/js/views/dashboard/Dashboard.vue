@@ -610,20 +610,35 @@ export default {
       permissions: Home.data().permissions,
       loading: true,
       loading_endorse_history: true,
-      user: localStorage.getItem("user"),
-      user_type: localStorage.getItem("user_type"),
-      user_id: localStorage.getItem("user_id"),
+      user: "",
+      user_type: "",
+      user_id: "",
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
   methods: {
+    getUser() {
+      Axios.get("/api/auth/init").then(
+        (response) => {
+          // console.log(response.data);
+          this.user = response.data.user.name;
+          this.user_type = response.data.user.type;
+          this.user_id = response.data.user.id;
+        },
+        (error) => {
+          // if unauthenticated (401)
+          if (error.response.status == "401") {
+            localStorage.removeItem("access_token");
+            this.$router.push({ name: "login" });
+          }
+        }
+      );
+    },
     getProject() {
       this.loading = true;
-      Axios.get("/api/project/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/project/index").then(
         (response) => {
           this.projects = response.data.projects;
           this.departments = response.data.departments;
@@ -663,11 +678,7 @@ export default {
     deleteProject(project_id) {
       const data = { project_id: project_id };
 
-      Axios.post("/api/project/delete", data, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.post("/api/project/delete", data).then(
         (response) => {
           // console.log(response.data);
           if (response.data.success) {
@@ -685,15 +696,9 @@ export default {
       this.dialog_endorse_history = true;
       this.loading_endorse_history = true;
       this.endorse_history = [];
-      Axios.post(
-        "/api/project/endorse_history",
-        { project_id: item.project_id },
-        {
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-        }
-      ).then(
+      Axios.post("/api/project/endorse_history", {
+        project_id: item.project_id,
+      }).then(
         (response) => {
           if (response.data.endorse_history) {
             this.endorse_history = response.data.endorse_history;
@@ -734,7 +739,7 @@ export default {
           const project_id = item.project_id;
           const index = this.projects.indexOf(item);
 
-          //Call delete Patient function
+          //Call delete Project function
           this.deleteProject(project_id);
 
           //Remove item from array services
@@ -771,11 +776,7 @@ export default {
           const data = this.editedItem;
           const project_id = this.editedItem.project_id;
 
-          Axios.post("/api/project/update/" + project_id, data, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post("/api/project/update/" + project_id, data).then(
             (response) => {
               if (response.data.success) {
                 // send data to Socket.IO Server
@@ -797,11 +798,7 @@ export default {
         } else {
           const data = this.editedItem;
 
-          Axios.post("/api/project/store", data, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post("/api/project/store", data).then(
             (response) => {
               if (response.data.success) {
                 // send data to Socket.IO Server
@@ -837,11 +834,7 @@ export default {
       }
     },
     getRefNumber() {
-      Axios.get("/api/project/get_ref_no", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/project/get_ref_no").then(
         (response) => {
           let ref_no = response.data;
           this.editedItem.ref_no = ref_no;
@@ -903,12 +896,7 @@ export default {
 
         formData.append("file", this.file);
         // console.log(this.file);
-        Axios.post("api/project/import_project", formData, {
-          headers: {
-            Authorization: "Bearer " + access_token,
-            "Content-Type": "multipart/form-data",
-          },
-        }).then(
+        Axios.post("api/project/import_project", formData).then(
           (response) => {
             this.errors_array = [];
 
@@ -966,7 +954,7 @@ export default {
             this.uploading = false;
           },
           (error) => {
-            this.isUnauthorized(error)
+            this.isUnauthorized(error);
             this.uploadDisabled = false;
           }
         );
@@ -981,42 +969,19 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
       });
     },
 
     getRolesPermissions() {
-      this.permissions.project_list = Home.methods.hasPermission([
-        "project-list",
-      ]);
-      this.permissions.project_create = Home.methods.hasPermission([
-        "project-create",
-      ]);
-      this.permissions.project_edit = Home.methods.hasPermission([
-        "project-edit",
-      ]);
-      this.permissions.project_delete = Home.methods.hasPermission([
-        "project-delete",
-      ]);
-      this.permissions.import_project = Home.methods.hasPermission([
-        "import-project",
-      ]);
+      this.permissions.project_list = this.hasPermission(["project-list"]);
+      this.permissions.project_create = this.hasPermission(["project-create"]);
+      this.permissions.project_edit = this.hasPermission(["project-edit"]);
+      this.permissions.project_delete = this.hasPermission(["project-delete"]);
+      this.permissions.import_project = this.hasPermission(["import-project"]);
 
       // hide column actions if user has no permission
       if (!this.permissions.project_edit && !this.permissions.project_delete) {
@@ -1030,29 +995,26 @@ export default {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },
+    hasRole(roles) {
+      let hasRole = false;
+
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
+    },
     websocket() {
-      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-      //   let action = e.data.action;
-
-      //   if (
-      //     action == "user-edit" ||
-      //     action == "role-edit" ||
-      //     action == "role-delete" ||
-      //     action == "permission-delete"
-      //   ) {
-      //     this.userRolesPermissions();
-      //   }
-
-      //   if (
-      //     action == "project-create" ||
-      //     action == "project-edit" ||
-      //     action == "project-delete" ||
-      //     action == "import-project"
-      //   ) {
-      //     this.getProject();
-      //   }
-      // });
-
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -1130,8 +1092,10 @@ export default {
     },
   },
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
     this.getProject();
+    this.getUser();
     this.userRolesPermissions();
     this.websocket();
   },

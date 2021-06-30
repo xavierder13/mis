@@ -45,7 +45,12 @@
             </v-row>
           </v-card-text>
           <v-card-actions>
-            <v-btn class="ml-2 mb-2" color="primary" @click="save" :disabled="disabled">
+            <v-btn
+              class="ml-2 mb-2"
+              color="primary"
+              @click="save"
+              :disabled="disabled"
+            >
               Save
             </v-btn>
             <!-- <v-btn color="#E0E0E0" @click="clear()"> Clear </v-btn> -->
@@ -96,16 +101,14 @@ export default {
       start: "",
       active: false,
       settings: [],
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
   methods: {
     getSettings() {
-      Axios.get("/api/ref_no_setting/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/ref_no_setting/index").then(
         (response) => {
           this.settings = response.data.settings;
 
@@ -145,16 +148,12 @@ export default {
 
         let settings_id = this.settings.id;
 
-        Axios.post("/api/ref_no_setting/update/" + settings_id, data, {
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-        }).then(
+        Axios.post("/api/ref_no_setting/update/" + settings_id, data).then(
           (response) => {
             console.log(response.data);
             if (response.data.success) {
               // send data to Sockot.IO Server
-              this.$socket.emit("sendData", {action: 'ref_no_settings'});
+              this.$socket.emit("sendData", { action: "ref_no_settings" });
               this.showAlert();
             }
             this.overlay = false;
@@ -181,39 +180,42 @@ export default {
       }
     },
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
       });
     },
 
     getRolesPermissions() {
-      this.permissions.ref_no_setting = Home.methods.hasPermission([
-        "ref-no-setting",
-      ]);
+      this.permissions.ref_no_setting = this.hasPermission(["ref-no-setting"]);
 
       // if user is not authorize
       if (!this.permissions.ref_no_setting) {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },
+    hasRole(roles) {
+      let hasRole = false;
+
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
+    },
 
     websocket() {
-
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -227,11 +229,15 @@ export default {
           this.userRolesPermissions();
         }
 
-        if(action == 'user-create' || action == 'user-edit' || action == 'user-delete' || action == 'login')
-        {
+        if (
+          action == "user-create" ||
+          action == "user-edit" ||
+          action == "user-delete" ||
+          action == "login"
+        ) {
           this.getUser();
         }
-      }
+      };
     },
   },
   computed: {
@@ -252,7 +258,8 @@ export default {
     },
   },
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
     this.getSettings();
     this.userRolesPermissions();
     this.websocket();

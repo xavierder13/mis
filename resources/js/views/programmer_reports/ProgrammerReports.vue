@@ -1064,6 +1064,8 @@ export default {
       user_type: localStorage.getItem("user_type"),
       user_id: localStorage.getItem("user_id"),
       printDisabled: true,
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
@@ -1071,11 +1073,7 @@ export default {
     getProject() {
       this.loading = true;
       const data = { filter_date: this.filter_date };
-      Axios.post("/api/project/programmer_reports", data, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.post("/api/project/programmer_reports", data).then(
         (response) => {
           this.printDisabled = false;
           this.projects = response.data.projects;
@@ -1148,11 +1146,7 @@ export default {
       let project_id = this.editedItem.project_id;
 
       if (!this.$v.remarksItem.$error) {
-        Axios.get("/api/project_log/get_latest_log/" + project_id, {
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-        }).then((response) => {
+        Axios.get("/api/project_log/get_latest_log/" + project_id).then((response) => {
           let latest_log = response.data.latest_log;
           let latest_log_turnover = null;
 
@@ -1188,11 +1182,7 @@ export default {
 
       const data = this.remarksItem;
 
-      Axios.post("/api/project_log/project_turnover", data, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.post("/api/project_log/project_turnover", data).then(
         (response) => {
           if (response.data.success) {
             // send data to Socket.IO Server
@@ -1303,11 +1293,7 @@ export default {
       else
       {
         this.overlay = true;
-        Axios.post("/api/project/update_status", this.editedItem, {
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-        }).then(
+        Axios.post("/api/project/update_status", this.editedItem).then(
           (response) => {
             if (response.data.success) {
               // send data to Socket.IO Server
@@ -1454,11 +1440,7 @@ export default {
 
             const data = this.remarksItem;
 
-            Axios.post("/api/project/endorse_project", data, {
-              headers: {
-                Authorization: "Bearer " + access_token,
-              },
-            }).then(
+            Axios.post("/api/project/endorse_project", data).then(
               (response) => {
                 if (response.data.success) {
                   // send data to Socket.IO Server
@@ -1512,60 +1494,48 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
       });
     },
 
     getRolesPermissions() {
-      this.permissions.programmer_projects = Home.methods.hasPermission([
+      this.permissions.programmer_projects = this.hasPermission([
         "programmer-projects",
       ]);
-      this.permissions.print_preview = Home.methods.hasPermission([
+      this.permissions.print_preview = this.hasPermission([
         "print-preview",
       ]);
-      this.permissions.export_project = Home.methods.hasPermission([
+      this.permissions.export_project = this.hasPermission([
         "export-project",
       ]);
-      this.permissions.project_log_list = Home.methods.hasPermission([
+      this.permissions.project_log_list = this.hasPermission([
         "project-log-list",
       ]);
-      this.permissions.project_log_create = Home.methods.hasPermission([
+      this.permissions.project_log_create = this.hasPermission([
         "project-log-create",
       ]);
-      this.permissions.project_edit = Home.methods.hasPermission([
+      this.permissions.project_edit = this.hasPermission([
         "project-edit",
       ]);
-      this.permissions.view_all_projects = Home.methods.hasPermission([
+      this.permissions.view_all_projects = this.hasPermission([
         "view-all-projects",
       ]);
-      this.permissions.edit_template_percentage = Home.methods.hasPermission([
+      this.permissions.edit_template_percentage = this.hasPermission([
         "edit-template-percentage",
       ]);
-      this.permissions.edit_program_percentage = Home.methods.hasPermission([
+      this.permissions.edit_program_percentage = this.hasPermission([
         "edit-program-percentage",
       ]);
-      this.permissions.edit_validate_percentage = Home.methods.hasPermission([
+      this.permissions.edit_validate_percentage = this.hasPermission([
         "edit-validate-percentage",
       ]);
-      this.permissions.endorse_project = Home.methods.hasPermission([
+      this.permissions.endorse_project = this.hasPermission([
         "endorse-project",
       ]);
-      this.permissions.project_acceptance_overview = Home.methods.hasPermission(
+      this.permissions.project_acceptance_overview = this.hasPermission(
         ["project-acceptance-overview"]
       );
 
@@ -1585,28 +1555,27 @@ export default {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },
+    hasRole(roles) {
+      let hasRole = false;
+
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
+    },
     websocket() {
-      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-      //   let action = e.data.action;
-      //   if (
-      //     action == "user-edit" ||
-      //     action == "role-edit" ||
-      //     action == "role-delete" ||
-      //     action == "permission-delete"
-      //   ) {
-      //     this.userRolesPermissions();
-      //   }
-
-      //   if (
-      //     action == "project-create" ||
-      //     action == "project-edit" ||
-      //     action == "project-delete" ||
-      //     action == "import-project"
-      //   ) {
-      //     this.getProject();
-      //   }
-      // });
-
+      
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -1839,7 +1808,8 @@ export default {
     },
   },
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
     this.getProject();
     this.userRolesPermissions();
     this.setDropdownTime();

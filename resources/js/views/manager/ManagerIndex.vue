@@ -208,17 +208,15 @@ export default {
       ],
       permissions: Home.data().permissions,
       loading: true,
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
   methods: {
     getManager() {
       this.loading = true;
-      Axios.get("/api/manager/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
+      Axios.get("/api/manager/index").then((response) => {
         this.departments = response.data.departments;
         this.managers = response.data.managers;
         this.loading = false;
@@ -241,11 +239,7 @@ export default {
     deleteManager(manager_id) {
       const data = { manager_id: manager_id };
 
-      Axios.post("/api/manager/delete", data, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.post("/api/manager/delete", data).then(
         (response) => {
           // console.log(response.data);
           if(response.data.success)
@@ -288,7 +282,7 @@ export default {
           const manager_id = item.id;
           const index = this.managers.indexOf(item);
 
-          //Call delete Patient function
+          //Call delete Manager function
           this.deleteManager(manager_id);
 
           //Remove item from array services
@@ -325,11 +319,7 @@ export default {
           const data = this.editedItem;
           const manager_id = this.editedItem.id;
 
-          Axios.post("/api/manager/update/" + manager_id, data, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post("/api/manager/update/" + manager_id, data).then(
             (response) => {
               if (response.data.success) {
 
@@ -355,11 +345,7 @@ export default {
         } else {
           const data = this.editedItem;
 
-          Axios.post("/api/manager/store", data, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post("/api/manager/store", data).then(
             (response) => {
  
               if (response.data.success) {
@@ -410,37 +396,24 @@ export default {
       }
     },
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
       });
     },
 
     getRolesPermissions() {
-      this.permissions.manager_list = Home.methods.hasPermission([
+      this.permissions.manager_list = this.hasPermission([
         "manager-list",
       ]);
-      this.permissions.manager_create = Home.methods.hasPermission([
+      this.permissions.manager_create = this.hasPermission([
         "manager-create",
       ]);
-      this.permissions.manager_edit = Home.methods.hasPermission([
+      this.permissions.manager_edit = this.hasPermission([
         "manager-edit",
       ]);
-      this.permissions.manager_delete = Home.methods.hasPermission([
+      this.permissions.manager_delete = this.hasPermission([
         "manager-delete",
       ]);
 
@@ -459,27 +432,27 @@ export default {
       }
       
     },
+    hasRole(roles) {
+      let hasRole = false;
+
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
+    },
     websocket() {
-      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-      //   let action = e.data.action;
-  
-      //   if (
-      //     action == "user-edit" ||
-      //     action == "role-edit" ||
-      //     action == "role-delete" ||
-      //     action == "permission-delete"
-      //   ) {
-
-      //     this.userRolesPermissions();
-      //   }
-
-      //   if(action == 'manager-create' || action == 'manager-edit' || action == 'manager-delete')
-      //   {
-      //     this.getManager();
-      //   }
-
-      // });
-
+      
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -529,7 +502,8 @@ export default {
     },
   },
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
 
     this.getManager();
     this.userRolesPermissions();

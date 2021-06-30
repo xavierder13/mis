@@ -230,16 +230,14 @@ export default {
         user_edit: false,
         user_delete: false,
       },
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
   methods: {
     getRole() {
-      Axios.get("/api/user/create", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/user/create").then(
         (response) => {
           this.roles = response.data.roles;
         },
@@ -271,11 +269,7 @@ export default {
 
         const data = this.editedItem;
 
-        Axios.post("/api/user/store", data, {
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-        }).then(
+        Axios.post("/api/user/store", data).then(
           (response) => {
             if (response.data.success) {
               // send data to Sockot.IO Server
@@ -306,23 +300,10 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("api/user/roles_permissions").then(
         (response) => {
-          // console.log(response.data);
-          localStorage.removeItem("user_permissions");
-          localStorage.removeItem("user_roles");
-          localStorage.setItem(
-            "user_permissions",
-            JSON.stringify(response.data.user_permissions)
-          );
-          localStorage.setItem(
-            "user_roles",
-            JSON.stringify(response.data.user_roles)
-          );
+          this.user_permissions = response.data.user_permissions;
+          this.user_roles = response.data.user_roles;
           this.getRolesPermissions();
         },
         (error) => {
@@ -339,14 +320,31 @@ export default {
     },
 
     getRolesPermissions() {
-      this.permissions.user_create = Home.methods.hasPermission([
-        "user-create",
-      ]);
+      this.permissions.user_create = this.hasPermission(["user-create"]);
 
       // if user is not authorize
       if (!this.permissions.user_create) {
         this.$router.push("/unauthorize").catch(() => {});
       }
+    },
+    hasRole(roles) {
+      let hasRole = false;
+
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
     },
     websocket() {
       // Socket.IO fetch data
@@ -417,7 +415,8 @@ export default {
     },
   },
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
     this.getRole();
     this.userRolesPermissions();
     this.websocket();

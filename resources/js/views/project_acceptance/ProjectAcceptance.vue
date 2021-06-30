@@ -218,6 +218,8 @@ export default {
       ],
       permissions: Home.data().permissions,
       overviewHasRecord: false,
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
@@ -225,19 +227,13 @@ export default {
     getAcceptanceOverview() {
       let project_id = this.$route.params.project_id;
 
-      Axios.get("/api/acceptance_overview/index/" + project_id, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/acceptance_overview/index/" + project_id).then(
         (response) => {
-
           let project = response.data.project;
 
           // if project is null or accepted date is null then redirect user to unauthorize page
-          if(!project || !project.accepted_date)
-          {
-            this.$router.push({ name: 'unauthorize' });
+          if (!project || !project.accepted_date) {
+            this.$router.push({ name: "unauthorize" });
           }
 
           if (response.data.acceptance_overview) {
@@ -272,16 +268,14 @@ export default {
         this.overlay = true;
         this.disabled = true;
 
-        Axios.post("/api/acceptance_overview/create", data, {
-          headers: {
-            Authorization: "Bearer " + access_token,
-          },
-        }).then(
+        Axios.post("/api/acceptance_overview/create", data).then(
           (response) => {
             // console.log(response);
             if (response.data.success) {
               // send data to Socket.IO Server
-              this.$socket.emit("sendData", {action: 'project-acceptance-overview'});
+              this.$socket.emit("sendData", {
+                action: "project-acceptance-overview",
+              });
 
               this.showAlert();
             }
@@ -310,20 +304,16 @@ export default {
         let project_id = this.$route.params.project_id;
 
         if (result.value) {
-          Axios.post(
-            "/api/acceptance_overview/delete",
-            { project_id: project_id },
-            {
-              headers: {
-                Authorization: "Bearer " + access_token,
-              },
-            }
-          ).then(
+          Axios.post("/api/acceptance_overview/delete", {
+            project_id: project_id,
+          }).then(
             (response) => {
               console.log(response.data);
               if (response.data.success) {
                 // send data to Socket.IO Server
-                this.$socket.emit("sendData", {action: 'project-acceptance-overview-delete'});
+                this.$socket.emit("sendData", {
+                  action: "project-acceptance-overview-delete",
+                });
 
                 this.$swal({
                   position: "center",
@@ -334,7 +324,6 @@ export default {
                 });
 
                 this.overviewHasRecord = false;
-
               }
             },
             (error) => {
@@ -370,41 +359,46 @@ export default {
       }
     },
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
       });
     },
 
     getRolesPermissions() {
-      this.permissions.project_acceptance_overview = Home.methods.hasPermission([
+      this.permissions.project_acceptance_overview = this.hasPermission([
         "project-acceptance-overview",
       ]);
-      this.permissions.project_acceptance_overview_delete = Home.methods.hasPermission([
+      this.permissions.project_acceptance_overview_delete = this.hasPermission([
         "project-acceptance-overview-delete",
       ]);
-      
+
       // if user is not authorize
       if (!this.permissions.project_acceptance_overview) {
         this.$router.push("/unauthorize").catch(() => {});
       }
     },
-    websocket() {
+    hasRole(roles) {
+      let hasRole = false;
 
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
+    },
+    websocket() {
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -434,12 +428,12 @@ export default {
     },
   },
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
 
     this.getAcceptanceOverview();
     this.userRolesPermissions();
     this.websocket();
-
   },
 };
 </script>

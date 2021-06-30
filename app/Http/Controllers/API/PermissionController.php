@@ -105,6 +105,13 @@ class PermissionController extends Controller
         $permission->name = $request->get('name');
         $permission->save();
 
+        // Administrator Role
+        $role = Role::find(1);
+
+        $permissions = Permission::pluck('id','id')->all();
+
+        $role->syncPermissions($permissions);
+
         //PUSHER - send data/message if permission is updated
         // event(new EventNotification('edit-permission', 'permissions'));
         $user_roles = Auth::user()->roles->pluck('name')->all();

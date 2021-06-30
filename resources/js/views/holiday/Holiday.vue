@@ -211,17 +211,15 @@ export default {
       ],
       permissions: Home.data().permissions,
       loading: true,
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
   methods: {
     getHoliday() {
       this.loading = true;
-      Axios.get("/api/holiday/index", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
+      Axios.get("/api/holiday/index").then((response) => {
         this.holidays = response.data.holidays;
         this.loading = false;
       }, (error) => {
@@ -248,11 +246,7 @@ export default {
     deleteHoliday(holiday_id) {
       const data = { holiday_id: holiday_id };
 
-      Axios.post("/api/holiday/delete", data, {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.post("/api/holiday/delete", data).then(
         (response) => {
           // console.log(response.data);
           if(response.data.success)
@@ -295,7 +289,7 @@ export default {
           const holiday_id = item.id;
           const index = this.holidays.indexOf(item);
 
-          //Call delete Patient function
+          //Call delete Holiday function
           this.deleteHoliday(holiday_id);
 
           //Remove item from array services
@@ -332,11 +326,7 @@ export default {
           const data = this.editedItem;
           const holiday_id = this.editedItem.id;
 
-          Axios.post("/api/holiday/update/" + holiday_id, data, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post("/api/holiday/update/" + holiday_id, data).then(
             (response) => {
               
               if (response.data.success) {
@@ -363,11 +353,7 @@ export default {
         } else {
           const data = this.editedItem;
 
-          Axios.post("/api/holiday/store", data, {
-            headers: {
-              Authorization: "Bearer " + access_token,
-            },
-          }).then(
+          Axios.post("/api/holiday/store", data).then(
             (response) => {
               
               if (response.data.success) {
@@ -410,37 +396,24 @@ export default {
       }
     },
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
       });
     },
 
     getRolesPermissions() {
-      this.permissions.holiday_list = Home.methods.hasPermission([
+      this.permissions.holiday_list = this.hasPermission([
         "holiday-list",
       ]);
-      this.permissions.holiday_create = Home.methods.hasPermission([
+      this.permissions.holiday_create = this.hasPermission([
         "holiday-create",
       ]);
-      this.permissions.holiday_edit = Home.methods.hasPermission([
+      this.permissions.holiday_edit = this.hasPermission([
         "holiday-edit",
       ]);
-      this.permissions.holiday_delete = Home.methods.hasPermission([
+      this.permissions.holiday_delete = this.hasPermission([
         "holiday-delete",
       ]);
 
@@ -459,27 +432,27 @@ export default {
       }
       
     },
+    hasRole(roles) {
+      let hasRole = false;
+
+      roles.forEach((value, index) => {
+        hasRole = this.user_roles.includes(value);
+      });
+
+      return hasRole;
+    },
+
+    hasPermission(permissions) {
+      let hasPermission = false;
+
+      permissions.forEach((value, index) => {
+        hasPermission = this.user_permissions.includes(value);
+      });
+
+      return hasPermission;
+    },
     websocket() {
-      // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
-      //   let action = e.data.action;
-  
-      //   if (
-      //     action == "user-edit" ||
-      //     action == "role-edit" ||
-      //     action == "role-delete" ||
-      //     action == "permission-delete"
-      //   ) {
-
-      //     this.userRolesPermissions();
-      //   }
-
-      //   if(action == 'holiday-create' || action == 'holiday-edit' || action == 'holiday-delete')
-      //   {
-      //     this.getHoliday();
-      //   }
-
-      // });
-
+      
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
@@ -525,7 +498,8 @@ export default {
     },
   },
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
 
     this.getHoliday();
     this.userRolesPermissions();

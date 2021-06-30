@@ -116,13 +116,7 @@ export default {
         Axios.post("/api/auth/login", data).then(
           (response) => {
             if (response.data.access_token) {
-              // console.log(response.data);
-              localStorage.setItem("user", response.data.user.name);
-              localStorage.setItem("user_id", response.data.user.id);
-              localStorage.setItem("user_type", response.data.user.type);
               localStorage.setItem("access_token", response.data.access_token);
-              localStorage.setItem('user_permissions', JSON.stringify(response.data.user_permissions));
-              localStorage.setItem('user_roles', JSON.stringify(response.data.user_roles));
               this.$router.push("/").catch((e) => {});
               this.clear();
               this.email = null;

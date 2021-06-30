@@ -211,9 +211,9 @@ export default {
       user: null,
       loading: null,
       initiated: false,
-      user: localStorage.getItem("user"),
-      user_type: localStorage.getItem("user_type"),
-      user_id: localStorage.getItem("user_id"),
+      user: "",
+      user_type: "",
+      user_id: "",
       permissions: {
         project_list: false,
         project_create: false,
@@ -267,18 +267,19 @@ export default {
       roles: {
         administrator: false,
       },
+      user_permissions: [],
+      user_roles: [],
     };
   },
 
   methods: {
     getUser() {
-      Axios.get("/api/auth/init", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/auth/init").then(
         (response) => {
           // console.log(response.data);
+          this.user = response.data.user.name;
+          this.user_type = response.data.user.type;
+          this.user_id = response.data.user.id;
         },
         (error) => {
           // if unauthenticated (401)
@@ -291,11 +292,7 @@ export default {
     },
     logout() {
       this.overlay = true;
-      Axios.get("/api/auth/logout", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then(
+      Axios.get("/api/auth/logout").then(
         (response) => {
           if (response.data.success) {
             this.overlay = false;
@@ -317,22 +314,9 @@ export default {
       );
     },
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions", {
-        headers: {
-          Authorization: "Bearer " + access_token,
-        },
-      }).then((response) => {
-        // console.log(response.data);
-        localStorage.removeItem("user_permissions");
-        localStorage.removeItem("user_roles");
-        localStorage.setItem(
-          "user_permissions",
-          JSON.stringify(response.data.user_permissions)
-        );
-        localStorage.setItem(
-          "user_roles",
-          JSON.stringify(response.data.user_roles)
-        );
+      Axios.get("api/user/roles_permissions").then((response) => {
+        this.user_permissions = response.data.user_permissions;
+        this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
       }, (errors) => {
         console.log(errors);
@@ -440,25 +424,20 @@ export default {
     },
 
     hasRole(roles) {
-      user_roles = JSON.parse(localStorage.getItem("user_roles"));
       let hasRole = false;
+
       roles.forEach((value, index) => {
-        if (user_roles.includes(value)) {
-          hasRole = true;
-        }
+        hasRole = this.user_roles.includes(value);
       });
 
       return hasRole;
     },
 
     hasPermission(permissions) {
-      user_permissions = JSON.parse(localStorage.getItem("user_permissions"));
       let hasPermission = false;
 
       permissions.forEach((value, index) => {
-        if (user_permissions.includes(value)) {
-          hasPermission = true;
-        }
+        hasPermission = this.user_permissions.includes(value);
       });
 
       return hasPermission;
@@ -495,7 +474,8 @@ export default {
   },
   
   mounted() {
-    access_token = localStorage.getItem("access_token");
+    Axios.defaults.headers.common["Authorization"] =
+      "Bearer " + localStorage.getItem("access_token");
     this.getUser();
     this.userRolesPermissions();
     this.websocket();
