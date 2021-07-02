@@ -56,8 +56,8 @@
                   :error-messages="passwordErrors"
                   label="Password"
                   required
-                  @input="$v.password.$touch()"
-                  @blur="$v.password.$touch()"
+                  @input="$v.editedItem.password.$touch()"
+                  @blur="$v.editedItem.password.$touch()"
                   type="password"
                   :readonly="editedItem.id == 1 ? true : false"
                 ></v-text-field>
@@ -71,8 +71,8 @@
                   :error-messages="confirm_passwordErrors"
                   label="Confirm Password"
                   required
-                  @input="$v.confirm_password.$touch()"
-                  @blur="$v.confirm_password.$touch()"
+                  @input="$v.editedItem.confirm_password.$touch()"
+                  @blur="$v.editedItem.confirm_password.$touch()"
                   type="password"
                 ></v-text-field>
               </v-col>
@@ -264,9 +264,6 @@ export default {
         this.disabled = true;
         this.overlay = true;
 
-        this.editedItem.password = this.password;
-        this.editedItem.confirm_password = this.confirm_password;
-
         const data = this.editedItem;
 
         Axios.post("/api/user/store", data).then(
@@ -389,7 +386,7 @@ export default {
     confirm_passwordErrors() {
       const errors = [];
       if (!this.$v.editedItem.confirm_password.$dirty) return errors;
-      !this.$v.confirm_password.required &&
+      !this.$v.editedItem.confirm_password.required &&
         errors.push("Password Confirmation is required.");
       !this.$v.editedItem.confirm_password.sameAsPassword &&
         errors.push("Passwords did not match");

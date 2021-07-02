@@ -20,7 +20,7 @@
 
         <v-card>
           <v-card-title class="mb-0 pb-0">
-            <span class="headline">Referrence No. Setting</span>
+            <span class="headline">Reference No. Setting</span>
           </v-card-title>
           <v-divider></v-divider>
           <v-card-text class="ml-2">
