@@ -119,9 +119,6 @@ export default {
               localStorage.setItem("access_token", response.data.access_token);
               this.$router.push("/").catch((e) => {});
               this.clear();
-              this.email = null;
-              this.password = null;
-              this.overlay = false;
             } else {
               this.isInvalid = true;
               this.overlay = false;
@@ -137,6 +134,9 @@ export default {
     clear() {
       this.$v.$reset();
       this.isInvalid = false;
+      this.email = null;
+      this.password = null;
+      this.overlay = false;
     },
   },
 
