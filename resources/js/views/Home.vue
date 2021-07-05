@@ -5,7 +5,7 @@
       <v-btn icon @click.stop="mini = !mini">
         <v-app-bar-nav-icon></v-app-bar-nav-icon>
       </v-btn>
-
+        
       <v-spacer></v-spacer>
 
       <v-btn @click="logout">
@@ -34,7 +34,7 @@
         <v-list-item
           link
           :to="{ name: 'dashboard' }"
-          v-if="permissions.project_list || permissions.project_create"
+          v-if="userPermissions.project_list || userPermissions.project_create"
         >
           <v-list-item-icon>
             <v-icon>mdi-view-dashboard</v-icon>
@@ -44,7 +44,7 @@
         <v-list-item
           link
           :to="{ name: 'programmer.reports' }"
-          v-if="permissions.programmer_projects"
+          v-if="userPermissions.programmer_projects"
         >
           <v-list-item-icon>
             <v-icon>mdi-file-document</v-icon>
@@ -54,8 +54,8 @@
         <v-list-group
           no-action
           v-if="
-            permissions.user_list ||
-            permissions.user_create
+            userPermissions.user_list ||
+            userPermissions.user_create
           "
         >
           <!-- List Group Icon-->
@@ -70,7 +70,7 @@
           <v-list-item
             link
             to="/user/index"
-            v-if="permissions.user_list"
+            v-if="userPermissions.user_list"
           >
             <v-list-item-content>
               <v-list-item-title>User Record</v-list-item-title>
@@ -79,7 +79,7 @@
           <v-list-item
             link
             to="/user/create"
-            v-if="permissions.user_create"
+            v-if="userPermissions.user_create"
           >
             <v-list-item-content>
               <v-list-item-title>Create New</v-list-item-title>
@@ -91,17 +91,17 @@
         <v-list-group
           no-action
           v-if="
-            permissions.department_list ||
-            permissions.department_create ||
-            permissions.manager_list ||
-            permissions.manager_create ||
-            permissions.holiday_list ||
-            permissions.holiday_create ||
-            permissions.role_list ||
-            permissions.role_create ||
-            permissions.permission_list ||
-            permissions.permission_create ||
-            permissions.ref_no_setting
+            userPermissions.department_list ||
+            userPermissions.department_create ||
+            userPermissions.manager_list ||
+            userPermissions.manager_create ||
+            userPermissions.holiday_list ||
+            userPermissions.holiday_create ||
+            userPermissions.role_list ||
+            userPermissions.role_create ||
+            userPermissions.permission_list ||
+            userPermissions.permission_create ||
+            userPermissions.ref_no_setting
           "
         >
           <!-- List Group Icon-->
@@ -116,7 +116,7 @@
           <v-list-item
             link
             to="/department/index"
-            v-if="permissions.department_list || permissions.department_create"
+            v-if="userPermissions.department_list || userPermissions.department_create"
           >
             <v-list-item-content>
               <v-list-item-title>Department</v-list-item-title>
@@ -125,7 +125,7 @@
           <v-list-item
             link
             to="/manager/index"
-            v-if="permissions.manager_list || permissions.manager_create"
+            v-if="userPermissions.manager_list || userPermissions.manager_create"
           >
             <v-list-item-content>
               <v-list-item-title>Manager</v-list-item-title>
@@ -134,7 +134,7 @@
           <v-list-item
             link
             to="/ref_no_setting/index"
-            v-if="permissions.ref_no_setting"
+            v-if="userPermissions.ref_no_setting"
           >
             <v-list-item-content>
               <v-list-item-title>Ref No. Settings</v-list-item-title>
@@ -143,7 +143,7 @@
           <v-list-item
             link
             to="/holiday/index"
-            v-if="permissions.holiday_list || permissions.holiday_create"
+            v-if="userPermissions.holiday_list || userPermissions.holiday_create"
           >
             <v-list-item-content>
               <v-list-item-title>Holiday</v-list-item-title>
@@ -152,7 +152,7 @@
           <v-list-item
             link
             to="/role/index"
-            v-if="permissions.role_list || permissions.role_create"
+            v-if="userPermissions.role_list || userPermissions.role_create"
           >
             <v-list-item-content>
               <v-list-item-title>Role</v-list-item-title>
@@ -161,7 +161,7 @@
           <v-list-item
             link
             to="/permission/index"
-            v-if="permissions.permission_list || permissions.permission_create"
+            v-if="userPermissions.permission_list || userPermissions.permission_create"
           >
             <v-list-item-content>
               <v-list-item-title>Permission</v-list-item-title>
@@ -171,7 +171,7 @@
         <v-list-item
           link
           to="/activity_logs"
-          v-if="permissions.activity_logs"
+          v-if="userPermissions.activity_logs"
         >
           <v-list-item-icon>
             <v-icon>mdi-history</v-icon>
@@ -194,10 +194,9 @@
 </template>
 
 <script>
-let access_token;
-let user_permissions;
-let user_roles;
-import Axios from "axios";
+
+import axios from "axios";
+import { mapState, mapActions } from 'vuex';
 
 export default {
   data() {
@@ -208,12 +207,8 @@ export default {
       mini: false,
       right: null,
       selectedItem: 1,
-      user: null,
       loading: null,
       initiated: false,
-      user: "",
-      user_type: "",
-      user_id: "",
       permissions: {
         project_list: false,
         project_create: false,
@@ -273,26 +268,10 @@ export default {
   },
 
   methods: {
-    getUser() {
-      Axios.get("/api/auth/init").then(
-        (response) => {
-          // console.log(response.data);
-          this.user = response.data.user.name;
-          this.user_type = response.data.user.type;
-          this.user_id = response.data.user.id;
-        },
-        (error) => {
-          // if unauthenticated (401)
-          if (error.response.status == "401") {
-            localStorage.removeItem("access_token");
-            this.$router.push({ name: "login" });
-          }
-        }
-      );
-    },
+    
     logout() {
       this.overlay = true;
-      Axios.get("/api/auth/logout").then(
+      axios.get("/api/auth/logout").then(
         (response) => {
           if (response.data.success) {
             this.overlay = false;
@@ -312,136 +291,7 @@ export default {
         }
       );
     },
-    userRolesPermissions() {
-      Axios.get("api/user/roles_permissions").then((response) => {
-        this.user_permissions = response.data.user_permissions;
-        this.user_roles = response.data.user_roles;
-        this.getRolesPermissions();
-      }, (errors) => {
-        console.log(errors);
-      });
-    },
-
-    getRolesPermissions() {
-      this.permissions.project_list = this.hasPermission(["project-list"]);
-      this.permissions.project_create = this.hasPermission(["project-create"]);
-      this.permissions.project_edit = this.hasPermission(["project-edit"]);
-      this.permissions.project_delete = this.hasPermission(["project-delete"]);
-      this.permissions.programmer_projects = this.hasPermission([
-        "programmer-projects",
-      ]);
-      this.permissions.project_log_list = this.hasPermission([
-        "project-log-list",
-      ]);
-      this.permissions.project_log_create = this.hasPermission([
-        "project-log-create",
-      ]);
-      this.permissions.project_log_edit = this.hasPermission([
-        "project-log-edit",
-      ]);
-      this.permissions.project_log_delete = this.hasPermission([
-        "project-log-delete",
-      ]);
-      this.permissions.user_list = this.hasPermission(["user-list"]);
-      this.permissions.user_create = this.hasPermission(["user-create"]);
-      this.permissions.user_edit = this.hasPermission(["user-edit"]);
-      this.permissions.user_delete = this.hasPermission(["user-delete"]);
-      this.permissions.department_list = this.hasPermission([
-        "department-list",
-      ]);
-      this.permissions.department_create = this.hasPermission([
-        "department-create",
-      ]);
-      this.permissions.department_edit = this.hasPermission([
-        "department-edit",
-      ]);
-      this.permissions.department_delete = this.hasPermission([
-        "department-delete",
-      ]);
-      this.permissions.manager_list = this.hasPermission(["manager-list"]);
-      this.permissions.manager_create = this.hasPermission(["manager-create"]);
-      this.permissions.manager_edit = this.hasPermission(["manager-edit"]);
-      this.permissions.manager_delete = this.hasPermission(["manager-delete"]);
-      this.permissions.holiday_list = this.hasPermission(["holiday-list"]);
-      this.permissions.holiday_create = this.hasPermission(["holiday-create"]);
-      this.permissions.holiday_edit = this.hasPermission(["holiday-edit"]);
-      this.permissions.holiday_delete = this.hasPermission(["holiday-delete"]);
-      this.permissions.permission_list = this.hasPermission([
-        "permission-list",
-      ]);
-      this.permissions.permission_create = this.hasPermission([
-        "permission-create",
-      ]);
-      this.permissions.permission_edit = this.hasPermission([
-        "permission-edit",
-      ]);
-      this.permissions.permission_delete = this.hasPermission([
-        "permission-delete",
-      ]);
-      this.permissions.role_list = this.hasPermission(["role-list"]);
-      this.permissions.role_create = this.hasPermission(["role-create"]);
-      this.permissions.role_edit = this.hasPermission(["role-edit"]);
-      this.permissions.role_delete = this.hasPermission(["role-delete"]);
-      this.permissions.ref_no_setting = this.hasPermission(["ref-no-setting"]);
-      this.permissions.print_preview = this.hasPermission(["print-preview"]);
-      this.permissions.import_project = this.hasPermission(["import-project"]);
-      this.permissions.export_project = this.hasPermission(["export-project"]);
-      this.permissions.import_project_log = this.hasPermission([
-        "import-project-log",
-      ]);
-      this.permissions.export_project_log = this.hasPermission([
-        "export-project-log",
-      ]);
-      this.permissions.view_all_projects = this.hasPermission([
-        "view-all-projects",
-      ]);
-      this.permissions.edit_template_percentage = this.hasPermission([
-        "edit-template-percentage",
-      ]);
-      this.permissions.edit_program_percentage = this.hasPermission([
-        "edit-program-percentage",
-      ]);
-      this.permissions.edit_validate_percentage = this.hasPermission([
-        "edit-validate-percentage",
-      ]);
-      this.permissions.endorse_project = this.hasPermission([
-        "endorse-project",
-      ]);
-      this.permissions.endorse_history = this.hasPermission([
-        "endorse-history",
-      ]);
-      this.permissions.project_acceptance_overview = this.hasPermission([
-        "project-acceptance-overview",
-      ]);
-      this.permissions.project_acceptance_overview_delete = this.hasPermission([
-        "project-acceptance-overview-delete",
-      ]);
-      this.permissions.activity_logs = this.hasPermission([
-        "activity-logs",
-      ]);
-      this.roles.administrator = this.hasRole(["Administrator"]);
-    },
-
-    hasRole(roles) {
-      let hasRole = false;
-
-      roles.forEach((value, index) => {
-        hasRole = this.user_roles.includes(value);
-      });
-
-      return hasRole;
-    },
-
-    hasPermission(permissions) {
-      let hasPermission = false;
-
-      permissions.forEach((value, index) => {
-        hasPermission = this.user_permissions.includes(value);
-      });
-
-      return hasPermission;
-    },
-
+    
     websocket() {
       // window.Echo.channel("WebsocketChannel").listen("WebsocketEvent", (e) => {
       //   let action = e.data.action;
@@ -470,10 +320,18 @@ export default {
         }
       };
     },
+
+    ...mapActions('auth', ['getUser']),
+    ...mapActions("userRolesPermissions", ["userRolesPermissions"]),
+  },
+  
+  computed: {
+    ...mapState('auth', { user: 'user_name' }),
+    ...mapState("userRolesPermissions", ["userRoles", "userPermissions"]),
   },
   
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getUser();
     this.userRolesPermissions();

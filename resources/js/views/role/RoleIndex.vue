@@ -169,7 +169,7 @@ let access_token;
 let user_permissions;
 let user_roles;
 
-import Axios from "axios";
+import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import Home from "../Home.vue";
@@ -231,7 +231,7 @@ export default {
   methods: {
     getRole() {
       this.loading = true;
-      Axios.get("/api/role/index").then(
+      axios.get("/api/role/index").then(
         (response) => {
           this.roles = response.data.roles;
           this.permissions = response.data.permissions;
@@ -261,7 +261,7 @@ export default {
     deleteRole(roleid) {
       const data = { roleid: roleid };
       this.loading = true;
-      Axios.post("/api/role/delete", data).then(
+      axios.post("/api/role/delete", data).then(
         (response) => {
           this.loading = false;
         },
@@ -340,11 +340,11 @@ export default {
         if (this.editedIndex > -1) {
           const roleid = this.editedRole.id;
 
-          Axios.post("/api/role/update/" + roleid, data).then(
+          axios.post("/api/role/update/" + roleid, data).then(
             (response) => {
               if (response.data.success) {
                 // send data to Sockot.IO Server
-                // this.$socket.emit("sendData", { action: "role-edit" });
+                this.$socket.emit("sendData", { action: "role-edit" });
 
                 Object.assign(this.roles[this.editedIndex], response.data.role);
                 this.showAlert();
@@ -364,7 +364,7 @@ export default {
             }
           );
         } else {
-          Axios.post("/api/role/store", data).then(
+          axios.post("/api/role/store", data).then(
             (response) => {
               if (response.data.success) {
                 // send data to Sockot.IO Server
@@ -410,7 +410,7 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("/api/user/roles_permissions").then(
+      axios.get("/api/user/roles_permissions").then(
         (response) => {
           this.user_permissions = response.data.user_permissions;
           this.user_roles = response.data.user_roles;
@@ -499,7 +499,7 @@ export default {
     },
   },
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getRole();
     this.userRolesPermissions();

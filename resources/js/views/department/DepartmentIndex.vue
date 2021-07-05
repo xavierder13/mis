@@ -138,7 +138,7 @@ let access_token;
 let user_permissions;
 let user_roles;
 
-import Axios from "axios";
+import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import Home from '../Home.vue';  
@@ -202,7 +202,7 @@ export default {
   methods: {
     getDepartment() {
       this.loading = true;
-      Axios.get("/api/department/index").then((response) => {
+      axios.get("/api/department/index").then((response) => {
         this.departments = response.data.departments;
         this.loading = false;
       }, (error) => {
@@ -226,7 +226,7 @@ export default {
     deleteDepartment(department_id) {
       const data = { department_id: department_id };
 
-      Axios.post("/api/department/delete", data).then(
+      axios.post("/api/department/delete", data).then(
         (response) => {
           // console.log(response.data);
           if(response.data.success)
@@ -306,7 +306,7 @@ export default {
           const data = this.editedItem;
           const department_id = this.editedItem.id;
 
-          Axios.post("/api/department/update/" + department_id, data).then(
+          axios.post("/api/department/update/" + department_id, data).then(
             (response) => {
               if (response.data.success) {
 
@@ -334,7 +334,7 @@ export default {
         } else {
           const data = this.editedItem;
 
-          Axios.post("/api/department/store", data).then(
+          axios.post("/api/department/store", data).then(
             (response) => {
               
               if (response.data.success) {
@@ -379,7 +379,7 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions").then((response) => {
+      axios.get("api/user/roles_permissions").then((response) => {
         this.user_permissions = response.data.user_permissions;
         this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
@@ -479,7 +479,7 @@ export default {
     },
   },
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
 
     this.getDepartment();

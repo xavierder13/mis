@@ -806,7 +806,7 @@ let access_token;
 let user_permissions;
 let user_roles;
 
-import Axios from "axios";
+import axios from "axios";
 import moment from "moment";
 import { validationMixin } from "vuelidate";
 import {
@@ -1073,7 +1073,7 @@ export default {
     getProject() {
       this.loading = true;
       const data = { filter_date: this.filter_date };
-      Axios.post("/api/project/programmer_reports", data).then(
+      axios.post("/api/project/programmer_reports", data).then(
         (response) => {
           this.printDisabled = false;
           this.projects = response.data.projects;
@@ -1146,7 +1146,7 @@ export default {
       let project_id = this.editedItem.project_id;
 
       if (!this.$v.remarksItem.$error) {
-        Axios.get("/api/project_log/get_latest_log/" + project_id).then((response) => {
+        axios.get("/api/project_log/get_latest_log/" + project_id).then((response) => {
           let latest_log = response.data.latest_log;
           let latest_log_turnover = null;
 
@@ -1182,7 +1182,7 @@ export default {
 
       const data = this.remarksItem;
 
-      Axios.post("/api/project_log/project_turnover", data).then(
+      axios.post("/api/project_log/project_turnover", data).then(
         (response) => {
           if (response.data.success) {
             // send data to Socket.IO Server
@@ -1293,7 +1293,7 @@ export default {
       else
       {
         this.overlay = true;
-        Axios.post("/api/project/update_status", this.editedItem).then(
+        axios.post("/api/project/update_status", this.editedItem).then(
           (response) => {
             if (response.data.success) {
               // send data to Socket.IO Server
@@ -1440,7 +1440,7 @@ export default {
 
             const data = this.remarksItem;
 
-            Axios.post("/api/project/endorse_project", data).then(
+            axios.post("/api/project/endorse_project", data).then(
               (response) => {
                 if (response.data.success) {
                   // send data to Socket.IO Server
@@ -1494,7 +1494,7 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions").then((response) => {
+      axios.get("api/user/roles_permissions").then((response) => {
         this.user_permissions = response.data.user_permissions;
         this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
@@ -1808,7 +1808,7 @@ export default {
     },
   },
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getProject();
     this.userRolesPermissions();

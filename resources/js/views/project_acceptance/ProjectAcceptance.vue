@@ -151,7 +151,7 @@ let access_token;
 let user_permissions;
 let user_roles;
 
-import Axios from "axios";
+import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import Home from "../Home.vue";
@@ -227,7 +227,7 @@ export default {
     getAcceptanceOverview() {
       let project_id = this.$route.params.project_id;
 
-      Axios.get("/api/acceptance_overview/index/" + project_id).then(
+      axios.get("/api/acceptance_overview/index/" + project_id).then(
         (response) => {
           let project = response.data.project;
 
@@ -268,7 +268,7 @@ export default {
         this.overlay = true;
         this.disabled = true;
 
-        Axios.post("/api/acceptance_overview/create", data).then(
+        axios.post("/api/acceptance_overview/create", data).then(
           (response) => {
             // console.log(response);
             if (response.data.success) {
@@ -304,7 +304,7 @@ export default {
         let project_id = this.$route.params.project_id;
 
         if (result.value) {
-          Axios.post("/api/acceptance_overview/delete", {
+          axios.post("/api/acceptance_overview/delete", {
             project_id: project_id,
           }).then(
             (response) => {
@@ -359,7 +359,7 @@ export default {
       }
     },
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions").then((response) => {
+      axios.get("api/user/roles_permissions").then((response) => {
         this.user_permissions = response.data.user_permissions;
         this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
@@ -428,7 +428,7 @@ export default {
     },
   },
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
 
     this.getAcceptanceOverview();

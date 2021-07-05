@@ -32,7 +32,7 @@
                     :error-messages="emailErrors"
                     @change="$v.email.$touch()"
                     @blur="$v.email.$touch()"
-                    @keyup="clear()"
+                    @keyup="isInvalid = false"
                   ></v-text-field>
 
                   <v-text-field
@@ -46,7 +46,7 @@
                     :error-messages="passwordErrors"
                     @change="$v.password.$touch()"
                     @blur="$v.password.$touch()"
-                    @keyup="clear()"
+                    @keyup="isInvalid = false"
                   ></v-text-field>
                 </v-form>
               </v-card-text>
@@ -64,7 +64,7 @@
 </template>
 
 <script>
-import Axios from "axios";
+import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 
@@ -113,7 +113,7 @@ export default {
         const password = this.password;
         const data = { email: email, password: password };
 
-        Axios.post("/api/auth/login", data).then(
+        axios.post("/api/auth/login", data).then(
           (response) => {
             if (response.data.access_token) {
               localStorage.setItem("access_token", response.data.access_token);

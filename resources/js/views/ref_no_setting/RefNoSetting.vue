@@ -65,7 +65,7 @@ let access_token;
 let user_permissions;
 let user_roles;
 
-import Axios from "axios";
+import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import Home from "../Home.vue";
@@ -108,7 +108,7 @@ export default {
 
   methods: {
     getSettings() {
-      Axios.get("/api/ref_no_setting/index").then(
+      axios.get("/api/ref_no_setting/index").then(
         (response) => {
           this.settings = response.data.settings;
 
@@ -148,7 +148,7 @@ export default {
 
         let settings_id = this.settings.id;
 
-        Axios.post("/api/ref_no_setting/update/" + settings_id, data).then(
+        axios.post("/api/ref_no_setting/update/" + settings_id, data).then(
           (response) => {
             console.log(response.data);
             if (response.data.success) {
@@ -180,7 +180,7 @@ export default {
       }
     },
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions").then((response) => {
+      axios.get("api/user/roles_permissions").then((response) => {
         this.user_permissions = response.data.user_permissions;
         this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
@@ -258,7 +258,7 @@ export default {
     },
   },
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getSettings();
     this.userRolesPermissions();

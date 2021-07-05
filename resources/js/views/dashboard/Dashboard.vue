@@ -499,7 +499,7 @@ let access_token;
 let user_permissions;
 let user_roles;
 
-import Axios from "axios";
+import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import Home from "../Home.vue";
@@ -620,7 +620,7 @@ export default {
 
   methods: {
     getUser() {
-      Axios.get("/api/auth/init").then(
+      axios.get("/api/auth/init").then(
         (response) => {
           // console.log(response.data);
           this.user = response.data.user.name;
@@ -638,7 +638,7 @@ export default {
     },
     getProject() {
       this.loading = true;
-      Axios.get("/api/project/index").then(
+      axios.get("/api/project/index").then(
         (response) => {
           this.projects = response.data.projects;
           this.departments = response.data.departments;
@@ -678,7 +678,7 @@ export default {
     deleteProject(project_id) {
       const data = { project_id: project_id };
 
-      Axios.post("/api/project/delete", data).then(
+      axios.post("/api/project/delete", data).then(
         (response) => {
           // console.log(response.data);
           if (response.data.success) {
@@ -696,7 +696,7 @@ export default {
       this.dialog_endorse_history = true;
       this.loading_endorse_history = true;
       this.endorse_history = [];
-      Axios.post("/api/project/endorse_history", {
+      axios.post("/api/project/endorse_history", {
         project_id: item.project_id,
       }).then(
         (response) => {
@@ -776,7 +776,7 @@ export default {
           const data = this.editedItem;
           const project_id = this.editedItem.project_id;
 
-          Axios.post("/api/project/update/" + project_id, data).then(
+          axios.post("/api/project/update/" + project_id, data).then(
             (response) => {
               if (response.data.success) {
                 // send data to Socket.IO Server
@@ -798,7 +798,7 @@ export default {
         } else {
           const data = this.editedItem;
 
-          Axios.post("/api/project/store", data).then(
+          axios.post("/api/project/store", data).then(
             (response) => {
               if (response.data.success) {
                 // send data to Socket.IO Server
@@ -834,7 +834,7 @@ export default {
       }
     },
     getRefNumber() {
-      Axios.get("/api/project/get_ref_no").then(
+      axios.get("/api/project/get_ref_no").then(
         (response) => {
           let ref_no = response.data;
           this.editedItem.ref_no = ref_no;
@@ -896,7 +896,7 @@ export default {
 
         formData.append("file", this.file);
         // console.log(this.file);
-        Axios.post("api/project/import_project", formData).then(
+        axios.post("api/project/import_project", formData).then(
           (response) => {
             this.errors_array = [];
 
@@ -969,7 +969,7 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions").then((response) => {
+      axios.get("api/user/roles_permissions").then((response) => {
         this.user_permissions = response.data.user_permissions;
         this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
@@ -1092,7 +1092,7 @@ export default {
     },
   },
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getProject();
     this.getUser();

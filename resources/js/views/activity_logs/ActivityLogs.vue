@@ -49,7 +49,7 @@ let access_token;
 let user_permissions;
 let user_roles;
 
-import Axios from "axios";
+import axios from "axios";
 import Home from "../Home.vue";
 
 export default {
@@ -99,7 +99,7 @@ export default {
   methods: {
     getActivityLogs() {
       this.loading = true;
-      Axios.get("/api/activity_logs/index").then(
+      axios.get("/api/activity_logs/index").then(
         (response) => {
           this.activity_logs = response.data.activity_logs;
           this.loading = false;
@@ -118,7 +118,7 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions").then((response) => {
+      axios.get("api/user/roles_permissions").then((response) => {
         this.user_permissions = response.data.user_permissions;
         this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
@@ -174,7 +174,7 @@ export default {
   },
   computed: {},
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getActivityLogs();
     this.userRolesPermissions();

@@ -11,6 +11,7 @@ import excel from 'vue-excel-export';
 // import Echo from 'laravel-echo';
 import VueSocketio from 'vue-socket.io';
 import CKEditor from 'ckeditor4-vue';
+import store from './store';
 
 Vue.use(VueSocketio, 'http://localhost:3000');
 
@@ -38,5 +39,6 @@ const app = new Vue({
     vuetify: Vuetify,
     el: '#app',
     router,
+    store,
     render: h => h(App)
 });

@@ -490,7 +490,7 @@ let access_token;
 let user_permissions;
 let user_roles;
 
-import Axios from "axios";
+import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import moment from "moment";
@@ -623,7 +623,7 @@ export default {
         endorse_project_id: this.$route.params.endorse_project_id,
       };
 
-      Axios.post("/api/project_log/index/" + project_id, data).then(
+      axios.post("/api/project_log/index/" + project_id, data).then(
         (response) => {
           // console.log(response.data);
           this.project = response.data.project;
@@ -655,7 +655,7 @@ export default {
           if (this.editedIndex > -1) {
             let project_log_id = this.editedItem.id;
 
-            Axios.post(
+            axios.post(
               "/api/project_log/update/" + project_log_id,
               this.editedItem
             ).then(
@@ -694,7 +694,7 @@ export default {
             this.editedItem.project_id = this.project.project_id;
             this.editedItem.endorse_project_id =
               this.$route.params.endorse_project_id;
-            Axios.post("/api/project_log/store", this.editedItem).then(
+            axios.post("/api/project_log/store", this.editedItem).then(
               (response) => {
                 if (response.data.success) {
                   // send data to Socket.IO Server
@@ -773,7 +773,7 @@ export default {
     deleteProjectLog(project_log_id) {
       const data = { project_log_id: project_log_id };
 
-      Axios.post("/api/project_log/delete", data).then(
+      axios.post("/api/project_log/delete", data).then(
         (response) => {
           if (response.data.success) {
             // send data to Socket.IO Server
@@ -960,7 +960,7 @@ export default {
         formData.append("file", this.file);
         formData.append("project_id", project_id);
 
-        Axios.post("api/project_log/import_project_log", formData, {
+        axios.post("api/project_log/import_project_log", formData, {
           headers: {
             Authorization: "Bearer " + access_token,
             "Content-Type": "multipart/form-data",
@@ -1079,7 +1079,7 @@ export default {
     },
 
     userRolesPermissions() {
-      Axios.get("api/user/roles_permissions").then((response) => {
+      axios.get("api/user/roles_permissions").then((response) => {
         this.user_permissions = response.data.user_permissions;
         this.user_roles = response.data.user_roles;
         this.getRolesPermissions();
@@ -1239,7 +1239,7 @@ export default {
     },
   },
   mounted() {
-    Axios.defaults.headers.common["Authorization"] =
+    axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getProjectLogs();
     this.setDropdownTime();
