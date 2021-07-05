@@ -297,7 +297,6 @@ export default {
           if (response.data.success) {
             this.overlay = false;
             localStorage.removeItem("access_token");
-            localStorage.removeItem("user");
             this.$router.push("/login").catch(() => {});
           }
         },
