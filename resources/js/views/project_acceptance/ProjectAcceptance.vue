@@ -134,7 +134,7 @@
                   class="mb-4 white--text float-right mr-4"
                   color="red"
                   @click="deleteOverview()"
-                  v-if="permissions.project_acceptance_overview_delete"
+                  v-if="userPermissions.project_acceptance_overview_delete"
                 >
                   delete
                 </v-btn>
@@ -147,19 +147,13 @@
   </div>
 </template>
 <script>
-let access_token;
-let user_permissions;
-let user_roles;
 
 import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
-import Home from "../Home.vue";
+import { mapState } from 'vuex';
 
 export default {
-  components: {
-    Home,
-  },
 
   mixins: [validationMixin],
   validations: {
@@ -216,10 +210,7 @@ export default {
           disabled: false,
         },
       ],
-      permissions: Home.data().permissions,
       overviewHasRecord: false,
-      user_permissions: [],
-      user_roles: [],
     };
   },
 
@@ -358,59 +349,10 @@ export default {
         this.$router.push({ name: "unauthorize" });
       }
     },
-    userRolesPermissions() {
-      axios.get("api/user/roles_permissions").then((response) => {
-        this.user_permissions = response.data.user_permissions;
-        this.user_roles = response.data.user_roles;
-        this.getRolesPermissions();
-      });
-    },
-
-    getRolesPermissions() {
-      this.permissions.project_acceptance_overview = this.hasPermission([
-        "project-acceptance-overview",
-      ]);
-      this.permissions.project_acceptance_overview_delete = this.hasPermission([
-        "project-acceptance-overview-delete",
-      ]);
-
-      // if user is not authorize
-      if (!this.permissions.project_acceptance_overview) {
-        this.$router.push("/unauthorize").catch(() => {});
-      }
-    },
-    hasRole(roles) {
-      let hasRole = false;
-
-      roles.forEach((value, index) => {
-        hasRole = this.user_roles.includes(value);
-      });
-
-      return hasRole;
-    },
-
-    hasPermission(permissions) {
-      let hasPermission = false;
-
-      permissions.forEach((value, index) => {
-        hasPermission = this.user_permissions.includes(value);
-      });
-
-      return hasPermission;
-    },
     websocket() {
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
-        if (
-          action == "user-edit" ||
-          action == "role-edit" ||
-          action == "role-delete" ||
-          action == "permission-create" ||
-          action == "permission-delete"
-        ) {
-          this.userRolesPermissions();
-        }
 
         if (action == "overview-delete") {
           this.$router.push({ name: "programmer_reports" });
@@ -426,13 +368,12 @@ export default {
         errors.push("Overview is required.");
       return errors;
     },
+    ...mapState("userRolesPermissions", ["userRoles", "userPermissions"]),
   },
   mounted() {
     axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
-
     this.getAcceptanceOverview();
-    this.userRolesPermissions();
     this.websocket();
   },
 };

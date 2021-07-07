@@ -25,7 +25,7 @@
               color="primary"
               small
               @click="printPreview()"
-              v-if="permissions.print_preview"
+              v-if="userPermissions.print_preview"
             >
               <v-icon class="mr-1" small> mdi-eye </v-icon>
               Preview
@@ -38,13 +38,13 @@
               :fields="json_fields"
               worksheet="My Worksheet"
               :name="filename"
-              v-if="permissions.export_project"
+              v-if="userPermissions.export_project"
             >
               <v-btn
                 :disabled="printDisabled"
                 color="success"
                 small
-                v-if="permissions.export_project"
+                v-if="userPermissions.export_project"
               >
                 <v-icon class="mr-1" small> mdi-microsoft-excel </v-icon>
                 export
@@ -62,11 +62,11 @@
               item-value="id"
               label="Programmer"
               hide-details=""
-              v-if="permissions.view_all_projects || user_type == 'Validator'"
+              v-if="userPermissions.view_all_projects || user_type == 'Validator'"
             ></v-select>
 
             {{
-              permissions.view_all_projects || user_type == "Validator"
+              userPermissions.view_all_projects || user_type == "Validator"
                 ? ""
                 : "My Projects"
             }}
@@ -351,7 +351,7 @@
                               ></v-date-picker>
                             </v-menu>
                           </v-col>
-                          <v-col v-if="permissions.edit_template_percentage">
+                          <v-col v-if="userPermissions.edit_template_percentage">
                             <v-text-field-money
                               v-model="editedItem.template_percent"
                               v-bind:properties="{
@@ -368,7 +368,7 @@
                             >
                             </v-text-field-money>
                           </v-col>
-                          <v-col v-if="permissions.edit_program_percentage">
+                          <v-col v-if="userPermissions.edit_program_percentage">
                             <v-text-field-money
                               v-model="editedItem.program_percent"
                               v-bind:properties="{
@@ -385,7 +385,7 @@
                             >
                             </v-text-field-money>
                           </v-col>
-                          <v-col v-if="permissions.edit_validate_percentage">
+                          <v-col v-if="userPermissions.edit_validate_percentage">
                             <v-text-field-money
                               v-model="editedItem.validation_percent"
                               v-bind:properties="{
@@ -647,9 +647,9 @@
                 <template
                   v-slot:item.actions="{ item, index }"
                   v-if="
-                    permissions.project_edit ||
-                    permissions.project_log_list ||
-                    permissions.project_log_create
+                    userPermissions.project_edit ||
+                    userPermissions.project_log_list ||
+                    userPermissions.project_log_create
                   "
                 >
                   <v-menu
@@ -667,10 +667,10 @@
                         class="ma-0 pa-0"
                         style="min-height: 25px"
                         v-if="
-                          permissions.edit_program_percentage ||
-                          permissions.edit_template_percentage ||
-                          permissions.edit_validate_percentage ||
-                          permissions.endorse_project
+                          userPermissions.edit_program_percentage ||
+                          userPermissions.edit_template_percentage ||
+                          userPermissions.edit_validate_percentage ||
+                          userPermissions.endorse_project
                         "
                       >
                         <v-list-item-title>
@@ -692,7 +692,7 @@
                         style="min-height: 25px"
                         v-if="
                           item.status != 'Accepted' &&
-                          permissions.project_log_create
+                          userPermissions.project_log_create
                         "
                       >
                         <v-list-item-title>
@@ -712,7 +712,7 @@
                       <v-list-item
                         class="ma-0 pa-0"
                         style="min-height: 25px"
-                        v-if="permissions.project_log_list"
+                        v-if="userPermissions.project_log_list"
                       >
                         <v-list-item-title>
                           <v-btn
@@ -733,7 +733,7 @@
                         style="min-height: 25px"
                         v-if="
                           item.status != 'Accepted' &&
-                          permissions.project_acceptance_overview
+                          userPermissions.project_acceptance_overview
                         "
                       >
                         <v-list-item-title>
@@ -755,7 +755,7 @@
                         style="min-height: 25px"
                         v-if="
                           item.status == 'Accepted' &&
-                          permissions.project_acceptance_overview
+                          userPermissions.project_acceptance_overview
                         "
                       >
                         <v-list-item-title>
@@ -802,9 +802,6 @@
   </div>
 </template>
 <script>
-let access_token;
-let user_permissions;
-let user_roles;
 
 import axios from "axios";
 import moment from "moment";
@@ -816,7 +813,7 @@ import {
   requiredIf,
   requiredUnless,
 } from "vuelidate/lib/validators";
-import Home from "../Home.vue";
+import { mapState } from 'vuex';
 
 let now_date = moment(new Date().toISOString().substring(0, 10), "YYYY-MM-DD");
 let now_datetime = moment(new Date(), "YYYY-MM-DD");
@@ -830,9 +827,6 @@ let now_noon_time = new Date(
 );
 
 export default {
-  components: {
-    Home,
-  },
 
   mixins: [validationMixin],
 
@@ -1037,7 +1031,6 @@ export default {
         remarks: "",
         turnover: "",
       },
-      permissions: Home.data().permissions,
       loading: true,
       searchReportStatus: [
         { text: "All", value: "" },
@@ -1060,12 +1053,8 @@ export default {
       time_modal: false,
       endorse_date: new Date().toISOString().substr(0, 10),
       endorse_time: new Date().toTimeString().substr(0, 5),
-      user: localStorage.getItem("user"),
-      user_type: localStorage.getItem("user_type"),
-      user_id: localStorage.getItem("user_id"),
       printDisabled: true,
-      user_permissions: [],
-      user_roles: [],
+
     };
   },
 
@@ -1090,7 +1079,7 @@ export default {
           // if dropdown programmer has no value(first load) then set a value
           if (!this.filter_project_by_programmer) {
             if (
-              this.permissions.view_all_projects ||
+              this.userPermissions.view_all_projects ||
               this.user_type == "Validator"
             ) {
               this.filter_project_by_programmer = parseInt(
@@ -1493,102 +1482,12 @@ export default {
       }
     },
 
-    userRolesPermissions() {
-      axios.get("api/user/roles_permissions").then((response) => {
-        this.user_permissions = response.data.user_permissions;
-        this.user_roles = response.data.user_roles;
-        this.getRolesPermissions();
-      });
-    },
-
-    getRolesPermissions() {
-      this.permissions.programmer_projects = this.hasPermission([
-        "programmer-projects",
-      ]);
-      this.permissions.print_preview = this.hasPermission([
-        "print-preview",
-      ]);
-      this.permissions.export_project = this.hasPermission([
-        "export-project",
-      ]);
-      this.permissions.project_log_list = this.hasPermission([
-        "project-log-list",
-      ]);
-      this.permissions.project_log_create = this.hasPermission([
-        "project-log-create",
-      ]);
-      this.permissions.project_edit = this.hasPermission([
-        "project-edit",
-      ]);
-      this.permissions.view_all_projects = this.hasPermission([
-        "view-all-projects",
-      ]);
-      this.permissions.edit_template_percentage = this.hasPermission([
-        "edit-template-percentage",
-      ]);
-      this.permissions.edit_program_percentage = this.hasPermission([
-        "edit-program-percentage",
-      ]);
-      this.permissions.edit_validate_percentage = this.hasPermission([
-        "edit-validate-percentage",
-      ]);
-      this.permissions.endorse_project = this.hasPermission([
-        "endorse-project",
-      ]);
-      this.permissions.project_acceptance_overview = this.hasPermission(
-        ["project-acceptance-overview"]
-      );
-
-      // hide column actions if user has no permission
-      if (
-        !this.permissions.project_log_list &&
-        !this.permissions.project_log_create &&
-        !this.permissions.project_edit
-      ) {
-        this.headers[1].align = " d-none";
-      } else {
-        this.headers[1].align = "";
-      }
-
-      // if user is not authorize
-      if (!this.permissions.programmer_projects) {
-        this.$router.push("/unauthorize").catch(() => {});
-      }
-    },
-    hasRole(roles) {
-      let hasRole = false;
-
-      roles.forEach((value, index) => {
-        hasRole = this.user_roles.includes(value);
-      });
-
-      return hasRole;
-    },
-
-    hasPermission(permissions) {
-      let hasPermission = false;
-
-      permissions.forEach((value, index) => {
-        hasPermission = this.user_permissions.includes(value);
-      });
-
-      return hasPermission;
-    },
     websocket() {
       
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
-        if (
-          action == "user-edit" ||
-          action == "role-edit" ||
-          action == "role-delete" ||
-          action == "permission-create" ||
-          action == "permission-delete"
-        ) {
-          this.userRolesPermissions();
-        }
-
+        
         if (
           action == "project-create" ||
           action == "project-edit" ||
@@ -1631,7 +1530,7 @@ export default {
         this.projects.forEach((value, index) => {
           // if user has the permission to view all projects or user type is not validator
           if (
-            this.permissions.view_all_projects ||
+            this.userPermissions.view_all_projects ||
             this.user_type != "Validator"
           ) {
             if (this.filter_project_by_programmer == value.programmer_id) {
@@ -1806,12 +1705,13 @@ export default {
 
       return isRequired;
     },
+    ...mapState('auth', { user: 'user_name', user_id: 'user_id', user_type: 'user_type' }),
+    ...mapState("userRolesPermissions", ["userRoles", "userPermissions"]),
   },
   mounted() {
     axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getProject();
-    this.userRolesPermissions();
     this.setDropdownTime();
     this.websocket();
   },

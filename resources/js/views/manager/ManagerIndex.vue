@@ -27,7 +27,7 @@
               label="Search"
               single-line
               hide-details
-              v-if="permissions.manager_list"
+              v-if="userPermissions.manager_list"
             ></v-text-field>
             <template>
               <v-toolbar flat>
@@ -39,7 +39,7 @@
                   dark
                   class="mb-2"
                   @click="clear() + (dialog = true)"
-                  v-if="permissions.manager_create"
+                  v-if="userPermissions.manager_create"
                 >
                   <v-icon>mdi-plus</v-icon>
                 </v-btn>
@@ -120,7 +120,7 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
-            v-if="permissions.manager_list"
+            v-if="userPermissions.manager_list"
           >
             <template v-slot:item.actions="{ item }">
               <v-icon
@@ -128,11 +128,11 @@
                 class="mr-2"
                 color="green"
                 @click="editManager(item)"
-                v-if="permissions.manager_edit"
+                v-if="userPermissions.manager_edit"
               >
                 mdi-pencil
               </v-icon>
-              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="permissions.manager_delete">
+              <v-icon small color="red" @click="showConfirmAlert(item)" v-if="userPermissions.manager_delete">
                 mdi-delete
               </v-icon>
             </template>
@@ -143,20 +143,13 @@
   </div>
 </template>
 <script>
-let access_token;
-let user_permissions;
-let user_roles;
 
 import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
-import Home from '../Home.vue';  
+import { mapState } from 'vuex';
 
 export default {
-
-  components: {
-    Home
-  },
 
   mixins: [validationMixin],
 
@@ -206,10 +199,7 @@ export default {
           disabled: true,
         },
       ],
-      permissions: Home.data().permissions,
       loading: true,
-      user_permissions: [],
-      user_roles: [],
     };
   },
 
@@ -395,78 +385,13 @@ export default {
         this.$router.push({ name: "unauthorize" });
       }
     },
-    userRolesPermissions() {
-      axios.get("api/user/roles_permissions").then((response) => {
-        this.user_permissions = response.data.user_permissions;
-        this.user_roles = response.data.user_roles;
-        this.getRolesPermissions();
-      });
-    },
-
-    getRolesPermissions() {
-      this.permissions.manager_list = this.hasPermission([
-        "manager-list",
-      ]);
-      this.permissions.manager_create = this.hasPermission([
-        "manager-create",
-      ]);
-      this.permissions.manager_edit = this.hasPermission([
-        "manager-edit",
-      ]);
-      this.permissions.manager_delete = this.hasPermission([
-        "manager-delete",
-      ]);
-
-      // hide column actions if user has no permission
-      if (!this.permissions.manager_edit && !this.permissions.manager_delete) {
-        this.headers[3].align = " d-none";
-      }
-      else
-      {
-        this.headers[3].align = "";
-      }
-
-      // if user is not authorize
-      if (!this.permissions.manager_list && !this.permissions.manager_create) {
-        this.$router.push("/unauthorize").catch(() => {});
-      }
-      
-    },
-    hasRole(roles) {
-      let hasRole = false;
-
-      roles.forEach((value, index) => {
-        hasRole = this.user_roles.includes(value);
-      });
-
-      return hasRole;
-    },
-
-    hasPermission(permissions) {
-      let hasPermission = false;
-
-      permissions.forEach((value, index) => {
-        hasPermission = this.user_permissions.includes(value);
-      });
-
-      return hasPermission;
-    },
+   
     websocket() {
       
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
-         if (
-          action == "user-edit" ||
-          action == "role-edit" ||
-          action == "role-delete" ||
-          action == "permission-create" ||
-          action == "permission-delete"
-        ) {
-
-          this.userRolesPermissions();
-        }
-
+        
         if(action == 'manager-create' || action == 'manager-edit' || action == 'manager-delete')
         {
           this.getManager();
@@ -500,13 +425,13 @@ export default {
         return " Inactive";
       }
     },
+    ...mapState("userRolesPermissions", ["userRoles", "userPermissions"]),
   },
   mounted() {
     axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
 
     this.getManager();
-    this.userRolesPermissions();
     this.websocket();
   },
 };

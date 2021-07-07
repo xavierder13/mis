@@ -47,7 +47,7 @@
             <!-- <v-divider
               vertical
               class="ml-2"
-              v-if="permissions.export_project_log"
+              v-if="userPermissions.export_project_log"
             ></v-divider>
             <export-excel
               class="btn btn-default"
@@ -55,12 +55,12 @@
               :fields="json_fields"
               worksheet="My Worksheet"
               name="filename.xls"
-              v-if="permissions.export_project_log"
+              v-if="userPermissions.export_project_log"
             >
               <v-icon
                 :disabled="printDisabled"
                 color="success"
-                v-if="permissions.export_project_log"
+                v-if="userPermissions.export_project_log"
               >
                 mdi-file-excel
               </v-icon>
@@ -69,7 +69,7 @@
               vertical
               class="ml-3"
               v-if="
-                permissions.import_project_log && project.status != 'Accepted'
+                userPermissions.import_project_log && project.status != 'Accepted'
               "
             ></v-divider>
             <v-btn
@@ -78,7 +78,7 @@
               class="ml-2"
               @click="importExcel()"
               v-if="
-                permissions.import_project_log && project.status != 'Accepted'
+                userPermissions.import_project_log && project.status != 'Accepted'
               "
             >
               <v-icon small class="mr-1"> mdi-import </v-icon> Import
@@ -486,15 +486,12 @@
   </div>
 </template>
 <script>
-let access_token;
-let user_permissions;
-let user_roles;
 
 import axios from "axios";
 import { validationMixin } from "vuelidate";
 import { required, maxLength, email } from "vuelidate/lib/validators";
 import moment from "moment";
-import Home from "../Home.vue";
+import { mapState } from 'vuex';
 
 let now_date = moment(new Date().toISOString().substring(0, 10), "YYYY-MM-DD");
 let now_datetime = moment(new Date(), "YYYY-MM-DD");
@@ -508,10 +505,7 @@ let now_noon_time = new Date(
 );
 
 export default {
-  components: {
-    Home,
-  },
-
+  
   mixins: [validationMixin],
 
   validations: {
@@ -600,7 +594,6 @@ export default {
         remarks: "",
         turnover: "",
       },
-      permissions: Home.data().permissions,
       loading: true,
       report_status: [],
       status: [],
@@ -609,9 +602,7 @@ export default {
       error_status: null,
       timeHasError: false,
       remarks_datetime_invalid: false,
-      user_permissions: [],
-      user_roles: [],
-    };
+     };
   },
 
   methods: {
@@ -962,7 +953,7 @@ export default {
 
         axios.post("api/project_log/import_project_log", formData, {
           headers: {
-            Authorization: "Bearer " + access_token,
+            Authorization: "Bearer " + localStorage.getItem('access_token'),
             "Content-Type": "multipart/form-data",
           },
         }).then(
@@ -1077,87 +1068,12 @@ export default {
         this.$router.push({ name: "unauthorize" });
       }
     },
-
-    userRolesPermissions() {
-      axios.get("api/user/roles_permissions").then((response) => {
-        this.user_permissions = response.data.user_permissions;
-        this.user_roles = response.data.user_roles;
-        this.getRolesPermissions();
-      });
-    },
-
-    getRolesPermissions() {
-      this.permissions.project_log_list = this.hasPermission([
-        "project-log-list",
-      ]);
-      this.permissions.project_log_create = this.hasPermission([
-        "project-log-create",
-      ]);
-      this.permissions.project_log_edit = this.hasPermission([
-        "project-log-edit",
-      ]);
-      this.permissions.project_log_delete = this.hasPermission([
-        "project-log-delete",
-      ]);
-      this.permissions.import_project_log = this.hasPermission([
-        "import-project-log",
-      ]);
-      this.permissions.export_project_log = this.hasPermission([
-        "export-project-log",
-      ]);
-
-      // hide column actions if user has no permission
-      if (
-        !this.permissions.project_log_edit &&
-        !this.permissions.project_log_delete
-      ) {
-        this.headers[7].align = " d-none";
-      } else {
-        this.headers[7].align = "";
-      }
-
-      // if user is not authorize
-      if (
-        !this.permissions.project_log_list &&
-        !this.permissions.project_log_create
-      ) {
-        this.$router.push("/unauthorize").catch(() => {});
-      }
-    },
-    hasRole(roles) {
-      let hasRole = false;
-
-      roles.forEach((value, index) => {
-        hasRole = this.user_roles.includes(value);
-      });
-
-      return hasRole;
-    },
-
-    hasPermission(permissions) {
-      let hasPermission = false;
-
-      permissions.forEach((value, index) => {
-        hasPermission = this.user_permissions.includes(value);
-      });
-
-      return hasPermission;
-    },
     websocket() {
       
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
         let action = data.action;
-        if (
-          action == "user-edit" ||
-          action == "role-edit" ||
-          action == "role-delete" ||
-          action == "permission-create" ||
-          action == "permission-delete"
-        ) {
-          this.userRolesPermissions();
-        }
-
+ 
         if (
           action == "project-log-create" ||
           action == "project-log-edit" ||
@@ -1237,13 +1153,13 @@ export default {
     imported_file_errors() {
       return this.errors_array.sort();
     },
+    ...mapState("userRolesPermissions", ["userRoles", "userPermissions"]),
   },
   mounted() {
     axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getProjectLogs();
     this.setDropdownTime();
-    this.userRolesPermissions();
     this.websocket();
   },
 };

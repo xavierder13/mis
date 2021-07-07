@@ -636,6 +636,8 @@ class ProjectController extends Controller
 
         $project->delete();
 
+        ProjectLog::where('project_id', '=', $project->id)->delete();
+
         event(new WebsocketEvent(['action' => 'project-delete']));
 
         return response()->json(['success' => 'Record has been deleted'], 200);
@@ -652,8 +654,10 @@ class ProjectController extends Controller
         }
         else
         {
-            // $project = Project::first();
-            $project = DB::table('projects')->orderBy('id', 'Desc')->first();
+            // Convert varchar into integer(SIGNED)
+            $project = DB::table('projects')->select(DB::raw("CAST(ref_no as SIGNED) as ref_no"))
+                                            ->orderBy('ref_no', 'DESC')
+                                            ->first();
             if($project)
             {
                 $ref_no = $project->ref_no + 1;

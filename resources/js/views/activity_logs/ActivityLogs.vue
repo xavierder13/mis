@@ -27,8 +27,9 @@
               label="Search"
               single-line
               hide-details
-              v-if="permissions.user_list"
+              v-if="userPermissions.activity_logs"
             ></v-text-field>
+            <v-spacer></v-spacer>
           </v-card-title>
           <v-data-table
             :headers="headers"
@@ -36,7 +37,7 @@
             :search="search"
             :loading="loading"
             loading-text="Loading... Please wait"
-            v-if="permissions.activity_logs"
+            v-if="userPermissions.activity_logs"
           >
           </v-data-table>
         </v-card>
@@ -45,18 +46,10 @@
   </div>
 </template>
 <script>
-let access_token;
-let user_permissions;
-let user_roles;
-
 import axios from "axios";
-import Home from "../Home.vue";
+import { mapState } from "vuex";
 
 export default {
-  components: {
-    Home,
-  },
-
   data() {
     return {
       absolute: true,
@@ -82,17 +75,8 @@ export default {
         { text: "User Name", value: "name" },
         { text: "User Email", value: "email" },
       ],
-
       activity_logs: [],
-      roles: [],
-      roles_permissions: [],
-      permissions: Home.data().permissions,
-      permissions: {
-        activity_logs: false,
-      },
       loading: true,
-      user_permissions: [],
-      user_roles: [],
     };
   },
 
@@ -116,68 +100,20 @@ export default {
         this.$router.push({ name: "unauthorize" });
       }
     },
-
-    userRolesPermissions() {
-      axios.get("api/user/roles_permissions").then((response) => {
-        this.user_permissions = response.data.user_permissions;
-        this.user_roles = response.data.user_roles;
-        this.getRolesPermissions();
-      });
-    },
-
-    getRolesPermissions() {
-      this.permissions.activity_logs = this.hasPermission([
-        "activity-logs",
-      ]);
-
-      // if user is not authorize
-      if (!this.permissions.activity_logs) {
-        this.$router.push("/unauthorize").catch(() => {});
-      }
-    },
-     hasRole(roles) {
-      let hasRole = false;
-
-      roles.forEach((value, index) => {
-        hasRole = this.user_roles.includes(value);
-      });
-
-      return hasRole;
-    },
-
-    hasPermission(permissions) {
-      let hasPermission = false;
-
-      permissions.forEach((value, index) => {
-        hasPermission = this.user_permissions.includes(value);
-      });
-
-      return hasPermission;
-    },
     websocket() {
       // Socket.IO fetch data
       this.$options.sockets.sendData = (data) => {
-        let action = data.action;
-        if (
-          action == "user-edit" ||
-          action == "role-edit" ||
-          action == "role-delete" ||
-          action == "permission-create" ||
-          action == "permission-delete"
-        ) {
-          this.userRolesPermissions();
-        }
-
         this.getActivityLogs();
       };
     },
   },
-  computed: {},
+  computed: {
+    ...mapState("userRolesPermissions", ["userRoles", "userPermissions"]),
+  },
   mounted() {
     axios.defaults.headers.common["Authorization"] =
       "Bearer " + localStorage.getItem("access_token");
     this.getActivityLogs();
-    this.userRolesPermissions();
     this.websocket();
   },
 };
