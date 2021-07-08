@@ -1,9 +1,7 @@
 <template>
   <v-app>
-    <v-btn></v-btn>
     <!-- Content -->
-    <router-view/>
-    
+    <router-view/> 
   </v-app>
 </template>
 
