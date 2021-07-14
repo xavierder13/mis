@@ -55,15 +55,14 @@
 
         <v-card>
           <v-card-title>
-            <v-select
+            <v-autocomplete
               v-model="filter_project_by_programmer"
               :items="programmers"
               item-text="name"
               item-value="id"
               label="Programmer"
-              hide-details=""
               v-if="userPermissions.view_all_projects || user_type == 'Validator'"
-            ></v-select>
+            ></v-autocomplete>
 
             {{
               userPermissions.view_all_projects || user_type == "Validator"
@@ -77,17 +76,15 @@
               append-icon="mdi-magnify"
               label="Search"
               single-line
-              hide-details
             ></v-text-field>
             <v-spacer></v-spacer>
-            <v-select
+            <v-autocomplete
               v-model="search_report_status"
               :items="searchReportStatus"
               item-text="text"
               item-value="value"
               label="Report Status"
-              hide-details=""
-            ></v-select>
+            ></v-autocomplete>
             <v-spacer></v-spacer>
             <v-menu
               v-model="input_filter_date"

@@ -26,7 +26,6 @@
               append-icon="mdi-magnify"
               label="Search"
               single-line
-              hide-details
               v-if="userPermissions.activity_logs"
             ></v-text-field>
             <v-spacer></v-spacer>

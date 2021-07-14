@@ -168,7 +168,6 @@ export default {
       input_date: false,
       holiday_date: "",
       switch1: true,
-      search: "",
       headers: [
         { text: "Holiday", value: "name" },
         { text: "Date", value: "holiday_date" },

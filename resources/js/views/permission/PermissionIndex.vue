@@ -18,7 +18,6 @@
               append-icon="mdi-magnify"
               label="Search"
               single-line
-              hide-details
               v-if="userPermissions.permission_list"
             ></v-text-field>
             <template>

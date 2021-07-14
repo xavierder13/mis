@@ -34,7 +34,6 @@
               append-icon="mdi-magnify"
               label="Search"
               single-line
-              hide-details
               v-if="userPermissions.project_list"
             ></v-text-field>
 
